@@ -130,6 +130,13 @@
   .rank__tabs button.is-on { border-color: var(--ink); background: var(--ink); color: var(--slip); }
   .mode--ghost { background: transparent; color: var(--ink); }
   .mode:active { transform: translate(2px, 2px); }
+  /* 스테이지 난이도: two stamps side by side, the chosen one inked red */
+  .lvl { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--ink-soft); }
+  .lvl span { margin-right: 4px; }
+  .lvl button { font: inherit; font-family: var(--font-mark); font-weight: 900; font-size: 14px; letter-spacing: .08em; min-width: 64px; min-height: 36px; padding: 4px 12px;
+    border: 1.5px solid var(--ink); background: transparent; color: var(--ink); cursor: pointer; border-radius: 0; }
+  .lvl button[aria-pressed="true"] { background: var(--seal); border-color: var(--seal); color: var(--slip); }
+  .lvl button:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
   .mode:focus-visible, .link:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
   .link { justify-self: start; background: none; border: 0; padding: 0; font: inherit; font-size: 13px; color: var(--ink-soft); text-decoration: underline; cursor: pointer; }
 
@@ -233,6 +240,9 @@
         <button class="mode mode--mon" id="goMon" hidden><b>요괴전</b></button>
       </div>
       <button class="link" id="storyNew" hidden>스토리모드 처음부터</button>
+      <div class="lvl" id="stageLvl" role="group" aria-label="스테이지 난이도">
+        <span>스테이지 난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
+      </div>
       <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
       <button class="link" id="devOpen" hidden>개발자 모드: 보스 비기 보기</button>
       <div class="purse">
@@ -266,7 +276,7 @@
   <div class="screen" id="dev" hidden>
     <section class="slip" data-seal="試">
       <h2 class="shop-title">보스 비기</h2>
-      <p class="shop-note">15장까지의 보스와 비기. 보기를 누르면 보스가 비기 하나를 쉬지 않고 쓰고, 뒤로는 그 보스에 어울리는 것이 흘러간다 (32초).</p>
+      <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기 하나를 쉬지 않고 쓰고, 뒤로는 그 보스에 어울리는 것이 흘러간다 (32초).</p>
       <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
       <button class="btn btn--ghost" id="devClose">돌아가기</button>
@@ -907,15 +917,20 @@ sdk.initializeAsync()
     fire: { bpm: 104, scale: "dark", ost: [5, _, _, 5, _, _, 6, _, 5, _, _, 5, _, _, 4, _], harm: [0, 0, 0, 1], boom: [0, 3, 6, 8, 10, 13], wood: [2, 4, 10, 12], shk: 0, gongEvery: 2, low: true },
     frost: { bpm: 72, scale: "cold", ost: [7, _, _, _, 5, _, _, _, 9, _, _, _, 8, _, _, _], harm: [0, 0, -1, 0], boom: [0], wood: [], shk: 1, freeze: true, bell: true, lead: "pluck" },
     void: { bpm: 100, scale: "dark", ost: [5, _, 5, _, 6, _, 5, _, 4, _, 4, _, 3, _, 1, _], harm: [0, 1, 0, -1], boom: [0, 6, 8], wood: [], shk: 4, gongEvery: 1, gongHz: 300, low: true },
-    wind: { bpm: 132, scale: "zhi", ost: [5, 6, 7, 6, 5, 6, 7, 8, 5, 6, 7, 6, 4, 5, 6, 5], harm: [0, 1, 0, -1], boom: [0, 8], wood: [], shk: 1 },
+    charge: { bpm: 126, scale: "yu", ost: [5, _, 5, _, 7, _, 5, _, 8, _, 7, _, 5, _, 3, _], harm: [0, 0, -1, 1], boom: [0, 2, 4, 8, 10, 12], wood: [6, 14], shk: 2, low: true }, // paws on the ground, a gallop
     veil: { bpm: 96, scale: "dark", ost: [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _], harm: [0], boom: [0, 3], wood: [], shk: 0, mel: false, trem: true, low: true }, // a heartbeat and a thin tremble
     drum: { bpm: 0, drumSync: true, scale: "yu", ost: [5, _, _, _, 5, _, _, _, 5, _, _, _, 6, _, 5, _], harm: [0, 0, -1, 0], boom: [0, 4, 8, 12], wood: [2, 6, 10, 14], shk: 0, gongEvery: 1 },
     mirror: { bpm: 100, scale: "cold", ost: [9, _, 7, _, 5, _, 7, _, 9, _, 10, _, 9, _, 7, _], harm: [0, 0, -1, 1], boom: [0, 8], wood: [], shk: 0, echo: 3, bell: true, lead: "pluck" },
-    eclipse: { bpm: 88, scale: "dark", ost: [5, _, _, _, _, _, 4, _, _, _, _, _, 3, _, _, _], harm: [0, -1, 0, 1], boom: [0, 10], wood: [], shk: 0, gongEvery: 2, gongHz: 260, low: true },
+    rain: { bpm: 84, scale: "cold", ost: [9, _, 7, _, _, 5, _, _, 7, _, 5, _, _, 4, _, _], harm: [0, -1, 0, 1], boom: [0], wood: [], shk: 1, soft: true, lead: "pluck", echo: 2 }, // drops off the eaves, the hiss of rain
     swords: { bpm: 116, scale: "yu", ost: [5, _, 5, _, 7, _, 5, _, 5, _, 5, _, 8, _, 7, _], harm: [0, 0, -1, 1], boom: [0, 4, 8, 12], wood: [], shk: 0, clang: [2, 6, 10, 14] }, // a march, steel on the off-beats
     time: { bpm: 108, timed: true, scale: "gong", ost: [5, 7, 9, 7, 5, 7, 9, 10, 5, 7, 9, 7, 4, 5, 7, 5], harm: [0, 1, 0, -1], boom: [0, 8], wood: [4, 12], shk: 2 },
     thunder: { bpm: 112, scale: "dark", ost: [5, _, _, 8, _, _, 7, _, 5, _, _, 8, _, 9, 8, _], harm: [0, 0, -1, 1], boom: [0, 2, 8, 11], wood: [], shk: 3, low: true, gongEvery: 1, gongHz: 180 }, // rolling drums, a low gong for the thunder
     shadow: { bpm: 100, scale: "dark", ost: [5, _, 4, _, 3, _, 4, _, 5, _, 4, _, 3, _, 1, _], harm: [0, 0, 1, 0], boom: [0, 7, 8], wood: [12], shk: 2, canon: 8 }, // the tune again, half a bar behind, quieter
+    swarm: { bpm: 100, scale: "gong", ost: [7, 9, 7, _, 5, 7, 5, _, 4, 5, 4, _, 2, 4, 2, _], harm: [0, 1, -1, 0], boom: [0, 8], wood: [], shk: 0, trem: true, lead: "pluck", canon: 2, canonUp: true }, // light and fluttering, never settling
+    wheel: { bpm: 140, scale: "dark", ost: [5, _, 6, 5, _, 6, 5, _, 7, _, 6, 5, _, 4, 3, _], harm: [0, 0, 1, -1], boom: [0, 3, 6, 8, 11, 14], wood: [2, 10], shk: 2, gongEvery: 2, low: true }, // a wheel's rattle, fast
+    pendulum: { bpm: 80, scale: "dark", ost: [5, _, _, _, _, _, _, _, 3, _, _, _, _, _, _, _], harm: [0, -1, 0, -1], boom: [0, 8], wood: [4, 12], shk: 0, clang: [0, 8], gongEvery: 1, gongHz: 200, low: true }, // tick, tock, iron on iron
+    crumble: { bpm: 92, scale: "zhi", ost: [3, _, _, 4, _, _, 3, _, 1, _, _, 3, _, _, 4, _], harm: [0, 0, -1, 0], boom: [0, 1, 8, 9], wood: [], shk: 3, low: true, gongEvery: 2, gongHz: 150 }, // stamping, the ground grinding
+    gaze: { bpm: 70, scale: "cold", ost: [_, _, _, _, 9, _, _, _, _, _, _, _, 8, _, _, _], harm: [0], boom: [0], wood: [], shk: 0, mel: false, trem: true, bell: true, freeze: true }, // almost nothing; it stops dead while the eye is open
     final: { bpm: 138, scale: "dark", ost: [5, 3, 5, 6, 5, 3, 5, 7, 5, 3, 5, 6, 4, 3, 2, 1], harm: [0, 0, -1, 1], boom: [0, 3, 6, 8, 11, 14], wood: [4, 10, 12], shk: 2, gongEvery: 1, canon: 4, low: true },
   };
   const bossSong = () => (G.mode === "play" && G.boss && G.phase !== "bossDown" && BOSS_MUSIC[G.boss.def.sig]) || null;
@@ -983,7 +998,7 @@ sdk.initializeAsync()
   const P = { x: 0, y: 0, dx: 0, dy: -1, inv: 0 };
   const G = {
     mode: "menu", t: 0, bonus: 0, near: 0, combo: 0, comboT: 0, stage: 0, slow: 1, slowT: 0, shake: 0,
-    shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], leaves: [], decals: [], timers: {}, dieT: 0, banner: null,
+    shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], leaves: [], decals: [], snaps: [], timers: {}, dieT: 0, banner: null,
     flash: 0, flashC: "255,250,235", zoom: 0, stopT: 0, dark: 0,
     bigT: 0, lastBig: "",
     bigSeen: new Set(), callout: null, // which big moves this run has shown; the technique name being called out
@@ -994,7 +1009,7 @@ sdk.initializeAsync()
     mons: [], seen: new Set(), monT: 1, msg: null, // 요괴전: the monsters on the field, which ones have shown up, the next one's wait, the battle box
     // 스테이지 모드 (it runs on the story's machinery, so G.story is true too): which stage, the draws made so far, the record when the run began
     stageRun: false, sg: 0, seedN: {}, stageTop0: 0,
-    timeK: 1, bossK: 1, freezeT: 0, eclipse: null, // what a boss's 비기 is doing to time and light (and the fight's own slower pace)
+    timeK: 1, bossK: 1, freezeT: 0, // what a boss's 비기 is doing to time (and the fight's own slower pace)
     dev: null, devInv: true, // 개발자 모드 (?dev): which boss's 비기 is being watched, and whether you can be hit
   };
   const HIT = () => S * 0.012; // a forgiving hitbox
@@ -1004,11 +1019,11 @@ sdk.initializeAsync()
   function reset() {
     Object.assign(G, {
       t: 0, rt: 0, bonus: 0, near: 0, combo: 0, comboT: 0, stage: 0, slow: 1, slowT: 0, shake: 0,
-      shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], decals: [], timers: {}, dieT: 0,
+      shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], decals: [], snaps: [], timers: {}, dieT: 0,
       flash: 0, zoom: 0, stopT: 0, dark: 0, bigT: 0, lastBig: "",
-      bigSeen: new Set(), callout: null,
+      bigSeen: new Set(), callout: null, stamp: null,
       phase: "", pt: 0, ct: 0, st: 0, boss: null, lines: [], lineI: 0, lineT: 0, onLines: null, card: null, safe: false, cleared: false, banner: null,
-      timeK: 1, bossK: 1, freezeT: 0, eclipse: null,
+      timeK: 1, bossK: 1, freezeT: 0,
       mons: [], seen: new Set(), monT: 1, msg: null,
     });
     Object.assign(P, { x: W / 2, y: H * 0.58, dx: 0, dy: -1, inv: 0, push: null });
@@ -1491,6 +1506,7 @@ sdk.initializeAsync()
     const b = G.boss;
     G.phase = "bossDown"; b.downT = 0.001;
     clearField();
+    G.stamp = { ch: "斬", at: performance.now(), accent: b.def.accent }; // a red seal pressed over it
     [-0.6, 0.5, 0].forEach((ang, i) => G.cuts.push({ x: b.x, y: b.y, ang, w: S * 0.08, t: -i * 0.09, checked: true }));
     for (const [x, y] of bossBodies(b)) { burstInk(x, y, 50); stain(x, y, S * 0.1); }
     G.stopT = 0.16; G.slow = 0.35; G.slowT = 0.8; G.shake = reduced ? 0 : 22; G.zoom = 0.08; flash("255,250,235", 0.9);
@@ -1519,8 +1535,14 @@ sdk.initializeAsync()
   // a scene change: whatever is in the air turns to ink
   function clearField() {
     for (const s of G.shots) { if (!s.dead) { s.dead = true; shatter(s); } }
-    G.warns = []; G.hazards = []; G.cuts = [];
-    G.timeK = 1; G.bossK = 1; G.freezeT = 0; G.eclipse = null; // and whatever a 비기 had done to time and light is undone
+    G.warns = []; G.hazards = []; G.cuts = []; G.snaps = [];
+    G.timeK = 1; G.bossK = 1; G.freezeT = 0; // and whatever a 비기 had done to time is undone
+  }
+  // something heavy lands: the world catches for a blink, the ground shakes, a ring of ink runs out from it
+  function impact(x, y, power = 1, color = "#1d1a17") {
+    if (reduced) return;
+    G.stopT = Math.max(G.stopT, 0.03 * power); G.shake = Math.max(G.shake, 6 + 5 * power);
+    G.parts.push({ kind: "ring", x, y, vx: 0, vy: 0, r: S * 0.02, grow: S * 0.35 * power, color, life: 0.35, t: 0, round: true });
   }
 
   function storyStep(dt, realDt) {
@@ -1584,10 +1606,25 @@ sdk.initializeAsync()
     const b = G.boss;
     b.hurtT = Math.max(0, b.hurtT - dt); b.castT = Math.max(0, b.castT - dt);
     if (b.downT > 0) b.downT += dt;
-    if (G.phase === "boss") { b.wT -= dt; if (b.wT <= 0) fixed("move", () => { b.wT = rnd(1.8, 3); b.tx = rnd(W * 0.22, W * 0.78); b.ty = rnd(H * 0.2, H * 0.29); }); }
-    const k = Math.min(1, dt * (b.landed ? 1.6 : 4));
-    b.x += (b.tx - b.x) * k; b.y += (b.ty - b.y) * k;
     const u = bossUnit(b.def);
+    b.home = Math.max(0, (b.home || 0) - dt);
+    if (b.dash) { // 맹호충: running its road, by the fight's own clock
+      const d = b.dash; d.t += dt * (G.bossK || 1) * (G.timeK || 1);
+      const k = Math.min(1, d.t / d.dur);
+      b.x = d.x0 + (d.x1 - d.x0) * k; b.y = d.y0 + (d.y1 - d.y0) * k; b.tx = b.x; b.ty = b.y;
+      if (Math.random() < dt * 50) { burstInk(b.x + rnd(-u, u), b.y + u * 2, 2); } // the ground thrown up behind it
+      if (k >= 1) { b.dash = null; sfx.thud(); stain(b.x, b.y + u * 2, u * 1.4); impact(b.x, b.y + u, 1.5, b.def.accent); burstInk(b.x, b.y + u, 14); }
+    } else {
+      if (G.phase === "boss") { b.wT -= dt; if (b.wT <= 0) fixed("move", () => { b.wT = rnd(1.8, 3); b.tx = rnd(W * 0.22, W * 0.78); b.ty = rnd(H * 0.2, H * 0.29); }); }
+      const k = Math.min(1, dt * (b.landed ? 5 : 4)); // a quick step, not a drift
+      b.x += (b.tx - b.x) * k; b.y += (b.ty - b.y) * k;
+    }
+    // afterimages while it moves fast; its lunge as it calls a 비기
+    b.ghosts = (b.ghosts || []).filter((g) => (g.t += dt) < 0.3);
+    const mv = Math.hypot(b.x - (b.lx ?? b.x), b.y - (b.ly ?? b.y));
+    if (mv > S * 0.006 && !reduced && (b.gT = (b.gT || 0) - dt) <= 0) { b.gT = 0.04; b.ghosts.push({ x: b.x, y: b.y, t: 0 }); }
+    b.lx = b.x; b.ly = b.y;
+    if (b.lunge && (b.lunge.t += dt) > 0.45) b.lunge = null;
     if (!b.landed && b.y > b.ty - S * 0.03) { // it lands: the ground shakes and ink rings out
       b.landed = true;
       G.shake = Math.max(G.shake, reduced ? 0 : 14); flash("255,250,235", 0.35); G.zoom = 0.04;
@@ -1600,7 +1637,9 @@ sdk.initializeAsync()
       G.parts.push({ kind: "glow", color: MOTE[b.def.look], x: x + rnd(-u * 1.3, u * 1.3), y: y + rnd(-u * 0.5, u * 2), vx: rnd(-12, 12), vy: -rnd(25, 60), r: rnd(1.4, 3), life: rnd(0.5, 1), t: 0 });
     }
   }
-  const MOTE = { twins: "#c8321f", lotus: "#f2c9d0", monk: "#e8862a", snow: "#dbe9f4", lord: "#b0241a" };
+  const MOTE = { twins: "#c8321f", lotus: "#f2c9d0", monk: "#e8862a", snow: "#dbe9f4", lord: "#b0241a", tiger: "#e2a24a", veil: "#8a8790",
+    drum: "#c8321f", mirror: "#cfe6f3", rain: "#9fc6d2", swords: "#c9ccce", time: "#e8cf6a", thunder: "#fff3a8", ghost: "#8fd0c8",
+    butterfly: "#d9a6ea", wheel: "#ff9a3a", chain: "#8a8780", totem: "#a07a4a", eye: "#e8cf6a", final: "#f7f0de" };
   const bossBodies = (b) => (b.def.look === "twins" ? [[b.x - S * 0.085, b.y], [b.x + S * 0.085, b.y]] : [[b.x, b.y]]);
   function hurtBoss(amount) {
     const b = G.boss;
@@ -1625,12 +1664,17 @@ sdk.initializeAsync()
     { name: "안개 계곡", theme: "gorge", boss: 6, fresh: "beam", pats: ["line", "draw", "homing", "cross"], big: ["beam", "mist", "clones", "spiral"], diff: [48, 74] },
     { name: "붉은 절", theme: "temple", boss: 7, fresh: "burst", pats: ["line", "draw", "homing", "cross", "burst"], big: ["roar", "triple", "silk", "palm", "flick"], diff: [56, 82] },
     { name: "얼음 고개", theme: "snow", boss: 8, fresh: "mist", pats: ["line", "draw", "homing", "cross", "burst"], big: ["mist", "ring", "rain", "beam", "flick"], diff: [64, 90] },
-    { name: "검은 달", theme: "moon", boss: 9, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [72, 96] },
+    { name: "비 내리는 고개", theme: "gorge", boss: 9, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["rain", "beam", "spiral", "palm", "clones"], diff: [72, 96] },
     { name: "검총", theme: "field", boss: 10, fresh: "silk", pats: ["line", "draw", "homing", "cross", "burst"], big: ["silk", "rain", "triple", "spikes", "beam"], diff: [80, 104] },
     { name: "광음곡", theme: "gorge", boss: 11, fresh: "flick", pats: ["line", "draw", "homing", "cross", "burst"], big: ["flick", "spiral", "ring", "clones", "mist"], diff: [88, 112] },
     { name: "뇌운봉", theme: "moon", boss: 12, fresh: "roar", pats: ["line", "draw", "homing", "cross", "burst"], big: ["roar", "ring", "spiral", "beam", "palm"], diff: [96, 120] },
     { name: "추혼로", theme: "temple", boss: 13, fresh: "triple", pats: ["line", "draw", "homing", "cross", "burst"], big: ["triple", "clones", "silk", "flick", "rain"], diff: [104, 128] },
-    { name: "천하봉", theme: "grove", boss: 14, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [112, 136] },
+    { name: "호접곡", theme: "field", boss: 14, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["ring", "mist", "spiral", "silk", "flick"], diff: [112, 136] },
+    { name: "화륜평", theme: "moon", boss: 15, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["beam", "triple", "rain", "clones", "flick"], diff: [120, 144] },
+    { name: "철산", theme: "temple", boss: 16, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["palm", "silk", "ring", "spiral", "roar"], diff: [128, 152] },
+    { name: "장승골", theme: "grove", boss: 17, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["spikes", "mist", "triple", "beam", "rain"], diff: [136, 160] },
+    { name: "천안사", theme: "snow", boss: 18, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["flick", "clones", "ring", "silk", "palm"], diff: [144, 168] },
+    { name: "천하봉", theme: "grove", boss: 19, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [152, 176] },
   ];
   const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", homing: "따라붙는 칼", cross: "십자 발도", burst: "터지는 칼",
     spikes: "죽순", palm: "장풍", clones: "그림자", spiral: "칼바람", flick: "탄지신통", ring: "천라지망", roar: "사자후",
@@ -1652,42 +1696,59 @@ sdk.initializeAsync()
     ["“그림자는 네가 서 있던 자리로 달려든다”", "불탄 절의 종이 밤마다 혼자 운다", "파계한 중 하나가 아직 절을 지킨다고 한다", "적염 대사, 제 손으로 절에 불을 지른 자", "염불 소리가 들린다"],
     ["“따라오는 칼은 크게 돌면 빗나간다”", "고개를 넘던 상인들은 봄이 되어서야 발견됐다", "눈 위에 발자국은 없고 칼자국만 있다", "머리가 하얗게 센 검귀가 산다고 한다", "눈보라가 멎었다"],
     ["“하늘이 붉어지면 비가 아니라 칼이 내린다”", "교주는 칼을 두 번 휘두른 적이 없다고 한다", "청죽문이 불탄 밤에도 교주가 앞장서 있었다", "사부의 원수가 저 봉우리 위에 있다", "검은 달이 떴다"],
-    ["“띠가 엇갈려 깔리면 둘 다 벗어나라”", "타다 남은 대숲에 바람이 그치질 않는다", "바람을 등에 지고 다니는 검객이 있다고 한다", "풍운객, 그가 지나간 자리엔 칼만 남는다", "바람이 한쪽으로 쏠린다"],
+    ["“띠가 엇갈려 깔리면 둘 다 벗어나라”", "타다 남은 대숲이 한 줄로 길게 쓰러져 있다", "범을 맨손으로 때려잡았다는 사내가 있다고 한다", "맹호, 대숲을 몸으로 뚫고 다니는 자", "땅이 쿵쿵 울린다"],
     ["“검기가 닿지 않는 자리는 미리 비어 보인다”", "안개가 걷히지 않는 계곡이 생겼다", "베인 자들은 칼을 보지 못했다고 한다", "무영, 그림자도 소리도 없는 자객", "안개 속에서 칼끝이 반짝였다"],
     ["“칼이 사방으로 터지면 줄과 줄 사이에 서라”", "버려진 절에서 밤마다 북소리가 난다", "북이 울릴 때마다 땅에 칼자국이 생긴다고 한다", "뇌음, 북 한 번에 칼 한 자루를 떨어뜨리는 승려", "목탁 소리가 멎고 북소리가 시작됐다"],
     ["“독무에 발을 들이면 걸음이 무거워진다”", "고개 위의 눈이 한여름에도 녹지 않는다", "얼음 벽에 비친 칼이 진짜 칼보다 빠르다고 한다", "빙경, 받은 칼을 그대로 돌려보내는 여인", "얼음 벽마다 네 얼굴이 비친다"],
-    ["“이제 네게 가르칠 것이 없다”", "쓰러졌던 교주가 다시 일어났다는 소문이다", "흑월교가 마지막 남은 힘을 모으고 있다", "검은 달 아래서 모든 것이 끝난다", "사부의 검을 쥔 손에 땀이 밴다"],
+    ["“이제 네게 가르칠 것이 없다”", "그 고개엔 비가 그친 날이 없다고 한다", "비를 맞은 나그네는 모두 베여 있었다", "청우, 우산 하나로 비를 부리는 검객", "빗소리가 칼 소리로 바뀌었다"],
     ["“실이 팽팽해지면 그 줄에 닿지 마라”", "주인을 잃은 칼들이 묻힌 골짜기가 있다", "밤이면 칼무덤에서 쇠 우는 소리가 난다", "검총주, 만 자루 칼을 거느린 자", "하늘에 칼이 걸렸다"],
     ["“조준선이 번쩍이면 이미 늦다. 미리 움직여라”", "골짜기에 들어간 사람이 하루 만에 백발이 되어 나왔다", "그 안에선 해가 빨리 졌다가 늦게 뜬다고 한다", "광음, 시간을 손에 쥔 노인", "물방울이 공중에서 멈췄다"],
     ["“사자후는 틈이 하나다. 그 틈으로 빠져나가라”", "맑은 날에도 봉우리 위로 천둥이 운다", "번개는 사람이 선 자리를 노린다고 한다", "벽력, 하늘을 부리는 도사", "발밑에 그을린 자국이 번진다"],
     ["“세 번 벤다. 세 번 다 자리를 옮겨라”", "이 길을 걸으면 발소리가 하나 더 들린다", "돌아본 자는 모두 제 그림자에 베였다", "추혼, 지나온 길을 칼로 바꾸는 자", "뒤에서 누가 따라온다"],
+    ["“여럿이 따라오면 크게 돌며 끌고 다녀라”", "골짜기의 꽃이 한철 내내 지지 않는다", "나비를 쫓아간 아이들이 돌아오지 않았다", "호접, 나비 떼를 부리는 여인", "보랏빛 가루가 날린다"],
+    ["“불길은 금방 꺼진다. 꺼진 자리로 건너라”", "들판에 바퀴 자국 모양으로 풀이 탔다", "밤마다 불덩이가 들판을 굴러다닌다고 한다", "화륜, 불바퀴를 타고 달리는 소년", "멀리서 바퀴 구르는 소리가 난다"],
+    ["“흔들리는 것은 끝에서 잠깐 멈춘다”", "광산 마을에서 쇠 부딪는 소리가 끊이지 않는다", "한 손에 만 근을 든다는 장사가 있다고 한다", "철추, 쇠공 둘을 매달고 다니는 장사", "머리 위에서 쇠사슬이 운다"],
+    ["“한자리에 오래 서지 마라. 땅도 지친다”", "마을 어귀의 장승이 하룻밤 새 자리를 옮겼다", "장승 앞을 지난 자는 땅이 꺼져 사라졌다고 한다", "장승, 천 년을 선 채로 마을을 지킨 수호신", "발밑에 금이 간다"],
+    ["“눈이 뜨이면 손가락을 멈춰라”", "절 지붕 위에 커다란 눈이 그려져 있다", "그 절에선 아무도 움직이지 않는다고 한다", "천안, 움직이는 것은 무엇이든 보는 눈", "누군가 보고 있다"],
     ["“여기서부터는 네 검으로 가라”", "천하제일을 가린다는 봉우리가 있다", "그 위에 이름 없는 고수가 기다린다", "무명, 이름을 버리고 천하를 얻은 자", "바람도 숨을 죽였다"],
   ];
-  // past the tenth 장 the 강호 talks about you
+  // past the last 장 the 강호 talks about you
   const ROAD_LINES = ["객잔마다 네 이야기를 한다", "너를 찾아 산을 오르는 자들이 생겼다", "어떤 이는 네가 사람이 아니라고 한다", "아이들이 대나무 막대로 네 흉내를 낸다",
     "또 한 명의 고수가 길을 막는다", "네 이름을 걸고 내기를 하는 자들이 있다", "강호에 너보다 오래 버틴 자는 없다", "누가 네 앞에서 칼을 뽑겠는가",
     "길이 끝나지 않는다. 너도 멈추지 않는다", "고수들이 줄을 서서 너를 기다린다", "이제 네가 소문이 되었다", "어디선가 사부가 웃고 있을 것이다"];
   // what the 강호 calls you once a 장 is behind you (the n-th 장's), then the road's own names, the last one for good
-  const TITLES = ["죽림의 생존자", "월하의 객", "불을 건넌 자", "설령의 칼", "흑월을 벤 검객", "바람을 이긴 자", "보이지 않는 칼을 본 자", "북소리를 넘은 자", "얼음 거울을 깬 자", "검은 달을 지운 자",
-    "만검의 주인", "시간을 넘은 자", "번개를 피한 자", "그림자를 이긴 자", "천하제일"];
+  const TITLES = ["죽림의 생존자", "월하의 객", "불을 건넌 자", "설령의 칼", "흑월을 벤 검객", "범을 넘은 자", "보이지 않는 칼을 본 자", "북소리를 넘은 자", "얼음 거울을 깬 자", "비를 가른 자",
+    "만검의 주인", "시간을 넘은 자", "번개를 피한 자", "그림자를 이긴 자", "나비 꿈에서 깬 자", "불바퀴를 넘은 자", "쇠공을 비켜 간 자", "땅 위를 걷는 자", "하늘의 눈을 속인 자", "천하제일"];
   const ROAD_TITLES = ["무명검성"];
   const titleOf = (w) => (w < TITLES.length ? TITLES[w] : ROAD_TITLES[Math.min(w - TITLES.length, ROAD_TITLES.length - 1)]);
   function worldOf(w) {
     if (w < WORLDS.length) return { ...WORLDS[w], power: w >= 5 ? 1 : 0 };
     const k = w - WORLDS.length + 1, last = WORLDS[WORLDS.length - 1];
-    return { ...WORLDS[5 + ((k - 1) % 10)], name: "끝없는 길", fresh: "", pats: last.pats, big: last.big, diff: [112 + 6 * k, 136 + 6 * k], power: 1 + Math.ceil(k / 3) };
+    // the road: the masters of 6장 to 19장 again, each a little stronger (the last 장's master only once)
+    return { ...WORLDS[5 + ((k - 1) % (WORLDS.length - 6))], name: "끝없는 길", fresh: "", pats: last.pats, big: last.big, diff: [152 + 6 * k, 176 + 6 * k], power: 1 + Math.ceil(k / 3) };
   }
   // The difficulty curve, squeezed (2026-11-05: "1~10이면 3~7로"): the first 장 starts where the fourth used to,
   // and the fifteenth tops out where the tenth used to. squash: a 장's difficulty clock; bossLv: a boss's level.
   // Then all of it a third easier again (same day: "전체적으로 30퍼"): the clock tops out at 70, bosses at 6.5,
   // and every boss fight runs at BOSS_PACE. Then, measured against a person's quarter-second thumb (11-05), the
   // middle and the end flattened once more: the clock tops out at 56.
-  const squash = (t) => 28 + (t - 8) * 0.22;
+  // 스테이지 모드 has two difficulties, chosen on the start screen, each with its own furthest stage (11-05: "이제는
+  // 너무 쉽네" — 보통 is tuned for a quarter-second thumb, 고수 for those who found that too easy):
+  //   pace   how fast an ordinary stage runs (everything slower, every warning longer, below 1)
+  //   base, slope  where the difficulty clock starts in 1-1, and its climb from 장 to 장 (squash)
+  //   crowd  how much each kind of attack waits longer when several are mixed
+  //   bamboo its gap, and how far it may close up late on
+  //   boss   how fast a boss fight runs; lv: how much stronger every boss's 비기 is
+  const STAGE_LEVELS = {
+    normal: { name: "보통", pace: 0.85, base: 2, slope: 0.24, crowd: 0.17, bamboo: 0.67, floor: 0.76, boss: 0.83, lv: 0.5, top: "stageTop" }, // (a touch harder again: "보통도 아주 조금은 더 어렵게")
+    master: { name: "고수", pace: 1.0, base: 12, slope: 0.33, crowd: 0.06, bamboo: 0.6, floor: 0.62, boss: 0.95, lv: 2.5, top: "stageTopM" }, // (base: 1-1 already bites)
+  };
+  let stageLevel = STAGE_LEVELS[store.get("stageLevel", "normal")] ? store.get("stageLevel", "normal") : "normal";
+  const SL = () => STAGE_LEVELS[stageLevel];
+  const stageTop = () => Number(store.get(SL().top, "0")) || 0;
+  const squash = (t) => 28 + SL().base + (t - 8) * SL().slope;
   const bossLv = (w) => 0.7 * (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
-  const BOSS_PACE = 0.8;
-  // an ordinary stage at a little under full speed too: everything flies slower and every warning stays longer,
-  // which is what a thumb reacting in a quarter second needs (fewer attacks wouldn't help it read them)
-  const STAGE_PACE = 0.8;
+  const BOSS_PACE = 0.8; // (스토리·개발자 모드; 스테이지 모드 takes its level's)
   const stageMemo = new Map();
   function stageDef(i) { // stage i (0 is 1-1): everything about it
     if (stageMemo.has(i)) return stageMemo.get(i);
@@ -1697,7 +1758,7 @@ sdk.initializeAsync()
     const d = { i, w, s, label: `${w + 1}-${s + 1}`, world: wd, theme: wd.theme, dur: step.dur, sub,
       gap: Math.max(0.8, step.gap - 0.05 * Math.max(0, wd.power - 1)), diff: [squash(lo + span * s / 5), squash(lo + span * (s + 1) / 5)],
       pats: wd.pats, big: [], bigEvery: [6.5, 8.5], boss: s === 4 };
-    d.bamboo = 0.7 * d.gap;
+    d.bamboo = SL().bamboo * d.gap;
     if (s === 0) { // the new thing on its own, with the bamboo
       d.pats = wd.fresh && !freshBig ? [wd.fresh] : wd.fresh ? [wd.pats[0]] : wd.pats;
       d.big = freshBig ? [wd.fresh] : wd.fresh ? [] : wd.big.slice(0, 1); d.bigEvery = [6, 7.5];
@@ -1707,11 +1768,11 @@ sdk.initializeAsync()
     if (s === 4) {
       d.pats = [wd.pats[0]];
       // the boss: the 장's own attacks all through its fight, and its one 비기 (bossFight); harder the further in
-      d.bossSet = BOSS_SET[wd.boss]; d.bossDef = bossDefOf(d.bossSet); d.lv = bossLv(w);
+      d.bossSet = BOSS_SET[wd.boss]; d.bossDef = bossDefOf(d.bossSet); d.lv = bossLv(w) + SL().lv;
     }
     // each kind of attack keeps its own clock, so five kinds at once came five times as thick: the more kinds,
     // the longer each one waits (all of them still come, only not all on top of each other)
-    d.crowd = 1 + 0.2 * Math.max(0, d.pats.length - 2);
+    d.crowd = 1 + SL().crowd * Math.max(0, d.pats.length - 2);
     stageMemo.set(i, d);
     return d;
   }
@@ -1734,7 +1795,7 @@ sdk.initializeAsync()
   }
   function startStage(i) {
     G.story = true; G.stageRun = true; G.dev = null; G.sg = i; G.ch = 0; reset(); G.mode = "play"; runStart();
-    G.stageTop0 = Number(store.get("stageTop", "0")) || 0;
+    G.stageTop0 = stageTop();
     setTheme(stageDef(i).theme, true);
     $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false;
     reachStage(i); enterStage();
@@ -1743,13 +1804,13 @@ sdk.initializeAsync()
     const sd = stageDef(G.sg);
     G.phase = "title"; G.pt = 0; G.seedN = {}; G.boss = null; G.titleLen = 1.7; G.next = null;
     G.card = { ch: { num: sd.label, name: sd.world.name, sub: sd.sub }, at: performance.now(), life: 1.7 };
-    $("stage").textContent = `${sd.label} · ${sd.world.name}`;
+    $("stage").textContent = `${sd.label} · ${sd.world.name}${stageLevel === "master" ? " · 고수" : ""}`;
     sfx.stage();
   }
   function enterStageFight() {
     const sd = stageDef(G.sg);
     G.phase = "fight"; G.ct = 0; G.timers = { bamboo: 0.6 }; G.lastBig = "";
-    G.bossK = STAGE_PACE; // (cleared with the field when the stage ends)
+    G.bossK = SL().pace; // (cleared with the field when the stage ends)
     sd.pats.forEach((k, i) => { G.timers[k] = PATTERNS[k].first + 0.5 + i * 0.9; }); // one after another, not all in the first second
     G.bigT = sd.big.length ? 4 : Infinity;
   }
@@ -1769,7 +1830,7 @@ sdk.initializeAsync()
   }
   // the furthest stage ever reached: where a new run starts
   function reachStage(i) {
-    if (i > (Number(store.get("stageTop", "0")) || 0)) store.set("stageTop", i);
+    if (i > stageTop()) store.set(SL().top, i);
   }
   function stageStep(dt, realDt) {
     const sd = stageDef(G.sg);
@@ -1782,7 +1843,7 @@ sdk.initializeAsync()
       G.ct += dt / (G.bossK || 1); G.st += dt / (G.bossK || 1); // by the wall clock: thirty seconds stay thirty
       G.t = sd.diff[0] + (sd.diff[1] - sd.diff[0]) * Math.min(1, G.ct / sd.dur); // how hard things are, for the shared attacks
       G.timers.bamboo -= dt;
-      if (G.timers.bamboo <= 0) fixed("bamboo", () => { spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(0.8, pace()); }); // (it stops thickening after 7장)
+      if (G.timers.bamboo <= 0) fixed("bamboo", () => { spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(SL().floor, pace()); }); // (it stops thickening past a point)
       for (const k of sd.pats) {
         G.timers[k] -= dt;
         if (G.timers[k] <= 0) fixed(k, () => { PATTERNS[k].spawn(); G.timers[k] = PATTERNS[k].every() * sd.gap * sd.crowd; });
@@ -1817,10 +1878,10 @@ sdk.initializeAsync()
     ctx.restore();
   }
   function overStage() {
-    const sd = stageDef(G.sg), time = Math.round((G.st + G.bonus) * 100) / 100, top = Number(store.get("stageTop", "0")) || 0;
+    const sd = stageDef(G.sg), time = Math.round((G.st + G.bonus) * 100) / 100, top = stageTop();
     $("overSlip").dataset.seal = "敗"; $("overLabel").textContent = "쓰러진 곳";
     $("score").textContent = sd.label; $("scoreUnit").hidden = true;
-    $("meta").textContent = `${sd.world.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. ${time.toFixed(2)}초 버텼다. 간발 ${G.near}번`;
+    $("meta").textContent = `${SL().name}. ${sd.world.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. ${time.toFixed(2)}초 버텼다. 간발 ${G.near}번`;
     const title = Number(store.get("stageTitle", "-1")), named = title >= 0 ? `. 별호 ${titleOf(title)}` : "";
     $("best").textContent = (G.sg > G.stageTop0 ? "새 최고 기록" : `최고 기록 ${stageDef(top).label}`) + named;
     $("again").textContent = `${sd.label} 다시`; // the stage you fell in, from its start
@@ -1830,7 +1891,7 @@ sdk.initializeAsync()
     $("again").focus({ preventScroll: true });
   }
 
-  // ------------------------------------------------------------------ 보스 비기 (15장까지의 보스, 개발자 모드에서 하나씩)
+  // ------------------------------------------------------------------ 보스 비기 (20장까지의 보스, 개발자 모드에서 하나씩)
   // Each 장's boss has one technique of its own, foretold by what it says. They're tried out first in 개발자 모드
   // (open the page with ?dev): pick a boss, and it does nothing but its 비기, three times over.
   const BOSS_SET = [
@@ -1849,42 +1910,58 @@ sdk.initializeAsync()
     { stage: "5-5", name: "흑월교주", title: "黑月 · 흑월교주", look: "lord", accent: "#8b1a12", theme: "moon", sig: "void", sigName: ["黑月域", "흑월역"],
       what: "화면 네 칸 중 내가 서 있는 칸이 검게 물든다. 1.3초 안에 빠져나가야 하고, 검은 칸에 있으면 죽는다. 그 사이 부채꼴 표창. 세 번.",
       intro: "{me}. 네 사부도 그 검으로는 나를 막지 못했다.", sigLine: "이 땅의 넷 중 하나는 이미 달이 삼켰다.", down: "결국… 그 늙은이의 검이었나." },
-    { stage: "6-5", name: "풍운객", title: "風雲客 · 떠도는 바람", look: "snow", accent: "#5e8a5a", theme: "grove", sig: "wind", sigName: ["疾風", "질풍"],
-      what: "바람이 한쪽으로 불고, 바람이 불어 가는 쪽 벽에서 칼이 날아온다. 바람 방향이 2초마다 바뀐다.",
-      intro: "바람은 칼을 들지 않는다. 칼을 실어 나를 뿐.", sigLine: "버텨라. 바람은 지치지 않는다.", down: "바람이 멎으니… 내가 설 곳도 없군." },
-    { stage: "7-5", name: "무영", title: "無影 · 그림자 없는 자", look: "twins", accent: "#55525c", theme: "gorge", sig: "veil", sigName: ["無影劍", "무영검"],
+    { stage: "6-5", name: "맹호", title: "猛虎 · 대숲을 뚫는 사내", look: "tiger", accent: "#c7782a", theme: "grove", sig: "charge", sigName: ["猛虎衝", "맹호충"],
+      what: "보스가 나를 향해 붉은 길을 깔고, 0.9초 뒤 그 길로 몸째 돌진한다. 벽에 닿으면 돌아서서 다시 노린다. 다섯 번.",
+      intro: "대숲에 길이 없다고? 내가 지나가면 길이다.", sigLine: "피해 봐라. 범은 같은 길로 두 번 오지 않는다.", down: "범도… 넘어질 때가 있군." },
+    { stage: "7-5", name: "무영", title: "無影 · 그림자 없는 자", look: "veil", accent: "#55525c", theme: "gorge", sig: "veil", sigName: ["無影劍", "무영검"],
       what: "경고 없이 보이지 않는 쿠나이가 사방에서 날아온다. 내 몸 가까이 와야만 보인다.",
       intro: "보이는 칼은 칼이 아니다.", sigLine: "눈을 감아라. 어차피 보이지 않는다.", down: "보지 않고도 피하는가. 그럼 됐다." },
-    { stage: "8-5", name: "뇌음", title: "雷音 · 북 치는 승려", look: "monk", accent: "#8a5a2b", theme: "temple", sig: "drum", sigName: ["雷音", "뇌음"],
+    { stage: "8-5", name: "뇌음", title: "雷音 · 북 치는 승려", look: "drum", accent: "#a33b26", theme: "temple", sig: "drum", sigName: ["雷音", "뇌음"],
       what: "북이 울릴 때마다 발밑에 붉은 띠가 깔렸다가 칼이 떨어진다. 넷째 박에는 엇갈린 띠가 두 개.",
       intro: "북이 울리면 칼이 떨어진다. 박자를 놓치지 마라.", sigLine: "하나, 둘, 셋, 그리고 넷.", down: "마지막 박자는… 네 것이었다." },
-    { stage: "9-5", name: "빙경", title: "氷鏡 · 얼음 거울", look: "lotus", accent: "#7fb6d4", theme: "snow", sig: "mirror", sigName: ["氷鏡", "빙경"],
+    { stage: "9-5", name: "빙경", title: "氷鏡 · 얼음 거울", look: "mirror", accent: "#7fb6d4", theme: "snow", sig: "mirror", sigName: ["氷鏡", "빙경"],
       what: "보스가 던진 표창이 벽에 두 번까지 튕겨서 돌아온다.",
       intro: "얼음은 받은 칼을 그대로 돌려준다.", sigLine: "벽을 믿지 마라. 벽도 내 편이다.", down: "깨진 거울엔 아무것도 비치지 않지." },
-    { stage: "10-5", name: "흑월교주", title: "黑月 · 다시 뜬 달", look: "lord", accent: "#3a0f0c", theme: "moon", sig: "eclipse", sigName: ["月蝕", "월식"],
-      what: "화면이 캄캄해지고 내 둘레만 보인다. 붉은 조준선은 어둠 속에서도 보이지만 칼은 가까이 와야 보인다.",
-      intro: "달은 다시 뜬다. 이번엔 빛까지 삼키마.", sigLine: "어둠 속에선 칼이 보이지 않는다. 길만 보일 뿐.", down: "어둠 속에서도… 길을 찾는구나." },
-    { stage: "11-5", name: "검총주", title: "劍塚主 · 칼 무덤의 주인", look: "snow", accent: "#7a7f86", theme: "field", sig: "swords", sigName: ["萬劍歸宗", "만검귀종"],
+    { stage: "10-5", name: "청우", title: "靑雨 · 비 속의 검객", look: "rain", accent: "#3f7f8f", theme: "gorge", sig: "rain", sigName: ["雨中劍", "우중검"],
+      what: "보스의 우산 그림자 하나만 비가 피해 간다. 그림자가 옮겨 갈 자리가 먼저 보이고, 소나기가 쏟아질 때 그 밖에 있으면 죽는다. 다섯 번.",
+      intro: "비가 오면 칼을 뽑지 않는다. 비가 대신 벤다.", sigLine: "내 우산 밑이 아니면 하늘 아래 전부가 칼이다.", down: "비가… 그쳤군." },
+    { stage: "11-5", name: "검총주", title: "劍塚主 · 칼 무덤의 주인", look: "swords", accent: "#7a7f86", theme: "field", sig: "swords", sigName: ["萬劍歸宗", "만검귀종"],
       what: "화면 위에 칼이 한 줄로 걸렸다가 왼쪽부터 차례로 떨어지고, 이어서 오른쪽부터 떨어진다.",
       intro: "여기 묻힌 칼이 만 자루다. 오늘 모두 깨운다.", sigLine: "칼이 주인을 찾아 떨어진다.", down: "칼들이… 너를 주인으로 아는구나." },
-    { stage: "12-5", name: "광음", title: "光陰 · 시간을 쥔 노인", look: "monk", accent: "#b08d4a", theme: "gorge", sig: "time", sigName: ["光陰", "광음"],
+    { stage: "12-5", name: "광음", title: "光陰 · 시간을 쥔 노인", look: "time", accent: "#b08d4a", theme: "gorge", sig: "time", sigName: ["光陰", "광음"],
       what: "세상이 느려졌다 빨라졌다를 되풀이한다. 내 몸만 제 속도라서, 느릴 때 자리를 잡아 두어야 빠를 때 산다.",
       intro: "느린 것도 빠른 것도 내 손 안에 있다.", sigLine: "한 숨은 길고, 한 숨은 짧다.", down: "시간이… 너의 편이었군." },
-    { stage: "13-5", name: "벽력", title: "霹靂 · 번개를 부르는 도사", look: "snow", accent: "#d9b23a", theme: "moon", sig: "thunder", sigName: ["天雷", "천뢰"],
+    { stage: "13-5", name: "벽력", title: "霹靂 · 번개를 부르는 도사", look: "thunder", accent: "#d9b23a", theme: "moon", sig: "thunder", sigName: ["天雷", "천뢰"],
       what: "내가 선 자리에 번개 자국이 생기고, 0.85초 뒤 하늘에서 번개가 떨어진다. 갈수록 잦아지고, 세 개가 나란히 떨어지기도 한다.",
       intro: "하늘이 노하면 숨을 곳이 없다.", sigLine: "서 있는 곳이 곧 과녁이다.", down: "하늘도… 너는 맞히지 못하는구나." },
-    { stage: "14-5", name: "추혼", title: "追魂 · 혼을 쫓는 자", look: "twins", accent: "#6b1f2a", theme: "temple", sig: "shadow", sigName: ["追魂", "추혼"],
+    { stage: "14-5", name: "추혼", title: "追魂 · 혼을 쫓는 저승사자", look: "ghost", accent: "#4a6b6f", theme: "temple", sig: "shadow", sigName: ["追魂", "추혼"],
       what: "1.4초 전의 내가 그림자가 되어, 내가 지나온 길을 그대로 따라온다. 멈춰 서면 따라잡히고, 닿으면 죽는다.",
       intro: "네가 지나온 길이 너를 벤다.", sigLine: "뒤를 돌아보지 마라. 그건 너다.", down: "과거를 이긴 자는 처음이다." },
-    { stage: "15-5", name: "무명", title: "無名 · 이름 없는 고수", look: "lord", accent: "#b8912a", theme: "grove", sig: "final", sigName: ["天下", "천하"],
-      what: "추혼의 그림자가 따라오는 가운데, 흑월역의 검은 칸이 차례로 내려앉는다.",
+    { stage: "15-5", name: "호접", title: "胡蝶 · 독나비의 여인", look: "butterfly", accent: "#7b4a9e", theme: "field", sig: "swarm", sigName: ["胡蝶陣", "호접진"],
+      what: "나비 떼가 나를 천천히 따라온다. 나보다 느리지만 흩어졌다 모이고, 반쯤 지나면 두 떼로 갈라져 양쪽에서 조여 온다.",
+      intro: "예쁘지? 닿으면 꿈에서 깨지 못해.", sigLine: "날갯짓 하나하나가 독이야.", down: "나비는… 하룻밤이면 족하지." },
+    { stage: "16-5", name: "화륜", title: "火輪 · 불바퀴를 탄 소년", look: "wheel", accent: "#e0531f", theme: "moon", sig: "wheel", sigName: ["風火輪", "풍화륜"],
+      what: "불바퀴 둘이 벽에 튕기며 굴러다니고, 지나간 자리에 불길이 2초 남짓 남는다. 불길 사이로 길을 찾아야 한다.",
+      intro: "멈추면 탄다. 달려.", sigLine: "바퀴가 지나간 땅은 한동안 뜨겁다.", down: "바퀴가… 멈췄네." },
+    { stage: "17-5", name: "철추", title: "鐵錘 · 만 근 쇠공의 장사", look: "chain", accent: "#6d6a63", theme: "temple", sig: "pendulum", sigName: ["萬斤錘", "만근추"],
+      what: "하늘에 매달린 쇠공 둘이 시계추처럼 흔들린다. 끝에 닿을 때마다 줄 길이를 바꿔 내가 선 자리를 지나가게 한다. 지나갈 길은 붉게 보인다.",
+      intro: "피할 수 있으면 피해 봐라. 쇠공은 지치지 않는다.", sigLine: "오고, 가고, 또 온다.", down: "줄이… 끊어졌군." },
+    { stage: "18-5", name: "장승", title: "長丞 · 마을 어귀의 수호신", look: "totem", accent: "#9b4a2c", theme: "grove", sig: "crumble", sigName: ["地陷", "지함"],
+      what: "땅이 칸으로 나뉜다. 한 칸에 오래 서 있으면 금이 가고 무너져 3초 동안 구멍이 된다. 장승이 발을 구르면 내 둘레가 열십자로 갈라진다.",
+      intro: "이 마을을 지나려면 땅부터 이겨라.", sigLine: "오래 선 자리는 무너진다.", down: "천 년을 서 있었더니… 이제야 눕는구나." },
+    { stage: "19-5", name: "천안", title: "天眼 · 하늘의 눈", look: "eye", accent: "#c9a227", theme: "snow", sig: "gaze", sigName: ["天眼", "천안"],
+      what: "하늘의 눈이 감겨 있는 동안 칼이 날아온다. 눈꺼풀이 떨리면 곧 눈을 뜨고, 뜨는 동안 날던 칼이 모두 멈춘다. 눈이 떠 있을 때 움직이면 죽는다.",
+      intro: "움직이는 것은 모두 보인다.", sigLine: "눈을 뜨면… 숨도 쉬지 마라.", down: "보지 못했다… 처음으로." },
+    { stage: "20-5", name: "무명", title: "無名 · 이름 없는 고수", look: "final", accent: "#b8912a", theme: "grove", sig: "final", sigName: ["天下", "천하"],
+      what: "추혼의 그림자가 따라오는 가운데, 흑월역의 검은 칸이 차례로 내려앉고 시간이 휜다.",
       intro: "이름 없는 검객이 여기까지 왔군. 나도 이름이 없다.", sigLine: "네 그림자와 내 달, 둘 다 피해 보아라.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
   ];
   // what drifts across each boss's fight behind its 비기, unannounced, read as it comes: the boss's own element
   // (the grove's bamboo only where the grove is; nothing at all where the 비기 should stand alone)
   const BOSS_BG = {
-    twin: "bamboo", lotus: "water", fire: "fire", frost: "ice", void: null, wind: "bamboo", veil: null, drum: null,
-    mirror: "ice", eclipse: null, swords: null, time: null, thunder: null, shadow: "wisp", final: null,
+    twin: "bamboo", lotus: "water", fire: "fire", frost: "ice", void: null, charge: "bamboo", veil: null, drum: null,
+    mirror: "ice", rain: null, swords: null, time: null, thunder: null, shadow: "wisp", swarm: null, wheel: null,
+    pendulum: null, crumble: null, gaze: null, final: null,
   };
   const BG_NAMES = { bamboo: "대나무", water: "물방울 칼", fire: "불똥", ice: "고드름", wisp: "도깨비불" };
   BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; });
@@ -1978,7 +2055,7 @@ sdk.initializeAsync()
         for (let c = 0; c < cols; c++) for (let row = 0; row < rows; row++) if (hot(c, row, k))
           G.warns.push({ kind: "cell", x0: c * cw, y0: row * ch, x1: (c + 1) * cw, y1: (row + 1) * ch, t: 0, dur, delay: at, fire: burnCell });
         later(at, () => sfx.taiko());
-        later(at + dur, () => { sfx.thud(); G.shake = Math.max(G.shake, 6); });
+        later(at + dur, () => { sfx.thud(); G.shake = Math.max(G.shake, 8); if (!reduced) G.stopT = Math.max(G.stopT, 0.03); });
         at += dur + 0.1; // the next cells light only once this fire is out: never a dash through a burning one
       });
       return at + 1.0;
@@ -2005,15 +2082,17 @@ sdk.initializeAsync()
       }
       return 3 * gap + 0.8;
     },
-    wind() { // a wind blowing toward one wall (seen, not felt), the blades coming from that wall; it turns every couple of seconds
-      const h = controller(7, function (dt) {
-        const dir = Math.floor(this.real() / 2.2) % 2 === 0 ? 1 : -1;
-        if (dir !== this.dir) { this.dir = dir; sfx.whoosh(); flash("240,244,236", 0.15); } // (it only shows the wind: you aren't pushed)
-        this.next = (this.next ?? 0.4) - dt;
-        if (this.next <= 0) { this.next = Math.max(0.4, 0.55 - lvl() * 0.01); aimedLine(dir > 0 ? W + S * 0.04 : -S * 0.04, clamp(P.y + rnd(-S * 0.3, S * 0.3), S * 0.1, H - S * 0.1), S * 0.8); }
-      }, drawWind);
-      h.dir = 1;
-      return 7.4;
+    charge() { // the tiger lays a red road from itself through you, then runs it bodily; at the wall it turns and comes again
+      const n = 5 + Math.floor(lvl() / 4), warn = Math.max(0.75, 0.95 - lvl() * 0.015), each = warn + 1.05;
+      G.boss.wT = n * each + 1; // it holds still between runs: the runs are its only steps
+      for (let k = 0; k < n; k++) later(k * each, () => {
+        const b = G.boss; if (!b) return;
+        const u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x);
+        G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: u * 2.3, t: 0, dur: warn, delay: 0, fire() { runAt(ang); } });
+        sfx.warn(); b.castT = 0.4;
+      });
+      later(n * each - 0.2, () => { if (G.boss && !G.boss.dash) { G.boss.home = 1.0; G.boss.wT = 0; } }); // one great leap home, over your head
+      return n * each + 0.6;
     },
     veil() { // kunai from every side, no warning, seen only when they're close
       controller(6.5, function (dt) {
@@ -2045,16 +2124,20 @@ sdk.initializeAsync()
         fire(w) { for (let i = -2; i <= 2; i++) shoot("star", w.x, w.y, w.ang + i * 0.3, S * 0.58, { spin: 16, r: S * 0.015, bounces }); sfx.whoosh(); } });
       return volleys * 0.95 + 3.0;
     },
-    eclipse() { // the light goes out but for a ring round you; the aim lines still burn, the stars come out of the dark
-      G.eclipse = { at: performance.now(), dur: 7, glow: true };
-      controller(7, function (dt) {
-        this.next = (this.next ?? 0.6) - dt;
-        if (this.next > 0) return;
-        this.next = Math.max(0.45, 0.6 - lvl() * 0.008);
-        const [x, y] = edgePoint();
-        aimedLine(x, y, S * 0.8);
+    rain() { // only the shadow of the umbrella stays dry: it drifts to a new spot, shown first, and then the downpour comes
+      const R = S * 0.21, n = 5, warn = Math.max(1.15, 1.5 - lvl() * 0.02), gap = warn + 0.6;
+      for (let k = 0; k < n; k++) later(k * gap + (k ? 0.3 : 0), () => {
+        // the next dry spot: somewhere you have to walk to (never where you stand), but near enough to reach in time
+        let at = null;
+        for (let i = 0; i < 40 && !at; i++) {
+          const c = [rnd(R + S * 0.04, W - R - S * 0.04), rnd(H * 0.34, H - R - S * 0.06)], d = Math.hypot(c[0] - P.x, c[1] - P.y);
+          if (d > R * 1.25 && d < S * 0.7) at = c;
+        }
+        at = at || [clamp(W - P.x, R, W - R), clamp(P.y, H * 0.34, H - R)];
+        G.warns.push({ kind: "zone", x: at[0], y: at[1], R, t: 0, dur: warn + (k ? 0 : 0.3), delay: 0, fire: pour }); // (the first time, a moment longer to read)
+        sfx.warn();
       });
-      return 7.8;
+      return n * gap + 1.2;
     },
     swords() { // a row of swords hung across the sky, falling one after another, there and back; a few are missing each time
       // The swords stand too close to stand between: the way through is the gap in the row, never where you stand,
@@ -2094,6 +2177,165 @@ sdk.initializeAsync()
         sfx.warn();
       });
       return n * gap + 1.0;
+    },
+    swarm() { // butterflies out of her sleeves, drifting after you, slower than you; halfway they part and close from both sides
+      const b = G.boss, n = 10 + Math.round(lvl() * 0.7), life = 7.5, flies = [];
+      for (let i = 0; i < n; i++) flies.push({ x: b.x + rnd(-S * 0.1, S * 0.1), y: b.y + rnd(-S * 0.04, S * 0.1), vx: rnd(-1, 1) * S * 0.3, vy: rnd(0.3, 1) * S * 0.3, g: i % 2, ph: rnd(0, 6) });
+      G.hazards.push({ kind: "swarm", flies, t: 0, dur: life, best: Infinity, near: true, r: S * 0.02,
+        step(dt) {
+          const sp = S * (0.2 + 0.12 * (this.t / life) + lvl() * 0.004), split = this.t > life * 0.45, leaving = this.t > life - 0.8;
+          const c = [[0, 0, 0], [0, 0, 0]]; // each flock's middle, to keep it together
+          for (const f of flies) { const g = split ? f.g : 0; c[g][0] += f.x; c[g][1] += f.y; c[g][2]++; }
+          for (const f of flies) {
+            const g = split ? f.g : 0, cx = c[g][0] / c[g][2], cy = c[g][1] / c[g][2];
+            let tx = P.x, ty = P.y; // you; once they part, each half from its own side; at the end, away up into the sky
+            if (split) tx = P.x + (f.g ? 1 : -1) * S * 0.28 * (1 - Math.min(1, (this.t - life * 0.45) / 2));
+            if (leaving) { tx = f.x * 2 - P.x; ty = -S; }
+            let ax = tx - f.x, ay = ty - f.y; const d = Math.hypot(ax, ay) || 1; ax /= d; ay /= d;
+            ax += (cx - f.x) / (S * 1.2); ay += (cy - f.y) / (S * 1.2);
+            for (const o of flies) { const dx = f.x - o.x, dy = f.y - o.y, dd = dx * dx + dy * dy; if (o !== f && dd < (S * 0.075) ** 2) { const k = 1 / (Math.sqrt(dd) + S * 0.01); ax += dx * k * 0.9; ay += dy * k * 0.9; } } // a loose cloud, not a clump
+            f.ph += dt * 9; ax += Math.sin(f.ph) * 0.5; ay += Math.cos(f.ph * 0.7) * 0.5; // a butterfly never flies straight
+            f.vx += (ax * sp - f.vx) * Math.min(1, dt * 2.2); f.vy += (ay * sp - f.vy) * Math.min(1, dt * 2.2);
+            f.x += f.vx * dt; f.y += f.vy * dt;
+          }
+        },
+        dist() { if (this.t > life - 0.6) return Infinity; let m = Infinity; for (const f of flies) m = Math.min(m, Math.hypot(P.x - f.x, P.y - f.y)); return Math.max(0, m - this.r); },
+        draw: drawSwarm });
+      sfx.whoosh(); flash("214,190,232", 0.18);
+      return life + 0.3;
+    },
+    wheel() { // fire wheels thrown off the boss, bouncing off the walls, a burning track behind each that lasts a while
+      const b = G.boss, n = lvl() >= 7 ? 3 : 2, life = 7.5, burn = 2.2, r = S * 0.04, w = S * 0.022, wheels = [];
+      const h = { kind: "wheel", wheels, t: 0, dur: life, best: Infinity, near: true, r,
+        step(dt) {
+          for (const wh of wheels) {
+            if (this.t < life - 0.5) {
+              wh.x += wh.vx * dt; wh.y += wh.vy * dt;
+              let wall = false;
+              if ((wh.x < r && wh.vx < 0) || (wh.x > W - r && wh.vx > 0)) { wh.vx *= -1; wall = true; }
+              if ((wh.y < r && wh.vy < 0) || (wh.y > H - r && wh.vy > 0)) { wh.vy *= -1; wall = true; }
+              if (wall) { // off the wall it leans a little your way
+                const cur = Math.atan2(wh.vy, wh.vx), sp = Math.hypot(wh.vx, wh.vy);
+                let d = Math.atan2(P.y - wh.y, P.x - wh.x) - cur; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+                const a = cur + clamp(d, -0.5, 0.5); wh.vx = Math.cos(a) * sp; wh.vy = Math.sin(a) * sp; spark(wh.x, wh.y, 4); sfx.clang();
+              }
+              const last = wh.trail[wh.trail.length - 1];
+              if (Math.hypot(wh.x - last[0], wh.y - last[1]) > S * 0.03) wh.trail.push([wh.x, wh.y, this.t]);
+            }
+            wh.spin += dt * 14;
+            while (wh.trail.length > 1 && this.t - wh.trail[0][2] > burn) wh.trail.shift();
+          }
+        },
+        dist() { // the wheel itself, and its track once it's alight (the last bit just behind the wheel is the wheel's)
+          if (this.t > life - 0.5) return Infinity;
+          let m = Infinity;
+          for (const wh of wheels) {
+            m = Math.min(m, Math.hypot(P.x - wh.x, P.y - wh.y) - r);
+            const tr = wh.trail;
+            for (let i = 1; i < tr.length; i++) { if (this.t - tr[i][2] < 0.12) break; m = Math.min(m, segDist(P.x, P.y, tr[i - 1][0], tr[i - 1][1], tr[i][0], tr[i][1]) - w / 2); }
+          }
+          return Math.max(0, m);
+        },
+        draw: drawWheel };
+      G.hazards.push(h);
+      for (let i = 0; i < n; i++) {
+        const ang = Math.atan2(P.y - b.y, P.x - b.x) + (i - (n - 1) / 2) * 0.9;
+        G.warns.push({ kind: "line", x: b.x, y: b.y, ang, t: 0, dur: 0.75, delay: i * 0.5,
+          fire(wn) { wheels.push({ x: wn.x, y: wn.y, vx: Math.cos(wn.ang) * S * 0.62, vy: Math.sin(wn.ang) * S * 0.62, spin: 0, trail: [[wn.x, wn.y, h.t]] }); sfx.whoosh(); } });
+      }
+      sfx.warn();
+      return life + 0.2;
+    },
+    pendulum() { // two iron balls on chains from above the sky, swinging; at each end of a swing the chain pays out or hauls in
+      // so that the next pass runs through where you stand. The way it will go is lit red while it turns.
+      const A = 1.0, T = Math.max(2.0, 2.4 - lvl() * 0.02), life = 8.4, r = S * 0.07;
+      const piv = [[W * 0.28, -H * 0.06, 0], [W * 0.72, -H * 0.06, Math.PI / 2], [W * 0.5, -H * 0.1, Math.PI / 4]].slice(0, lvl() >= 6.5 ? 3 : 2); // a third one, late on
+      const ps = piv.map(([px, py, ph], i) => ({ px, py, ph, L0: 0, L1: H * (0.55 + i * 0.15), at: 0, sgn: 0 }));
+      G.hazards.push({ kind: "pend", ps, A, T, r, t: 0, dur: life, best: Infinity, near: true,
+        ang(p, t) { return A * Math.sin((Math.PI * 2 * t) / T + p.ph); },
+        len(p, t) { const k = clamp((t - p.at) / 0.35, 0, 1); return p.L0 + (p.L1 - p.L0) * k * k * (3 - 2 * k); }, // (the first time: let down from the sky)
+        ball(p, t) { const a = this.ang(p, t), L = this.len(p, t); return [p.px + Math.sin(a) * L, p.py + Math.cos(a) * L]; },
+        step() {
+          for (const p of this.ps) {
+            const s = Math.sign(Math.cos((Math.PI * 2 * this.t) / T + p.ph));
+            if (p.sgn && s !== p.sgn && this.t > 0.6 && this.t < life - 1.2) { // the end of a swing: aim the next pass through you
+              p.L0 = this.len(p, this.t); p.L1 = clamp(Math.hypot(P.x - p.px, P.y - p.py), H * 0.3, H * 0.98); p.at = this.t; sfx.clang();
+            }
+            p.sgn = s;
+          }
+        },
+        dist() { if (this.t < 0.6 || this.t > life - 0.3) return Infinity; let m = Infinity; for (const p of this.ps) { const [x, y] = this.ball(p, this.t); m = Math.min(m, Math.hypot(P.x - x, P.y - y) - r); } return Math.max(0, m); },
+        warnAt(x, y, pad) { // on the arc the ball is about to sweep (from where it is to the far end of its swing)
+          for (const p of this.ps) {
+            if (Math.abs(Math.hypot(x - p.px, y - p.py) - p.L1) > r + pad) continue;
+            const a = Math.atan2(x - p.px, y - p.py), now = this.ang(p, this.t), dir = Math.cos((Math.PI * 2 * this.t) / T + p.ph) >= 0 ? 1 : -1;
+            if ((a - now) * dir >= -0.05 && Math.abs(a) <= A + 0.1) return true;
+          }
+          return false;
+        },
+        draw: drawPend });
+      sfx.warn();
+      return life + 0.3;
+    },
+    crumble() { // the ground in cells: wherever you stand too long cracks and falls in; the totem's stamp cracks a cross round you
+      const cols = 5, rows = 9, cw = W / cols, ch = H / rows, life = 9.5, crackT = 0.85, holeT = 2.0, linger = 0.8;
+      const cells = Array.from({ length: cols * rows }, () => ({ load: 0, crack: -1, hole: -1 }));
+      G.hazards.push({ kind: "floor", cells, cols, rows, cw, ch, crackT, holeT, t: 0, dur: life, best: Infinity, near: true, stomp: 1.2,
+        cellAt(x, y) { return clamp(Math.floor(y / ch), 0, rows - 1) * cols + clamp(Math.floor(x / cw), 0, cols - 1); },
+        crack(i) { const c = cells[i]; if (c && c.crack < 0 && c.hole < 0) c.crack = this.t; },
+        step(dt) {
+          const t = this.t, mine = this.cellAt(P.x, P.y), open = t < life - 1.6;
+          cells.forEach((c, i) => {
+            if (i === mine && open) { c.load += dt; if (c.load > linger) this.crack(i); } else c.load = Math.max(0, c.load - dt * 0.5);
+            if (c.crack >= 0 && t - c.crack >= crackT) { // it gives way
+              c.crack = -1; c.hole = t; sfx.thud();
+              const x = (i % cols + 0.5) * cw, y = (Math.floor(i / cols) + 0.5) * ch;
+              if (G.stopT <= 0) impact(x, y, 0.8, "#6b5a46"); // (once for a whole cross giving way together)
+              for (let k = 0; k < 6; k++) G.parts.push({ kind: "glow", color: "#6b5a46", x: x + rnd(-cw * 0.4, cw * 0.4), y: y + rnd(-ch * 0.4, ch * 0.4), vx: rnd(-30, 30), vy: rnd(-60, -10), r: rnd(1.5, 3.2), life: rnd(0.4, 0.8), t: 0 });
+            }
+            if (c.hole >= 0 && t - c.hole >= holeT) { c.hole = -1; c.load = 0; }
+          });
+          this.stomp -= dt;
+          if (this.stomp <= 0 && open) { // the stamp: your cell and the four beside it
+            this.stomp = Math.max(2.2, 2.9 - lvl() * 0.04);
+            const cx = mine % cols, cy = Math.floor(mine / cols);
+            for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) if (cx + dx >= 0 && cx + dx < cols && cy + dy >= 0 && cy + dy < rows) this.crack((cy + dy) * cols + cx + dx);
+            G.shake = Math.max(G.shake, 9); sfx.taiko(); if (G.boss) G.boss.castT = 0.4;
+          }
+        },
+        dist() { // a hole is a little smaller than its cell: brushing its rim is forgiven
+          const m = S * 0.012; let best = Infinity;
+          cells.forEach((c, i) => {
+            if (c.hole < 0 || this.t - c.hole > holeT - 0.2) return;
+            const x0 = (i % cols) * cw + m, y0 = Math.floor(i / cols) * ch + m, x1 = x0 + cw - m * 2, y1 = y0 + ch - m * 2;
+            best = Math.min(best, Math.hypot(Math.max(x0 - P.x, 0, P.x - x1), Math.max(y0 - P.y, 0, P.y - y1)));
+          });
+          return best;
+        },
+        warnAt(x, y) { const c = cells[this.cellAt(x, y)]; return c.crack >= 0 || (c.hole >= 0 && this.t - c.hole < holeT - 0.2); },
+        draw: drawFloor });
+      return life + 0.2;
+    },
+    gaze() { // the great eye: shut, it sends blades; its lid trembles, it opens, and everything in the air stands still. So must you.
+      const cyc = [2.3, 0.75, 1.3], n = 3, per = cyc[0] + cyc[1] + cyc[2];
+      G.hazards.push({ kind: "gaze", t: 0, dur: n * per + 0.2, best: Infinity, near: true, caught: false, next: 0.4, phase: "shut", cyc, ox: 0, oy: 0,
+        state(t = this.t) { const k = t % per; return t >= n * per ? "done" : k < cyc[0] ? "shut" : k < cyc[0] + cyc[1] ? "stir" : "open"; },
+        still() { const s = this.state(); return s === "stir" || s === "open"; }, // (for a reader of the screen: the lid is moving, or the eye is open)
+        step(dt) {
+          const s = this.state();
+          if (s !== this.phase) {
+            if (s === "stir") sfx.warn();
+            if (s === "open") { this.ox = P.x; this.oy = P.y; G.freezeT = cyc[2]; sfx.issen(); flash("255,244,214", 0.3); }
+            if (s === "shut" && this.phase === "open") { sfx.whoosh(); this.caught = false; } // (a revived player's 무적 may have covered it)
+            this.phase = s;
+          }
+          if (s === "shut") { this.next -= dt; if (this.next <= 0) { this.next = Math.max(0.75, 0.9 - lvl() * 0.01); const [x, y] = edgePoint(); aimedLine(x, y, S * 0.7); } }
+          // seen moving while it looks: a step's worth of drift is forgiven, no more
+          if (s === "open" && !this.caught && Math.hypot(P.x - this.ox, P.y - this.oy) > S * 0.035) { this.caught = true; flash("200,50,31", 0.4); }
+        },
+        dist() { return this.caught ? 0 : Infinity; },
+        draw: drawGaze });
+      return n * per + 0.3;
     },
     shadow() { // you, a moment ago, walking your own path; stand still and it catches you
       const lag = Math.max(1.1, 1.45 - lvl() * 0.02);
@@ -2161,14 +2403,177 @@ sdk.initializeAsync()
     }
     ctx.restore();
   }
-  function drawWind(h, time) { // streaks blowing across, the way it pushes
-    ctx.save(); ctx.strokeStyle = "rgba(90,110,85,0.35)"; ctx.lineWidth = 1.5;
-    for (let i = 0; i < 26; i++) {
-      const y = ((i * 97.13) % 1) * H, sp = 0.6 + ((i * 0.37) % 1), len = S * (0.08 + 0.1 * ((i * 0.53) % 1));
-      const x = (((time * sp * 0.9 + i * 0.137) % 1) * (W + len * 2)) - len;
-      const xx = h.dir > 0 ? x : W - x;
-      ctx.beginPath(); ctx.moveTo(xx, y); ctx.lineTo(xx - h.dir * len, y); ctx.stroke();
+  const segDist = (px, py, ax, ay, bx, by) => {
+    const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy, k = L2 ? clamp(((px - ax) * dx + (py - ay) * dy) / L2, 0, 1) : 0;
+    return Math.hypot(px - (ax + dx * k), py - (ay + dy * k));
+  };
+  // 맹호충: the body itself down its red road, to the wall (it stops with its whole body still on the screen)
+  function runAt(ang) {
+    const b = G.boss; if (!b) return;
+    const u = bossUnit(b.def), ux = Math.cos(ang), uy = Math.sin(ang), m = u * 1.2;
+    let L = Infinity;
+    if (ux > 1e-3) L = Math.min(L, (W - m - b.x) / ux); if (ux < -1e-3) L = Math.min(L, (m - b.x) / ux);
+    if (uy > 1e-3) L = Math.min(L, (H - u * 2.2 - b.y) / uy); if (uy < -1e-3) L = Math.min(L, (u * 1.2 - b.y) / uy);
+    L = Math.max(0, L);
+    b.dash = { x0: b.x, y0: b.y, x1: b.x + ux * L, y1: b.y + uy * L, t: 0, dur: Math.max(0.25, L / (S * 2.0)) };
+    sfx.slash(); G.shake = Math.max(G.shake, 8);
+  }
+  // 우중검: the downpour, everywhere but under the umbrella (it cuts for a moment)
+  function pour(w) {
+    G.hazards.push({ kind: "pour", x: w.x, y: w.y, R: w.R, t: 0, dur: 0.6, best: Infinity, near: true,
+      dist() { return this.t < 0.45 && Math.hypot(P.x - this.x, P.y - this.y) > this.R - S * 0.012 ? 0 : Infinity; },
+      draw: drawPour });
+    sfx.burst(); flash("190,210,220", 0.2); impact(w.x, w.y, 1.4, "#3f7f8f");
+  }
+  // everywhere but a circle: for the rain to fall into
+  function outside(x, y, R) { ctx.beginPath(); ctx.rect(0, 0, W, H); ctx.arc(x, y, R, 0, Math.PI * 2, true); }
+  function rainStreaks(n, len, alpha, time, seed = 0) {
+    ctx.strokeStyle = `rgba(62,96,112,${alpha})`; ctx.lineWidth = 1.4; ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const sx = ((i * 0.6180339 + seed) % 1) * (W + H * 0.3), sp = 1.6 + ((i * 0.37) % 1);
+      const y = ((time * sp + i * 0.113) % 1) * (H + len) - len, x = sx - y * 0.3;
+      ctx.moveTo(x, y); ctx.lineTo(x + len * 0.3, y + len);
     }
+    ctx.stroke();
+  }
+  function drawUmbrella(x, y, R, a, time) { // 지우산 from above: oiled paper between the ribs, a red ring at the hub
+    const acc = (G.boss && G.boss.def.accent) || "#3f7f8f";
+    ctx.save(); ctx.globalAlpha = a; ctx.translate(x, y); ctx.rotate(time * 0.3);
+    ctx.fillStyle = hexA(acc, 0.22); ctx.beginPath(); for (let i = 0; i <= 16; i++) { const t = (i / 16) * Math.PI * 2, r = R * (i % 2 ? 0.96 : 1); ctx.lineTo(Math.cos(t) * r, Math.sin(t) * r); } ctx.fill();
+    ctx.strokeStyle = hexA(acc, 0.55); ctx.lineWidth = 1.2;
+    for (let i = 0; i < 16; i++) { const t = (i / 16) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(t) * R, Math.sin(t) * R); ctx.stroke(); }
+    ctx.strokeStyle = "rgba(200,50,31,0.7)"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(0, 0, R * 0.16, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+  function drawPour(h, time) {
+    const a = Math.max(0, 1 - h.t / h.dur);
+    ctx.save(); outside(h.x, h.y, h.R); ctx.clip("evenodd");
+    ctx.fillStyle = `rgba(40,62,74,${0.22 * a})`; ctx.fillRect(0, 0, W, H);
+    rainStreaks(150, S * 0.09, 0.75 * a, time * 2.4, 0.3);
+    ctx.restore();
+    drawUmbrella(h.x, h.y, h.R, 0.9 * a, time);
+  }
+  function drawSwarm(h, time) { // 호접진: wings beating, a dust of violet after them
+    const fade = Math.min(1, h.t / 0.4, Math.max(0, (h.dur - h.t) / 0.6)), acc = (G.boss && G.boss.def.accent) || "#7b4a9e";
+    for (const f of h.flies) {
+      const flap = 0.35 + 0.65 * Math.abs(Math.sin(f.ph * 1.6)), r = h.r * 1.5;
+      ctx.save(); ctx.globalAlpha = fade; ctx.translate(f.x, f.y); ctx.rotate(Math.atan2(f.vy, f.vx) + Math.PI / 2);
+      ctx.fillStyle = hexA(acc, 0.25); ctx.beginPath(); ctx.arc(0, r * 0.4, r * 1.4, 0, Math.PI * 2); ctx.fill();
+      for (const s of [-1, 1]) {
+        ctx.fillStyle = acc; ctx.beginPath(); ctx.ellipse(s * r * 0.55 * flap, -r * 0.2, r * 0.6 * flap, r * 0.75, s * 0.5, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.ellipse(s * r * 0.4 * flap, r * 0.5, r * 0.38 * flap, r * 0.45, -s * 0.4, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(255,240,250,0.85)"; ctx.beginPath(); ctx.arc(s * r * 0.6 * flap, -r * 0.35, r * 0.12, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(0, -r * 0.6); ctx.lineTo(0, r * 0.7); ctx.stroke();
+      ctx.restore();
+    }
+  }
+  function drawWheel(h, time) { // 풍화륜: tracks burning down to embers, the wheels spinning in their fire
+    const fade = Math.min(1, Math.max(0, (h.dur - h.t) / 0.5));
+    ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
+    for (const wh of h.wheels) {
+      const tr = wh.trail;
+      for (let i = 1; i < tr.length; i++) {
+        const age = h.t - tr[i][2], a = Math.max(0, 1 - age / 2.2) * fade, flick = 0.8 + 0.2 * Math.sin(time * 20 + i);
+        ctx.strokeStyle = `rgba(224,83,31,${0.55 * a * flick})`; ctx.lineWidth = S * 0.04;
+        ctx.beginPath(); ctx.moveTo(tr[i - 1][0], tr[i - 1][1]); ctx.lineTo(tr[i][0], tr[i][1]); ctx.stroke();
+        ctx.strokeStyle = `rgba(255,214,120,${0.85 * a})`; ctx.lineWidth = S * 0.012; ctx.stroke();
+      }
+      ctx.save(); ctx.globalAlpha = fade; ctx.translate(wh.x, wh.y);
+      const r = h.r, g = ctx.createRadialGradient(0, 0, r * 0.2, 0, 0, r * 2);
+      g.addColorStop(0, "rgba(255,214,120,0.9)"); g.addColorStop(1, "rgba(224,83,31,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r * 2, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(wh.spin);
+      ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = r * 0.22; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = r * 0.1; for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); ctx.stroke(); }
+      ctx.fillStyle = "#e0531f"; for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * r, Math.sin(a) * r); ctx.lineTo(Math.cos(a + 0.25) * r * 1.6, Math.sin(a + 0.25) * r * 1.6); ctx.lineTo(Math.cos(a + 0.45) * r, Math.sin(a + 0.45) * r); ctx.fill(); }
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  function drawPend(h, time) { // 만근추: the chain, the iron ball, and (while it turns) the arc it will sweep, lit red
+    const fade = Math.min(1, h.t / 0.4, Math.max(0, (h.dur - h.t) / 0.4));
+    ctx.save(); ctx.globalAlpha = fade;
+    for (const p of h.ps) {
+      const ang = h.ang(p, h.t), dir = Math.cos((Math.PI * 2 * h.t) / h.T + p.ph) >= 0 ? 1 : -1, end = dir * h.A;
+      if (h.t > 0.6 && h.t < h.dur - 1.0) { // the way it is about to go
+        ctx.strokeStyle = "rgba(200,50,31,0.18)"; ctx.lineWidth = h.r * 2; ctx.lineCap = "round"; ctx.beginPath();
+        for (let i = 0; i <= 24; i++) { const a = ang + (end - ang) * (i / 24); const x = p.px + Math.sin(a) * p.L1, y = p.py + Math.cos(a) * p.L1; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        ctx.stroke(); ctx.strokeStyle = "rgba(200,50,31,0.7)"; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      const [bx, by] = h.ball(p, h.t);
+      ctx.strokeStyle = "rgba(60,58,54,0.85)"; ctx.lineWidth = 2.5; ctx.setLineDash([S * 0.018, S * 0.008]); // the chain, link by link
+      ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(bx, by); ctx.stroke(); ctx.setLineDash([]);
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(ang);
+      ctx.fillStyle = "#2b2926"; for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a - 0.2) * h.r, Math.sin(a - 0.2) * h.r); ctx.lineTo(Math.cos(a) * h.r * 1.35, Math.sin(a) * h.r * 1.35); ctx.lineTo(Math.cos(a + 0.2) * h.r, Math.sin(a + 0.2) * h.r); ctx.fill(); }
+      const g = ctx.createRadialGradient(-h.r * 0.35, -h.r * 0.35, h.r * 0.1, 0, 0, h.r);
+      g.addColorStop(0, "#8a8780"); g.addColorStop(1, "#1d1a17"); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, h.r, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  function drawFloor(h, time) { // 지함: the ground in flagstones; cracks running out from the middle of a cell, then a pit
+    const { cols, rows, cw, ch } = h;
+    ctx.save();
+    ctx.strokeStyle = "rgba(29,26,23,0.08)"; ctx.lineWidth = 1; ctx.beginPath();
+    for (let c = 1; c < cols; c++) { ctx.moveTo(c * cw, 0); ctx.lineTo(c * cw, H); }
+    for (let r = 1; r < rows; r++) { ctx.moveTo(0, r * ch); ctx.lineTo(W, r * ch); }
+    ctx.stroke();
+    h.cells.forEach((c, i) => {
+      const x0 = (i % cols) * cw, y0 = Math.floor(i / cols) * ch, cx = x0 + cw / 2, cy = y0 + ch / 2;
+      if (c.crack >= 0) {
+        const k = Math.min(1, (h.t - c.crack) / h.crackT);
+        ctx.fillStyle = `rgba(200,50,31,${0.08 + k * 0.22})`; ctx.fillRect(x0 + 1, y0 + 1, cw - 2, ch - 2);
+        ctx.strokeStyle = `rgba(29,26,23,${0.4 + k * 0.5})`; ctx.lineWidth = 1.6; ctx.beginPath();
+        for (let j = 0; j < 6; j++) { // the same cracks every time for the same cell
+          const a = i * 1.7 + j * 1.05, l = Math.min(cw, ch) * 0.5 * k, kink = a + (j % 2 ? 0.4 : -0.4);
+          ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a) * l * 0.55, cy + Math.sin(a) * l * 0.55); ctx.lineTo(cx + Math.cos(kink) * l, cy + Math.sin(kink) * l);
+        }
+        ctx.stroke();
+      } else if (c.hole >= 0) {
+        const age = h.t - c.hole, a = Math.min(1, age / 0.12, Math.max(0, (h.holeT - age) / 0.3));
+        const g = ctx.createRadialGradient(cx, cy, 2, cx, cy, Math.max(cw, ch) * 0.7);
+        g.addColorStop(0, `rgba(10,8,7,${0.95 * a})`); g.addColorStop(1, `rgba(40,33,27,${0.85 * a})`);
+        ctx.fillStyle = g; ctx.beginPath(); // its rim broken, the same way every time
+        const q = [[x0 + 3, y0 + 3], [x0 + cw - 3, y0 + 3], [x0 + cw - 3, y0 + ch - 3], [x0 + 3, y0 + ch - 3]];
+        for (let e = 0; e < 4; e++) for (let j = 0; j < 4; j++) {
+          const [ax, ay] = q[e], [bx, by] = q[(e + 1) % 4], t = j / 4;
+          ctx.lineTo(ax + (bx - ax) * t + Math.sin(i * 5.1 + e * 3 + j * 1.7) * 3, ay + (by - ay) * t + Math.cos(i * 4.3 + e * 2 + j * 2.1) * 3);
+        }
+        ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = `rgba(200,50,31,${0.6 * a})`; ctx.lineWidth = 1.5; ctx.stroke();
+      }
+    });
+    ctx.restore();
+  }
+  function drawGaze(h, time) { // 천안: an eye across the sky. Shut; its lid trembling; open, watching you
+    const s = h.state(), per = h.cyc[0] + h.cyc[1] + h.cyc[2], k = h.t % per;
+    if (s === "done") return;
+    const ex = W / 2, ey = Math.max(150, H * 0.17), ew = W * 0.32; // (below the boss's bar)
+    let open = 0;
+    if (s === "stir") open = 0.12 * Math.abs(Math.sin(time * 30)) + 0.1 * ((k - h.cyc[0]) / h.cyc[1]);
+    if (s === "open") open = Math.min(1, (k - h.cyc[0] - h.cyc[1]) / 0.15) * Math.min(1, (per - k) / 0.2);
+    ctx.save();
+    if (s !== "shut") { // the page itself goes still and pale, its edges reddening as the lid lifts
+      const g = ctx.createRadialGradient(W / 2, H / 2, S * 0.4, W / 2, H / 2, Math.hypot(W, H) / 2);
+      g.addColorStop(0, "rgba(200,50,31,0)"); g.addColorStop(1, `rgba(200,50,31,${s === "open" ? 0.28 : 0.12 + 0.1 * Math.sin(time * 20)})`);
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      if (s === "open") { ctx.fillStyle = "rgba(255,244,214,0.18)"; ctx.fillRect(0, 0, W, H); }
+    }
+    ctx.translate(ex, ey);
+    const lid = (sign) => { ctx.moveTo(-ew, 0); ctx.quadraticCurveTo(0, sign * ew * 0.62 * Math.max(0.05, open), ew, 0); };
+    ctx.fillStyle = "rgba(247,240,222,0.92)"; ctx.beginPath(); lid(-1); ctx.quadraticCurveTo(0, ew * 0.62 * Math.max(0.05, open), -ew, 0); ctx.fill();
+    if (open > 0.15) { // the iris follows you
+      const dx = clamp((P.x - ex) / W, -0.5, 0.5) * ew * 0.5, dy = clamp((P.y - ey) / H, 0, 1) * ew * 0.12, ir = ew * 0.26 * open;
+      ctx.save(); ctx.beginPath(); lid(-1); ctx.quadraticCurveTo(0, ew * 0.62 * open, -ew, 0); ctx.clip();
+      ctx.fillStyle = "#c9a227"; ctx.beginPath(); ctx.arc(dx, dy, ir, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(dx, dy, ir * 0.45, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+      if (s === "open") { ctx.strokeStyle = `rgba(201,162,39,${0.35 * open})`; ctx.lineWidth = 2; ctx.setLineDash([6, 8]); ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(P.x - ex, P.y - ey); ctx.stroke(); ctx.setLineDash([]); }
+    }
+    ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = 3; ctx.beginPath(); lid(-1); ctx.stroke(); ctx.beginPath(); lid(1); ctx.stroke();
+    ctx.lineWidth = 2; for (let i = -4; i <= 4; i++) { const x = (i / 5) * ew, y = ew * 0.62 * Math.max(0.05, open) * (1 - (i / 5) ** 2) * 0.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x * 1.08, y + ew * 0.1); ctx.stroke(); } // lashes
+    if (h.caught) { ctx.fillStyle = "rgba(200,50,31,0.5)"; ctx.beginPath(); ctx.arc(0, 0, ew * 0.3, 0, Math.PI * 2); ctx.fill(); }
     ctx.restore();
   }
   function drawTime(h, time) { // slow: the page yellows and a clock hand creeps; fast: the edges blur
@@ -2193,7 +2598,7 @@ sdk.initializeAsync()
     G.hazards.push({ kind: "bolt", x: w.x, y: w.y, r: w.r, pts, t: 0, dur: 0.35, best: Infinity, near: true,
       dist() { return this.t < 0.14 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - this.r) : Infinity; },
       draw: drawBolt });
-    flash("255,248,214", 0.18); G.shake = Math.max(G.shake, 7); sfx.burst(); stain(w.x, w.y, w.r * 0.6);
+    flash("255,248,214", 0.18); sfx.burst(); stain(w.x, w.y, w.r * 0.6); impact(w.x, w.y, 1, "#d9b23a"); spark(w.x, w.y, 8);
   }
   function drawBolt(h) {
     const a = Math.max(0, 1 - h.t / h.dur);
@@ -2219,20 +2624,10 @@ sdk.initializeAsync()
     ctx.fillStyle = "#e0412a"; for (const dx of [-0.25, 0.25]) { ctx.beginPath(); ctx.arc(h.gx + dx * r, h.gy - r * 0.25, r * 0.1, 0, Math.PI * 2); ctx.fill(); }
     ctx.restore();
   }
-  function drawEclipse(time) { // 월식: dark all over but a ring of light round you; the aim lines burn through
-    const e = G.eclipse, age = (performance.now() - e.at) / 1000;
-    if (age > e.dur) { G.eclipse = null; return; }
-    const a = Math.min(1, age / 0.6, (e.dur - age) / 0.6) * 0.95, R = S * 0.17;
-    const g = ctx.createRadialGradient(P.x, P.y, R * 0.55, P.x, P.y, R * 1.3);
-    g.addColorStop(0, "rgba(10,8,8,0)"); g.addColorStop(1, `rgba(10,8,8,${a})`);
-    ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-    for (const w of G.warns) drawWarn(w, time);
-    if (e.glow) for (const s of G.shots) { ctx.save(); ctx.globalAlpha = 0.9; drawShot(s); ctx.restore(); } // the stars catch the moonlight: still seen in the dark
-  }
   // ---- 개발자 모드: pick a boss, watch its 비기 three times, hear its three lines
   const DEV = /[?&]dev\b/.test(location.search);
   function bossDefOf(d) {
-    return { name: d.name, title: d.title, look: d.look, accent: d.accent, sig: d.sig, hp: 30, acts: [],
+    return { name: d.name, title: d.title, look: d.look, accent: d.accent, sig: d.sig, stage: d.stage, hp: 30, acts: [],
       intro: () => [{ who: d.name, text: withName(d.intro) }], down: () => [{ who: d.name, text: withName(d.down) }] };
   }
   function startDevBoss(i) {
@@ -2261,9 +2656,10 @@ sdk.initializeAsync()
   function bossFight(dt, d, lv, seconds) {
     const b = G.boss, f = G.fight;
     f.lv = lv;
-    G.bossK = BOSS_PACE; // the whole fight at four fifths speed (cleared with the field when it ends)
+    const bp = G.stageRun ? SL().boss : BOSS_PACE;
+    G.bossK = bp; // the whole fight a little slower than life (cleared with the field when it ends)
     G.t = 20 + lv * 6; // how hard the shared attacks are
-    b.hp -= dt / (seconds * BOSS_PACE); // (by the wall clock: the fight lasts as long as ever)
+    b.hp -= dt / (seconds * bp); // (by the wall clock: the fight lasts as long as ever)
     if (b.hp <= 0) return bossDown();
     if (f.wait > 0) { // it has said its line: now the technique
       f.wait -= dt;
@@ -2271,6 +2667,7 @@ sdk.initializeAsync()
     } else if ((f.sigT -= dt) <= 0 && b.hp > 0.06) fixed("sig", () => {
       if (f.n === 0 && !f.said) { f.said = true; say([{ who: d.name, text: withName(d.sigLine) }], null); f.wait = 1.0; f.sigT = Infinity; return; }
       callout(...d.sigName); G.dark = 1; b.castT = 0.6; f.n++;
+      b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; // it throws itself at you as it calls it
       f.sigT = SIGS[d.sig]() + Math.max(1.2, 1.8 - lv * 0.05); // a breath, then the next one
     });
     // behind it, the boss's own element drifting across (some have none): a backdrop, the 비기 is the fight
@@ -2278,9 +2675,9 @@ sdk.initializeAsync()
       G.timers.drift = (G.timers.drift ?? 0.8) - dt;
       if (G.timers.drift <= 0) fixed("drift", () => { spawnDrift(d.bg); G.timers.drift = 1.2 * pace(); });
     }
-    // its body is a blade too
+    // its body is a blade too (not while it leaps back to its place, high over your head)
     const u = bossUnit(b.def);
-    if (P.inv <= 0 && !G.safe) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u) return die(P.x, P.y);
+    if (P.inv <= 0 && !G.safe && !(b.home > 0)) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u) return die(P.x, P.y);
   }
   function devBack() {
     clearField(); G.boss = null; G.lines = []; G.onLines = null; G.card = null; G.dev = null; G.story = false; G.mode = "menu";
@@ -2713,7 +3110,8 @@ sdk.initializeAsync()
       if (w.t >= w.dur) { due.push(w); return false; }
       return true;
     });
-    if (G.mode === "play") for (const w of due) w.fire(w);
+    if (G.mode === "play") for (const w of due) { w.fire(w); if (w.kind !== "none" && !reduced) G.snaps.push({ w, t: 0 }); } // it goes off: a white flash of its shape
+    G.snaps = G.snaps.filter((s) => (s.t += dt) < 0.14);
     // flying things
     if (G.freezeT > 0) G.freezeT -= dt; // 설한정: whatever is in the air hangs there, frozen
     for (const s of G.shots) {
@@ -2734,6 +3132,7 @@ sdk.initializeAsync()
         }
         s.x += s.vx * dt; s.y += s.vy * dt;
         s.rot = s.spin ? s.rot + s.spin * dt : Math.atan2(s.vy, s.vx);
+        (s.trail || (s.trail = [])).push(s.x, s.y); if (s.trail.length > 14) s.trail.splice(0, 2); // where it has just been, for its streak
         if (s.bounces > 0) {
           if ((s.x < s.r && s.vx < 0) || (s.x > W - s.r && s.vx > 0)) { s.vx *= -1; s.bounces--; spark(s.x, s.y); sfx.clang(); }
           if ((s.y < s.r && s.vy < 0) || (s.y > H - s.r && s.vy > 0)) { s.vy *= -1; s.bounces--; spark(s.x, s.y); sfx.clang(); }
@@ -2855,6 +3254,7 @@ sdk.initializeAsync()
       sfx.warn();
     }
     sfx.slash(); G.shake = Math.max(G.shake, 10); buzz(20); flash("255,250,235", 0.28);
+    if (!reduced) G.stopT = Math.max(G.stopT, 0.025); // the blade bites
     const ux = Math.cos(w.ang), uy = Math.sin(w.ang), D = Math.hypot(W, H);
     for (let i = 0; i < 22; i++) { // ink thrown off the blade's path
       const s = rnd(-D, D), x = w.x + ux * s, y = w.y + uy * s;
@@ -2899,15 +3299,24 @@ sdk.initializeAsync()
     drawDecals();
     drawDrift(time);
     for (const w of G.warns) drawWarn(w, time);
+    if (G.snaps.length) { // the instant a warning goes off, its shape flashes white-hot
+      ctx.save(); if ("filter" in ctx) ctx.filter = "brightness(2.4) saturate(0.3)";
+      for (const s of G.snaps) { ctx.globalAlpha = Math.max(0, 1 - s.t / 0.14); drawWarn({ ...s.w, t: s.w.dur, delay: 0, placed: true }, time); }
+      ctx.restore();
+    }
     for (const h of G.hazards) h.draw(h, time);
     drawMons(time);
     drawBoss(time);
+    if (!reduced) for (const s of G.shots) { // streaks behind whatever is flying, fading back along its path
+      const tr = s.trail; if (!tr || tr.length < 4 || s.veil || s.dead) continue;
+      ctx.strokeStyle = s.kind === "bamboo" ? "rgba(79,101,52,0.22)" : "rgba(29,26,23,0.2)"; ctx.lineCap = "round"; ctx.lineWidth = Math.max(2, (s.r || S * 0.01) * 1.6);
+      ctx.beginPath(); ctx.moveTo(tr[0], tr[1]); for (let i = 2; i < tr.length; i += 2) ctx.lineTo(tr[i], tr[i + 1]); ctx.stroke();
+    }
     for (const s of G.shots) {
       if (!s.veil) { drawShot(s); continue; }
       ctx.save(); ctx.globalAlpha = clamp(1.25 - Math.hypot(s.x - P.x, s.y - P.y) / (S * 0.26), 0.06, 1); drawShot(s); ctx.restore(); // 무영검: seen only close by
     }
     for (const c of G.cuts) drawCut(c);
-    if (G.eclipse) drawEclipse(time);
     if (G.mode === "play" || G.mode === "dying" || G.mode === "menu") drawPlayer(time);
     for (const p of G.parts) {
       const a = 1 - p.t / p.life;
@@ -2944,19 +3353,39 @@ sdk.initializeAsync()
     if (G.mode === "dying") drawStamp(G.dieT);
     ctx.restore();
     if (G.flash > 0.01) { ctx.fillStyle = `rgba(${G.flashC},${G.flash})`; ctx.fillRect(0, 0, W, H); }
-    if (G.story) { drawBossBar(); drawStageBar(); drawCine(time); drawCard(); }
+    if (G.story) { drawBossBar(); drawStageBar(); drawCine(time); drawCard(time); drawStamp(); }
     drawMsg();
   }
 
   // ---- 검객전 drawing: the boss, its bar, the black bars and lines, the chapter card
   const hexA = (hex, a) => `rgba(${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)},${a})`;
   // how big a boss stands (its unit; a figure is about four of these tall)
-  const bossUnit = (def) => S * ({ twins: 0.04, lord: 0.062 })[def.look] || S * 0.05;
+  const bossUnit = (def) => S * ({ twins: 0.04, lord: 0.062, tiger: 0.058, chain: 0.06, totem: 0.062, drum: 0.056 })[def.look] || S * 0.05;
   function drawBoss(time) {
     const b = G.boss; if (!b) return;
     const u = bossUnit(b.def) * (1 + (b.castT > 0 ? 0.1 * Math.sin((b.castT / 0.4) * Math.PI) : 0));
     const bodies = bossBodies(b);
-    if (b.downT <= 0) { bodies.forEach(([x, y], i) => bossFigure(b.def, x, y, u, time, { hurt: b.hurtT > 0, mid: b.mid, side: i ? 1 : -1, cast: b.castT > 0 })); return; }
+    if (b.downT <= 0) {
+      for (const g of b.ghosts || []) { // where it just was, fading
+        ctx.save(); ctx.globalAlpha = 0.28 * (1 - g.t / 0.3); ctx.translate(g.x - b.x, g.y - b.y);
+        bodies.forEach(([x, y], i) => bossFigure(b.def, x, y, u, time, { mid: b.mid, side: i ? 1 : -1 })); ctx.restore();
+      }
+      ctx.save(); if (b.home > 0) ctx.globalAlpha = 0.45; // in the air, out of reach
+      const L = b.lunge;
+      if (L) { // a lunge at you and back, and a crescent of its colour where its blade went
+        const k = Math.min(1, L.t / 0.35), off = S * 0.06 * Math.sin(Math.PI * k), sw = Math.max(0, 1 - L.t / 0.3);
+        ctx.translate(Math.cos(L.ang) * off, Math.sin(L.ang) * off);
+        if (sw > 0 && !reduced) {
+          const R = u * 3.2, a0 = L.ang - 1.3 + k * 0.6;
+          ctx.save(); ctx.translate(b.x, b.y + u * 0.4); ctx.fillStyle = hexA(b.def.accent, 0.55 * sw);
+          ctx.beginPath(); ctx.arc(0, 0, R, a0, a0 + 2.0); ctx.arc(0, 0, R * 0.82, a0 + 2.0, a0, true); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = `rgba(255,250,235,${0.8 * sw})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, R, a0 + 0.2, a0 + 1.9); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      bodies.forEach(([x, y], i) => bossFigure(b.def, x, y, u, time, { hurt: b.hurtT > 0, mid: b.mid, side: i ? 1 : -1, cast: b.castT > 0 }));
+      ctx.restore(); return;
+    }
     // felled: cut in two along the last stroke, the halves sliding apart, dropping and fading
     const k = b.downT, ang = -0.6, ux = Math.cos(ang), uy = Math.sin(ang), nx = -uy, ny = ux, L = S * 2;
     for (const s of [-1, 1]) {
@@ -2970,6 +3399,345 @@ sdk.initializeAsync()
       ctx.restore();
     }
   }
+  // ---- the bosses past the first five, each its own figure (drawn about (0,0): head near -u, hem near 2u)
+  function robe(u, sh, hem, fill, edge, time, style = "wave", hemY = 2) {
+    ctx.fillStyle = fill; ctx.beginPath(); ctx.moveTo(-u * sh, -u * 0.45);
+    ctx.quadraticCurveTo(-u * (sh + 0.12), u * hemY * 0.4, -u * hem, u * hemY);
+    for (let i = 0; i <= 10; i++) ctx.lineTo(-u * hem + (i / 10) * u * hem * 2, u * (hemY + (style === "torn" ? (i % 2 ? -0.28 : 0.06) : style === "straight" ? 0 : Math.sin(time * 3 + i) * 0.06)));
+    ctx.quadraticCurveTo(u * (sh + 0.12), u * hemY * 0.4, u * sh, -u * 0.45);
+    ctx.closePath(); ctx.fill();
+    if (edge) { ctx.strokeStyle = edge; ctx.lineWidth = Math.max(1.5, u * 0.07); ctx.stroke(); }
+  }
+  function sash(u, sh, color, w = 0.2) { ctx.strokeStyle = color; ctx.lineWidth = u * w; ctx.beginPath(); ctx.moveTo(-u * sh * 0.85, -u * 0.3); ctx.lineTo(u * sh * 0.75, u * 0.75); ctx.stroke(); }
+  function headAt(hy, hr, fill, rim = true) { ctx.fillStyle = fill; ctx.beginPath(); ctx.arc(0, hy, hr, 0, Math.PI * 2); ctx.fill(); if (rim) { ctx.strokeStyle = "rgba(247,240,222,0.6)"; ctx.lineWidth = 1.5; ctx.stroke(); } }
+  function eyesAt(hy, hr, color) { ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(-hr * 0.38, hy, hr * 0.26, hr * 0.09, 0.15, 0, Math.PI * 2); ctx.ellipse(hr * 0.38, hy, hr * 0.26, hr * 0.09, -0.15, 0, Math.PI * 2); ctx.fill(); }
+  function line(color, w, x0, y0, x1, y1) { ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
+  const LOOKS = {
+    tiger(u, t, o, def, ink) { // 맹호: a tiger's hood, a striped coat over a great frame, claws on both hands
+      ctx.strokeStyle = hexA(def.accent, 0.3); ctx.lineWidth = u * 0.14; // claw marks torn in the air behind him
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(-u * 2.3 + i * u * 0.4, -u * 1.7); ctx.quadraticCurveTo(-u * 1.2 + i * u * 0.4, -u * 0.2, -u * 1.7 + i * u * 0.4, u * 1.5); ctx.stroke(); }
+      robe(u, 1.25, 1.45, def.accent, "#1d1a17", t, "torn");
+      ctx.save(); ctx.clip(); ctx.strokeStyle = ink; ctx.lineWidth = u * 0.15;
+      for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(i * u * 0.42 - u * 0.25, -u * 0.5); ctx.quadraticCurveTo(i * u * 0.42 + u * 0.2, u * 0.3, i * u * 0.42 - u * 0.1, u * 1.1); ctx.stroke(); }
+      ctx.restore();
+      sash(u, 1.25, "#1d1a17", 0.18);
+      const hy = -u * 0.98, hr = u * 0.5;
+      for (const s of [-1, 1]) { ctx.fillStyle = def.accent; ctx.beginPath(); ctx.arc(s * hr * 0.78, hy - hr * 0.85, hr * 0.36, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(s * hr * 0.78, hy - hr * 0.85, hr * 0.18, 0, Math.PI * 2); ctx.fill(); }
+      headAt(hy, hr, def.accent);
+      for (const dx of [-0.3, 0, 0.3]) line(ink, u * 0.08, dx * hr, hy - hr * 0.95, dx * hr * 0.7, hy - hr * 0.5);
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.ellipse(0, hy + hr * 0.28, hr * 0.72, hr * 0.56, 0, 0, Math.PI * 2); ctx.fill();
+      eyesAt(hy + hr * 0.12, hr, o.mid ? "#ff5a3a" : "#ffcf3a");
+      for (const s of [-1, 1]) for (let i = 0; i < 3; i++) { // three hooked blades on each fist
+        ctx.strokeStyle = "#e3ddcf"; ctx.lineWidth = u * 0.07; ctx.beginPath(); ctx.moveTo(s * u * 1.35, u * 0.45 + i * u * 0.1);
+        ctx.quadraticCurveTo(s * u * 1.95, u * 0.6 + i * u * 0.15, s * u * 1.9, u * 1.2 + i * u * 0.12); ctx.stroke();
+      }
+      return [u * 1.9, u * 1.3];
+    },
+    veil(u, t, o, def, ink) { // 무영: hooded, masked, half there; the body runs out into smoke
+      ctx.globalAlpha *= 0.6 + 0.3 * Math.sin(t * 7) * Math.sin(t * 3.1);
+      for (let i = 1; i <= 2; i++) { ctx.save(); ctx.globalAlpha *= 0.22 / i; ctx.translate(-i * u * 0.55 * Math.sin(t * 2), 0); robe(u, 0.7, 0.85, ink, null, t); ctx.restore(); }
+      robe(u, 0.7, 0.75, ink, hexA(def.accent, 0.8), t, "wave", 1.5);
+      for (let i = 0; i < 6; i++) { ctx.fillStyle = `rgba(29,26,23,${0.45 - i * 0.07})`; ctx.beginPath(); ctx.arc(Math.sin(t * 2.5 + i) * u * 0.35, u * (1.6 + i * 0.28), u * (0.55 - i * 0.07), 0, Math.PI * 2); ctx.fill(); }
+      const hy = -u * 0.95, hr = u * 0.44;
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(-hr * 1.15, hy + hr * 0.9); ctx.quadraticCurveTo(-hr * 1.25, hy - hr * 0.8, Math.sin(t * 2) * hr * 0.3, hy - hr * 2.0); ctx.quadraticCurveTo(hr * 1.25, hy - hr * 0.8, hr * 1.15, hy + hr * 0.9); ctx.fill();
+      ctx.fillStyle = def.accent; ctx.fillRect(-hr * 0.85, hy + hr * 0.08, hr * 1.7, hr * 0.7);
+      eyesAt(hy - hr * 0.18, hr, "#dfe3e8");
+      for (const a of [-0.45, 0, 0.45]) { ctx.save(); ctx.translate(u * 0.95, u * 0.3); ctx.rotate(-0.7 + a); ctx.fillStyle = "#c9ccce"; ctx.beginPath(); ctx.moveTo(0, -u * 0.05); ctx.lineTo(u * 0.85, 0); ctx.lineTo(0, u * 0.05); ctx.fill(); ctx.restore(); }
+      return [u * 1.6, -u * 0.35];
+    },
+    drum(u, t, o, def, ink) { // 뇌음: a great red drum on his back, rings of sound off it, sticks raised, a headband
+      const R = u * 1.25, cy = -u * 0.45, k = (t * 2) % 1;
+      ctx.strokeStyle = hexA(def.accent, 0.45 * (1 - k)); ctx.lineWidth = u * 0.1; ctx.beginPath(); ctx.arc(0, cy, R * (1.05 + k * 0.9), 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = "#7a2a1a"; ctx.beginPath(); ctx.ellipse(0, cy, R * 1.06, R, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#e8d8b0"; ctx.beginPath(); ctx.ellipse(0, cy, R * 0.82, R * 0.78, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#c8321f"; ctx.beginPath(); ctx.arc(0, cy, R * 0.42, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#2d4f8a"; ctx.beginPath(); ctx.arc(0, cy, R * 0.42, 0, Math.PI); ctx.fill();
+      ctx.fillStyle = "#c8321f"; ctx.beginPath(); ctx.arc(-R * 0.21, cy, R * 0.21, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#2d4f8a"; ctx.beginPath(); ctx.arc(R * 0.21, cy, R * 0.21, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#d9a23a"; for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; ctx.beginPath(); ctx.arc(Math.cos(a) * R * 0.94, cy + Math.sin(a) * R * 0.89, u * 0.05, 0, Math.PI * 2); ctx.fill(); }
+      robe(u, 1.1, 1.4, ink, hexA(def.accent, 0.85), t, "wave");
+      const hit = Math.sin(t * 8);
+      for (const s of [-1, 1]) {
+        const hx = s * u * 1.75, hy2 = -u * 1.35 + (s > 0 ? hit : -hit) * u * 0.25;
+        line("#a8724a", u * 0.26, s * u * 1.0, -u * 0.3, hx, hy2); // bare arms
+        line("#5b3a2a", u * 0.1, hx, hy2, hx + s * u * 0.5, hy2 - u * 0.6);
+        ctx.fillStyle = "#c8321f"; ctx.beginPath(); ctx.arc(hx + s * u * 0.5, hy2 - u * 0.6, u * 0.12, 0, Math.PI * 2); ctx.fill();
+      }
+      const hy = -u * 0.95, hr = u * 0.46;
+      headAt(hy, hr, ink);
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0, hy - hr * 1.05, hr * 0.32, 0, Math.PI * 2); ctx.fill(); line("#d9a23a", u * 0.05, -hr * 0.45, hy - hr * 1.05, hr * 0.45, hy - hr * 1.05);
+      line("#c8321f", u * 0.12, -hr, hy - hr * 0.3, hr, hy - hr * 0.3);
+      ctx.strokeStyle = "#c8321f"; ctx.lineWidth = u * 0.1; ctx.beginPath(); ctx.moveTo(-hr, hy - hr * 0.3); ctx.quadraticCurveTo(-hr * 2, hy - hr * 0.1, -hr * 2.8, hy + Math.sin(t * 7) * u * 0.3); ctx.stroke();
+      eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#e0412a");
+      return [u * 2.25, -u * 1.95];
+    },
+    mirror(u, t, o, def, ink) { // 빙경: a crown of ice, wide white sleeves, a bronze mirror held before her, shards turning
+      for (let i = 0; i < 6; i++) {
+        const a = t * 0.9 + (i / 6) * Math.PI * 2, gl = Math.abs(Math.sin(a * 1.5));
+        ctx.save(); ctx.translate(Math.cos(a) * u * 2.4, u * 0.3 + Math.sin(a) * u * 1.0); ctx.rotate(a * 1.5);
+        ctx.fillStyle = `rgba(${200 + gl * 55},${230 + gl * 25},245,0.85)`; ctx.beginPath(); ctx.moveTo(0, -u * 0.32); ctx.lineTo(u * 0.16, 0); ctx.lineTo(0, u * 0.32); ctx.lineTo(-u * 0.16, 0); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+      }
+      for (const s of [-1, 1]) {
+        ctx.fillStyle = "rgba(240,246,250,0.92)"; ctx.beginPath(); ctx.moveTo(s * u * 0.65, -u * 0.35);
+        ctx.quadraticCurveTo(s * u * 1.8, -u * 0.2, s * u * 2.4, u * 0.9 + Math.sin(t * 2 + s) * u * 0.3);
+        ctx.quadraticCurveTo(s * u * 1.7, u * 1.5, s * u * 0.6, u * 0.45); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = hexA(def.accent, 0.8); ctx.lineWidth = 1.5; ctx.stroke();
+      }
+      robe(u, 0.7, 1.5, ink, hexA(def.accent, 0.85), t);
+      sash(u, 0.7, def.accent);
+      const hy = -u * 0.95, hr = u * 0.42;
+      headAt(hy, hr, ink);
+      ctx.fillStyle = "#d4ebf6"; ctx.strokeStyle = hexA(def.accent, 0.9); ctx.lineWidth = 1.2;
+      for (let i = -3; i <= 3; i++) { ctx.beginPath(); ctx.moveTo(i * hr * 0.3 - hr * 0.13, hy - hr * 0.55); ctx.lineTo(i * hr * 0.3, hy - hr * (1.75 - Math.abs(i) * 0.25)); ctx.lineTo(i * hr * 0.3 + hr * 0.13, hy - hr * 0.55); ctx.closePath(); ctx.fill(); ctx.stroke(); }
+      eyesAt(hy, hr, "#bfe4f7");
+      const mx = u * 0.25, my = u * 0.35, mr = u * 0.55, g = ctx.createRadialGradient(mx - mr * 0.3, my - mr * 0.3, mr * 0.1, mx, my, mr);
+      g.addColorStop(0, "#ffffff"); g.addColorStop(1, def.accent); ctx.fillStyle = g; ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "#b8913f"; ctx.lineWidth = u * 0.11; ctx.stroke();
+      ctx.save(); ctx.beginPath(); ctx.arc(mx, my, mr, 0, Math.PI * 2); ctx.clip(); ctx.translate(mx, my); ctx.rotate(0.6);
+      ctx.fillStyle = "rgba(255,255,255,0.6)"; ctx.fillRect(-mr + ((t * 0.8) % 1) * mr * 3 - mr, -mr, mr * 0.25, mr * 2); ctx.restore();
+      return [mx, my];
+    },
+    rain(u, t, o, def, ink) { // 청우: a long coat, a sword sheathed at the hip, an oiled-paper umbrella over his head, rain all round
+      ctx.strokeStyle = "rgba(62,96,112,0.5)"; ctx.lineWidth = 1.2; ctx.beginPath();
+      for (let i = 0; i < 16; i++) { const x = (((i * 0.618) % 1) - 0.5) * u * 5.4, y = ((t * 1.8 + i * 0.37) % 1) * u * 5 - u * 2.2; ctx.moveTo(x, y); ctx.lineTo(x - u * 0.05, y + u * 0.32); }
+      ctx.stroke();
+      robe(u, 0.66, 1.05, ink, hexA(def.accent, 0.85), t, "straight", 2.1);
+      line("#3a2a20", u * 0.15, -u * 0.15, u * 0.65, -u * 1.85, u * 1.65);
+      line("#c9ccce", u * 0.1, -u * 0.15, u * 0.65, u * 0.25, u * 0.38);
+      const hy = -u * 0.95, hr = u * 0.42;
+      headAt(hy, hr, ink); eyesAt(hy, hr, "#9fd3e0");
+      line("#5b3a2a", u * 0.09, u * 0.55, u * 0.25, u * 0.2, -u * 2.15);
+      const cx = u * 0.2, top = -u * 2.75, base = -u * 1.75, half = u * 1.85;
+      ctx.fillStyle = def.accent; ctx.beginPath(); ctx.moveTo(cx - half, base); ctx.quadraticCurveTo(cx, top - u * 0.5, cx + half, base);
+      for (let i = 8; i >= 0; i--) { const x = cx - half + (i / 8) * half * 2; ctx.quadraticCurveTo(x + half / 8, base - u * 0.18, x, base); }
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(29,26,23,0.55)"; ctx.lineWidth = 1.2; for (let i = 0; i <= 8; i++) { ctx.beginPath(); ctx.moveTo(cx, top + u * 0.05); ctx.lineTo(cx - half + (i / 8) * half * 2, base); ctx.stroke(); }
+      ctx.strokeStyle = "#c8321f"; ctx.lineWidth = u * 0.1; ctx.beginPath(); ctx.ellipse(cx, top + u * 0.38, u * 0.55, u * 0.12, 0, Math.PI, Math.PI * 2); ctx.stroke();
+      return [cx, top];
+    },
+    swords(u, t, o, def, ink) { // 검총주: a fan of swords behind him like a halo, armour of plates, a red-plumed helmet, a great sword planted
+      for (let i = 0; i < 11; i++) {
+        ctx.save(); ctx.translate(0, -u * 0.6); ctx.rotate(-Math.PI / 2 + (i - 5) * 0.27 + Math.sin(t * 1.2) * 0.03);
+        ctx.fillStyle = "#cfd3d8"; ctx.beginPath(); ctx.moveTo(u * 0.95, -u * 0.06); ctx.lineTo(u * 2.75, 0); ctx.lineTo(u * 0.95, u * 0.06); ctx.fill();
+        line("#3a2a20", u * 0.09, u * 0.5, 0, u * 0.95, 0); line("#7a7f86", u * 0.06, u * 0.95, -u * 0.18, u * 0.95, u * 0.18);
+        ctx.restore();
+      }
+      robe(u, 1.0, 1.4, ink, hexA(def.accent, 0.9), t, "straight");
+      ctx.save(); ctx.clip(); ctx.strokeStyle = "rgba(154,160,168,0.55)"; ctx.lineWidth = 1.2;
+      for (let y = u * 0.5; y < u * 2; y += u * 0.24) { ctx.beginPath(); ctx.moveTo(-u * 2, y); ctx.lineTo(u * 2, y); ctx.stroke(); for (let x = -u * 1.6; x < u * 1.6; x += u * 0.26) { ctx.beginPath(); ctx.moveTo(x + (y / u) * 4, y); ctx.lineTo(x + (y / u) * 4, y + u * 0.24); ctx.stroke(); } }
+      ctx.restore();
+      for (const s of [-1, 1]) { ctx.fillStyle = "#5d6168"; ctx.beginPath(); ctx.ellipse(s * u * 1.0, -u * 0.35, u * 0.48, u * 0.3, s * 0.3, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#c9ccce"; ctx.lineWidth = 1.5; ctx.stroke(); }
+      const hy = -u * 0.95, hr = u * 0.46;
+      headAt(hy, hr, ink);
+      ctx.fillStyle = "#5d6168"; ctx.beginPath(); ctx.arc(0, hy, hr * 1.1, Math.PI, Math.PI * 2); ctx.fill(); line("#c9ccce", u * 0.06, -hr * 1.15, hy, hr * 1.15, hy);
+      ctx.strokeStyle = "#c8321f"; ctx.lineWidth = u * 0.17; ctx.beginPath(); ctx.moveTo(0, hy - hr * 1.05); ctx.quadraticCurveTo(-u * 0.5, hy - hr * 2.0, -u * 1.1, hy - hr * 1.2 + Math.sin(t * 4) * u * 0.15); ctx.stroke();
+      eyesAt(hy + hr * 0.15, hr, o.mid ? "#ff5a3a" : "#e0412a");
+      ctx.fillStyle = "#e3e6ea"; ctx.beginPath(); ctx.moveTo(u * 1.25 - u * 0.08, -u * 0.15); ctx.lineTo(u * 1.25 + u * 0.08, -u * 0.15); ctx.lineTo(u * 1.25, u * 2.05); ctx.fill();
+      line("#3a2a20", u * 0.1, u * 0.85, -u * 0.15, u * 1.65, -u * 0.15); line("#3a2a20", u * 0.12, u * 1.25, -u * 0.15, u * 1.25, -u * 0.7);
+      return [u * 1.25, -u * 0.7];
+    },
+    time(u, t, o, def, ink) { // 광음: an old scholar, a great dial behind him, a white beard, a tall 정자관, a gourd on a crooked staff
+      const cy = -u * 0.5;
+      ctx.strokeStyle = hexA(def.accent, 0.55); ctx.lineWidth = u * 0.08; ctx.beginPath(); ctx.arc(0, cy, u * 2.2, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = u * 0.03; ctx.beginPath(); ctx.arc(0, cy, u * 1.85, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; line(hexA(def.accent, 0.7), u * (i % 3 ? 0.05 : 0.1), Math.cos(a) * u * 1.9, cy + Math.sin(a) * u * 1.9, Math.cos(a) * u * 2.15, cy + Math.sin(a) * u * 2.15); }
+      const ha = t * 0.9 * (G.timeK || 1); line(hexA(def.accent, 0.8), u * 0.09, 0, cy, Math.sin(ha) * u * 2.0, cy - Math.cos(ha) * u * 2.0);
+      robe(u, 0.85, 1.45, "#ece4d0", "#1d1a17", t);
+      sash(u, 0.85, def.accent);
+      line("#5b3a2a", u * 0.11, -u * 1.35, u * 2.0, -u * 1.15, -u * 1.85);
+      ctx.fillStyle = "#c99a3a"; ctx.beginPath(); ctx.arc(-u * 1.13, -u * 2.08, u * 0.24, 0, Math.PI * 2); ctx.arc(-u * 1.13, -u * 2.45, u * 0.16, 0, Math.PI * 2); ctx.fill();
+      line("#c8321f", u * 0.06, -u * 1.33, -u * 2.25, -u * 0.95, -u * 2.25);
+      const hy = -u * 0.95, hr = u * 0.44;
+      headAt(hy, hr, "#e3d2b4");
+      ctx.fillStyle = "#f6f3ec"; ctx.beginPath(); ctx.moveTo(-hr * 0.65, hy + hr * 0.15); ctx.quadraticCurveTo(-hr * 0.4, hy + hr * 2.4, Math.sin(t * 2) * u * 0.12, hy + hr * 3.3); ctx.quadraticCurveTo(hr * 0.4, hy + hr * 2.4, hr * 0.65, hy + hr * 0.15); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(29,26,23,0.25)"; ctx.lineWidth = 1; ctx.stroke();
+      line("#f6f3ec", u * 0.07, -hr * 0.7, hy - hr * 0.3, -hr * 0.05, hy - hr * 0.15); line("#f6f3ec", u * 0.07, hr * 0.7, hy - hr * 0.3, hr * 0.05, hy - hr * 0.15);
+      eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#b08d4a");
+      ctx.fillStyle = "#1d1a17";
+      ctx.fillRect(-hr * 0.82, hy - hr * 1.35, hr * 1.64, hr * 0.6);
+      ctx.beginPath(); ctx.moveTo(-hr * 0.65, hy - hr * 1.35); ctx.lineTo(0, hy - hr * 1.95); ctx.lineTo(hr * 0.65, hy - hr * 1.35); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-hr * 0.45, hy - hr * 1.8); ctx.lineTo(0, hy - hr * 2.45); ctx.lineTo(hr * 0.45, hy - hr * 1.8); ctx.fill();
+      return [-u * 1.13, -u * 2.3];
+    },
+    thunder(u, t, o, def, ink) { // 벽력: a turning 팔괘 behind, talismans adrift, sparks jumping; a tall 도관, a horsetail whisk
+      ctx.save(); ctx.translate(0, -u * 0.6); ctx.rotate(t * 0.4);
+      ctx.strokeStyle = hexA(def.accent, 0.5); ctx.lineWidth = u * 0.05; ctx.beginPath(); ctx.arc(0, 0, u * 1.5, 0, Math.PI * 2); ctx.stroke(); ctx.beginPath(); ctx.arc(0, 0, u * 2.35, 0, Math.PI * 2); ctx.stroke();
+      for (let i = 0; i < 8; i++) {
+        ctx.save(); ctx.rotate((i / 8) * Math.PI * 2); ctx.translate(0, -u * 1.92);
+        for (let j = 0; j < 3; j++) { const y = (j - 1) * u * 0.16, broken = (i >> j) & 1; ctx.strokeStyle = "rgba(29,26,23,0.55)"; ctx.lineWidth = u * 0.09; ctx.beginPath(); if (broken) { ctx.moveTo(-u * 0.3, y); ctx.lineTo(-u * 0.06, y); ctx.moveTo(u * 0.06, y); ctx.lineTo(u * 0.3, y); } else { ctx.moveTo(-u * 0.3, y); ctx.lineTo(u * 0.3, y); } ctx.stroke(); }
+        ctx.restore();
+      }
+      ctx.restore();
+      for (let i = 0; i < 4; i++) {
+        const a = t * 0.8 + (i * Math.PI) / 2;
+        ctx.save(); ctx.translate(Math.cos(a) * u * 2.0, -u * 0.2 + Math.sin(a * 1.3) * u * 1.2); ctx.rotate(Math.sin(t + i) * 0.35);
+        ctx.fillStyle = "#e8cf6a"; ctx.fillRect(-u * 0.15, -u * 0.35, u * 0.3, u * 0.7); line("#c8321f", u * 0.04, 0, -u * 0.28, 0, u * 0.25); line("#c8321f", u * 0.04, -u * 0.1, -u * 0.1, u * 0.1, -u * 0.1);
+        ctx.restore();
+      }
+      if (Math.sin(t * 13) > 0.55) { // a spark jumps
+        ctx.strokeStyle = "#fff3a8"; ctx.lineWidth = 1.6; ctx.beginPath(); let px = Math.sin(t * 7) * u * 1.6, py = -u * 1.4;
+        ctx.moveTo(px, py); for (let i = 0; i < 5; i++) { px += Math.sin(t * 31 + i * 2) * u * 0.3; py += u * 0.3; ctx.lineTo(px, py); } ctx.stroke();
+      }
+      robe(u, 0.85, 1.45, ink, hexA(def.accent, 0.85), t);
+      line(def.accent, u * 0.08, -u * 1.35, u * 1.8, u * 1.35, u * 1.8);
+      const hy = -u * 0.95, hr = u * 0.44;
+      headAt(hy, hr, ink);
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(-hr * 0.25, hy + hr * 0.6); ctx.lineTo(0, hy + hr * 1.5); ctx.lineTo(hr * 0.25, hy + hr * 0.6); ctx.fill();
+      ctx.fillRect(-hr * 0.45, hy - hr * 1.95, hr * 0.9, hr * 1.15); line("#d9b23a", u * 0.06, -hr * 0.8, hy - hr * 1.45, hr * 0.8, hy - hr * 1.45);
+      eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#fff3a8");
+      line("#5b3a2a", u * 0.09, u * 0.85, u * 0.4, u * 1.6, -u * 0.7);
+      ctx.strokeStyle = "rgba(246,243,236,0.9)"; ctx.lineWidth = u * 0.06;
+      for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo(u * 1.6, -u * 0.7); ctx.quadraticCurveTo(u * 2.2, -u * 0.6 + i * u * 0.1, u * 2.3 + Math.sin(t * 3 + i) * u * 0.2, u * 0.3 + i * u * 0.12); ctx.stroke(); }
+      return [u * 1.6, -u * 0.7];
+    },
+    ghost(u, t, o, def, ink) { // 추혼: a 저승사자 — a pale face under a wide black 갓, its bead strings swaying; a chain for the souls
+      for (let i = 0; i < 5; i++) {
+        const a = t * 1.2 + (i / 5) * Math.PI * 2, x = Math.cos(a) * u * 2.2, y = u * 0.6 + Math.sin(a) * u * 0.8;
+        ctx.fillStyle = "rgba(143,208,200,0.5)"; ctx.beginPath(); ctx.arc(x, y, u * 0.2, 0, Math.PI); ctx.quadraticCurveTo(x - u * 0.2, y - u * 0.4, x + Math.sin(t * 5 + i) * u * 0.1, y - u * 0.55); ctx.quadraticCurveTo(x + u * 0.2, y - u * 0.4, x + u * 0.2, y); ctx.fill();
+      }
+      robe(u, 0.8, 1.55, "#0f0e0d", hexA(def.accent, 0.8), t);
+      for (const s of [-1, 1]) { ctx.fillStyle = "#0f0e0d"; ctx.beginPath(); ctx.moveTo(s * u * 0.75, -u * 0.3); ctx.lineTo(s * u * 1.7, u * 0.95); ctx.lineTo(s * u * 0.9, u * 1.15); ctx.closePath(); ctx.fill(); }
+      const hy = -u * 0.95, hr = u * 0.42;
+      headAt(hy, hr, "#e8e4dc", false);
+      ctx.fillStyle = "rgba(29,26,23,0.55)"; ctx.beginPath(); ctx.ellipse(-hr * 0.38, hy, hr * 0.32, hr * 0.2, 0, 0, Math.PI * 2); ctx.ellipse(hr * 0.38, hy, hr * 0.32, hr * 0.2, 0, 0, Math.PI * 2); ctx.fill();
+      eyesAt(hy, hr, "#8fd0c8");
+      ctx.fillStyle = "rgba(20,18,16,0.85)"; ctx.beginPath(); ctx.ellipse(0, hy - hr * 0.55, hr * 2.5, hr * 0.38, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.moveTo(-hr * 0.62, hy - hr * 0.6); ctx.lineTo(-hr * 0.55, hy - hr * 1.6); ctx.quadraticCurveTo(0, hy - hr * 1.9, hr * 0.55, hy - hr * 1.6); ctx.lineTo(hr * 0.62, hy - hr * 0.6); ctx.fill();
+      ctx.fillStyle = "#c99a3a";
+      for (const s of [-1, 1]) for (let i = 0; i < 7; i++) { const k = i / 6; ctx.beginPath(); ctx.arc(s * hr * (0.9 - k * 0.4) + Math.sin(t * 2 + i * 0.4) * hr * 0.1 * k, hy - hr * 0.45 + k * hr * 2.1, u * 0.055, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = "#8a8780"; ctx.lineWidth = u * 0.05;
+      for (let i = 0; i < 8; i++) { ctx.beginPath(); ctx.ellipse(u * 1.15 + Math.sin(t * 2) * i * u * 0.06, u * 0.6 + i * u * 0.22, u * 0.07, u * 0.12, Math.sin(t * 2) * 0.3, 0, Math.PI * 2); ctx.stroke(); }
+      return [u * 1.15, u * 2.3];
+    },
+    butterfly(u, t, o, def, ink) { // 호접: great wings slowly beating behind her, hair up with a butterfly pin, an open fan
+      const flap = 0.82 + 0.18 * Math.sin(t * 2.5);
+      for (const s of [-1, 1]) {
+        ctx.fillStyle = def.accent; ctx.beginPath(); ctx.moveTo(0, -u * 0.4); ctx.bezierCurveTo(s * u * 3.0 * flap, -u * 2.5, s * u * 3.4 * flap, -u * 0.5, s * u * 0.4, -u * 0.05); ctx.fill();
+        ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = u * 0.08; ctx.stroke();
+        ctx.fillStyle = hexA(def.accent, 0.75); ctx.beginPath(); ctx.moveTo(0, -u * 0.05); ctx.bezierCurveTo(s * u * 2.4 * flap, u * 0.2, s * u * 1.9 * flap, u * 1.7, s * u * 0.3, u * 0.5); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(s * u * 1.75 * flap, -u * 1.15, u * 0.34, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#f2c9e8"; ctx.beginPath(); ctx.arc(s * u * 1.75 * flap, -u * 1.15, u * 0.17, 0, Math.PI * 2); ctx.fill();
+      }
+      robe(u, 0.66, 1.35, ink, hexA(def.accent, 0.85), t);
+      sash(u, 0.66, "#e7a6c8");
+      const hy = -u * 0.95, hr = u * 0.42;
+      headAt(hy, hr, ink);
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0, hy - hr * 0.95, hr * 0.5, 0, Math.PI * 2); ctx.fill();
+      line("#d9a23a", u * 0.06, -hr * 0.9, hy - hr * 0.8, hr * 1.1, hy - hr * 1.15);
+      ctx.fillStyle = def.accent; for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(hr * 1.15 + s * hr * 0.18, hy - hr * 1.2, hr * 0.17, hr * 0.1, s * 0.6, 0, Math.PI * 2); ctx.fill(); }
+      eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#e7a6f2");
+      const fx = u * 0.9, fy = u * 0.25;
+      ctx.fillStyle = "#f4ecf6"; ctx.beginPath(); ctx.moveTo(fx, fy); ctx.arc(fx, fy, u * 1.15, -2.3, -0.6); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = def.accent; ctx.lineWidth = 1.2; ctx.stroke();
+      for (let i = 0; i <= 6; i++) { const a = -2.3 + (i / 6) * 1.7; line(hexA(def.accent, 0.7), 1, fx, fy, fx + Math.cos(a) * u * 1.15, fy + Math.sin(a) * u * 1.15); }
+      return [fx + Math.cos(-1.45) * u * 1.15, fy + Math.sin(-1.45) * u * 1.15];
+    },
+    wheel(u, t, o, def, ink) { // 화륜: a boy standing on a wheel of fire, a red sash flung round him in a loop, a tasselled spear
+      ctx.save(); ctx.translate(0, u * 2.0);
+      const g = ctx.createRadialGradient(0, 0, u * 0.3, 0, 0, u * 1.6); g.addColorStop(0, "rgba(255,214,120,0.85)"); g.addColorStop(1, "rgba(224,83,31,0)");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, u * 1.6, 0, Math.PI * 2); ctx.fill();
+      ctx.rotate(t * 10); ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = u * 0.16; ctx.beginPath(); ctx.arc(0, 0, u * 0.85, 0, Math.PI * 2); ctx.stroke();
+      ctx.lineWidth = u * 0.07; for (let i = 0; i < 6; i++) { const a = (i / 6) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * u * 0.85, Math.sin(a) * u * 0.85); ctx.stroke(); }
+      ctx.fillStyle = "#e0531f"; for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(Math.cos(a) * u * 0.85, Math.sin(a) * u * 0.85); ctx.lineTo(Math.cos(a + 0.3) * u * 1.4, Math.sin(a + 0.3) * u * 1.4); ctx.lineTo(Math.cos(a + 0.5) * u * 0.85, Math.sin(a + 0.5) * u * 0.85); ctx.fill(); }
+      ctx.restore();
+      robe(u, 0.72, 1.0, ink, hexA(def.accent, 0.85), t, "wave", 1.25);
+      ctx.strokeStyle = "#c8321f"; ctx.lineWidth = u * 0.2; ctx.beginPath(); ctx.moveTo(-u * 0.6, -u * 0.2);
+      ctx.bezierCurveTo(-u * 2.7, -u * 1.7 + Math.sin(t * 3) * u * 0.3, u * 2.9, -u * 2.0, u * 1.9, u * 0.6 + Math.sin(t * 3 + 1) * u * 0.3); ctx.stroke();
+      const hy = -u * 0.95, hr = u * 0.42;
+      headAt(hy, hr, ink);
+      for (const s of [-1, 1]) { ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(s * hr * 0.72, hy - hr * 0.85, hr * 0.34, 0, Math.PI * 2); ctx.fill(); line("#c8321f", u * 0.06, s * hr * 0.72, hy - hr * 0.85, s * hr * 1.5, hy - hr * 0.3 + Math.sin(t * 6 + s) * u * 0.1); }
+      eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#ffb14a");
+      line("#5b3a2a", u * 0.09, u * 1.15, u * 1.3, u * 1.6, -u * 2.2);
+      ctx.fillStyle = "#d9dde2"; ctx.beginPath(); ctx.moveTo(u * 1.53, -u * 2.15); ctx.lineTo(u * 1.72, -u * 2.75); ctx.lineTo(u * 1.7, -u * 2.1); ctx.fill();
+      ctx.strokeStyle = "#c8321f"; ctx.lineWidth = u * 0.05; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.moveTo(u * 1.6, -u * 2.1); ctx.lineTo(u * 1.6 + Math.sin(t * 5 + i) * u * 0.15 - u * 0.1 + i * u * 0.05, -u * 1.65); ctx.stroke(); }
+      return [u * 1.7, -u * 2.75];
+    },
+    chain(u, t, o, def, ink) { // 철추: a giant with a bare chest and an iron collar, a spiked iron ball swinging from each fist
+      robe(u, 1.4, 1.55, ink, hexA(def.accent, 0.9), t, "straight");
+      ctx.fillStyle = "#a87a55"; ctx.beginPath(); ctx.moveTo(-u * 0.55, -u * 0.45); ctx.lineTo(u * 0.55, -u * 0.45); ctx.lineTo(0, u * 0.6); ctx.closePath(); ctx.fill();
+      for (const s of [-1, 1]) line("#a87a55", u * 0.34, s * u * 1.25, -u * 0.3, s * u * 2.0, u * 0.1);
+      for (const s of [-1, 1]) {
+        const a = Math.sin(t * 2.2 + (s > 0 ? 0 : Math.PI)) * 0.55, hx = s * u * 2.0, hy2 = u * 0.1, bx = hx + Math.sin(a) * u * 1.5, by = hy2 + Math.cos(a) * u * 1.5;
+        ctx.strokeStyle = "#5d6168"; ctx.lineWidth = u * 0.05; for (let i = 1; i < 7; i++) { const k = i / 7; ctx.beginPath(); ctx.ellipse(hx + (bx - hx) * k, hy2 + (by - hy2) * k, u * 0.06, u * 0.1, a, 0, Math.PI * 2); ctx.stroke(); }
+        ctx.fillStyle = "#2b2926"; for (let i = 0; i < 8; i++) { const sa = (i / 8) * Math.PI * 2; ctx.beginPath(); ctx.moveTo(bx + Math.cos(sa - 0.25) * u * 0.42, by + Math.sin(sa - 0.25) * u * 0.42); ctx.lineTo(bx + Math.cos(sa) * u * 0.62, by + Math.sin(sa) * u * 0.62); ctx.lineTo(bx + Math.cos(sa + 0.25) * u * 0.42, by + Math.sin(sa + 0.25) * u * 0.42); ctx.fill(); }
+        const g = ctx.createRadialGradient(bx - u * 0.15, by - u * 0.15, u * 0.05, bx, by, u * 0.45); g.addColorStop(0, "#8a8780"); g.addColorStop(1, "#1d1a17");
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, u * 0.45, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "#a87a55"; ctx.beginPath(); ctx.arc(hx, hy2, u * 0.2, 0, Math.PI * 2); ctx.fill(); // the fist round the chain
+      }
+      ctx.strokeStyle = "#5d6168"; ctx.lineWidth = u * 0.18; ctx.beginPath(); ctx.ellipse(0, -u * 0.5, u * 0.62, u * 0.2, 0, 0, Math.PI * 2); ctx.stroke();
+      const hy = -u * 1.0, hr = u * 0.5;
+      headAt(hy, hr, ink);
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.moveTo(-hr * 0.8, hy + hr * 0.3); ctx.lineTo(-hr * 0.4, hy + hr * 1.3); ctx.lineTo(hr * 0.4, hy + hr * 1.3); ctx.lineTo(hr * 0.8, hy + hr * 0.3); ctx.fill();
+      ctx.beginPath(); ctx.arc(0, hy - hr * 1.0, hr * 0.28, 0, Math.PI * 2); ctx.fill();
+      line("#c8321f", u * 0.06, -hr * 0.4, hy - hr * 0.55, hr * 0.15, hy - hr * 0.1);
+      eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#e0412a");
+      return [u * 2.0, u * 1.6];
+    },
+    totem(u, t, o, def, ink) { // 장승: not a man but a carved post — a black hat, bulging eyes, a fanged grin, 天下大將軍 down its body
+      const wd = u * 0.95, top = -u * 1.95, bot = u * 2.1;
+      for (let i = 0; i < 5; i++) { const a = t * 0.6 + (i / 5) * Math.PI * 2; ctx.fillStyle = "rgba(110,98,84,0.7)"; ctx.beginPath(); ctx.arc(Math.cos(a) * u * 1.9, u * 0.6 + Math.sin(a) * u * 0.7 - ((t * 0.4 + i * 0.2) % 1) * u * 0.6, u * 0.1, 0, Math.PI * 2); ctx.fill(); }
+      const g = ctx.createLinearGradient(-wd, 0, wd, 0); g.addColorStop(0, "#5b3a24"); g.addColorStop(0.5, "#8f5f39"); g.addColorStop(1, "#4a2e1c");
+      ctx.fillStyle = g; ctx.beginPath(); ctx.moveTo(-wd, bot); ctx.lineTo(-wd, top + u * 0.3); ctx.quadraticCurveTo(0, top - u * 0.15, wd, top + u * 0.3); ctx.lineTo(wd, bot); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "rgba(29,26,23,0.25)"; ctx.lineWidth = 1; for (let i = -2; i <= 2; i++) { ctx.beginPath(); ctx.moveTo(i * wd * 0.35, top + u * 0.4); ctx.quadraticCurveTo(i * wd * 0.35 + u * 0.08, u * 0.2, i * wd * 0.35, bot); ctx.stroke(); }
+      ctx.fillStyle = "#1d1a17"; ctx.fillRect(-wd * 1.15, top - u * 0.35, wd * 2.3, u * 0.42); ctx.beginPath(); ctx.ellipse(0, top - u * 0.35, wd * 0.6, u * 0.45, 0, Math.PI, Math.PI * 2); ctx.fill();
+      const ey = top + u * 0.62, look = clamp((P.x - (G.boss ? G.boss.x : 0)) / S, -1, 1) * u * 0.08;
+      for (const s of [-1, 1]) {
+        line("#1d1a17", u * 0.14, s * wd * 0.15, ey - u * 0.42, s * wd * 0.8, ey - u * 0.3);
+        ctx.fillStyle = "#f2ead6"; ctx.beginPath(); ctx.arc(s * wd * 0.45, ey, u * 0.28, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = 1.5; ctx.stroke();
+        ctx.fillStyle = o.mid ? "#c8321f" : ink; ctx.beginPath(); ctx.arc(s * wd * 0.45 + look, ey + u * 0.03, u * 0.13, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = "rgba(200,50,31,0.45)"; ctx.beginPath(); ctx.arc(s * wd * 0.62, ey + u * 0.55, u * 0.17, 0, Math.PI * 2); ctx.fill();
+      }
+      ctx.fillStyle = "#6b4228"; ctx.beginPath(); ctx.moveTo(0, ey - u * 0.1); ctx.lineTo(-u * 0.24, ey + u * 0.55); ctx.lineTo(u * 0.24, ey + u * 0.55); ctx.closePath(); ctx.fill();
+      const my = ey + u * 0.9;
+      ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.ellipse(0, my, wd * 0.68, u * 0.24, 0, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#f2ead6"; for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(s * wd * 0.42, my + u * 0.2); ctx.lineTo(s * wd * 0.32, my - u * 0.18); ctx.lineTo(s * wd * 0.22, my + u * 0.2); ctx.fill(); }
+      ctx.fillStyle = "#c8321f"; ctx.font = `900 ${Math.round(u * 0.32)}px "Noto Serif KR", serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      [..."天下大將軍"].forEach((c, i) => ctx.fillText(c, 0, my + u * 0.5 + i * u * 0.33));
+      return [0, my];
+    },
+    eye(u, t, o, def, ink) { // 천안: five-coloured ribbons, a white robe, a smiling 탈 for a face, and a third eye on its brow
+      const cols = ["#c8321f", "#2d4f8a", "#e8cf6a", "#f7f0de", "#1d1a17"];
+      cols.forEach((c, i) => { ctx.strokeStyle = c; ctx.lineWidth = u * 0.12; ctx.beginPath(); const sx = (i - 2) * u * 0.45; ctx.moveTo(sx, -u * 0.2); ctx.bezierCurveTo(sx * 2 + Math.sin(t * 2 + i) * u * 0.5, u * 0.8, sx * 3, u * 1.4, sx * 3.4 + Math.sin(t * 2.5 + i) * u * 0.4, u * 2.4); ctx.stroke(); });
+      robe(u, 0.8, 1.6, "#efe9dc", "#1d1a17", t);
+      sash(u, 0.8, "#c8321f");
+      const hy = -u * 0.95, hr = u * 0.5;
+      ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = u * 0.08; for (let i = 0; i < 6; i++) { ctx.beginPath(); ctx.moveTo((i - 2.5) * hr * 0.3, hy - hr * 0.6); ctx.quadraticCurveTo((i - 2.5) * hr * 0.5, hy + hr * 0.8, (i - 2.5) * hr * 0.55 + Math.sin(t * 3 + i) * u * 0.1, hy + hr * 2.2); ctx.stroke(); }
+      headAt(hy, hr, "#f0e2c4");
+      ctx.fillStyle = "rgba(200,50,31,0.5)"; for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * hr * 0.5, hy + hr * 0.35, hr * 0.2, 0, Math.PI * 2); ctx.fill(); }
+      ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = u * 0.06;
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * hr * 0.38, hy + hr * 0.08, hr * 0.2, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
+      ctx.beginPath(); ctx.arc(0, hy + hr * 0.35, hr * 0.35, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
+      const gz = G.hazards.find((h) => h.kind === "gaze"), st = gz ? gz.state() : "shut";
+      const open = st === "open" ? 1 : st === "stir" ? 0.35 + 0.2 * Math.sin(t * 30) : 0.12 + 0.05 * Math.sin(t * 2);
+      const ex = 0, ey = hy - hr * 0.5, ew = hr * 0.42;
+      ctx.fillStyle = "#f7f0de"; ctx.beginPath(); ctx.moveTo(ex - ew, ey); ctx.quadraticCurveTo(ex, ey - ew * open, ex + ew, ey); ctx.quadraticCurveTo(ex, ey + ew * open, ex - ew, ey); ctx.fill();
+      ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = 1.5; ctx.stroke();
+      if (open > 0.2) { ctx.fillStyle = "#c9a227"; ctx.beginPath(); ctx.arc(ex, ey, ew * 0.45 * open, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(ex, ey, ew * 0.2 * open, 0, Math.PI * 2); ctx.fill(); }
+      line("#5b3a2a", u * 0.08, u * 1.1, u * 0.4, u * 1.4, -u * 0.6);
+      ctx.fillStyle = "#d9a23a"; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(u * 1.4 + Math.cos(i * 1.3) * u * 0.18, -u * 0.75 + Math.sin(i * 1.3) * u * 0.18 + Math.sin(t * 9 + i) * u * 0.03, u * 0.1, 0, Math.PI * 2); ctx.fill(); }
+      return [u * 1.4, -u * 0.8];
+    },
+    final(u, t, o, def, ink) { // 무명: one great brush circle behind him, left open; undyed hemp, a black sash, a sword never drawn
+      ctx.save(); ctx.translate(0, -u * 0.5); ctx.lineCap = "butt";
+      for (let i = 0; i < 40; i++) { // the 원상, the brush thinning as it goes round
+        const a0 = Math.PI * 0.35 + (i / 40) * Math.PI * 1.75, a1 = a0 + (Math.PI * 1.75 / 40) * 1.2;
+        ctx.strokeStyle = `rgb(${29 + i * 2},${26 + i * 2},${23 + i * 2})`; ctx.lineWidth = u * (0.42 - i * 0.008); // (opaque, so the strokes don't bead where they overlap)
+        ctx.beginPath(); ctx.arc(0, 0, u * 2.25, a0, a1); ctx.stroke();
+      }
+      ctx.restore();
+      robe(u, 0.8, 1.45, "#d8d2c4", "#1d1a17", t);
+      sash(u, 0.8, "#1d1a17", 0.24);
+      const hy = -u * 0.95, hr = u * 0.43;
+      ctx.strokeStyle = ink; ctx.lineWidth = u * 0.12; for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-hr * 0.3, hy - hr * 0.5); ctx.quadraticCurveTo(-u * 1.0, hy + u * 0.2, -u * (1.5 + i * 0.12), hy + u * (0.9 + i * 0.1) + Math.sin(t * 2 + i) * u * 0.15); ctx.stroke(); }
+      headAt(hy, hr, ink);
+      line("#f7f0de", u * 0.05, -hr * 0.95, hy - hr * 0.35, hr * 0.95, hy - hr * 0.35);
+      eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#e8cf6a");
+      line("#1d1a17", u * 0.16, -u * 0.6, u * 1.15, u * 1.75, u * 0.45);
+      line("#f7f0de", u * 0.12, u * 1.75, u * 0.45, u * 2.2, u * 0.3);
+      return [u * 2.2, u * 0.3];
+    },
+  };
   // a boss stands as a whole figure: a robe, a head, a weapon, and something nobody else has
   function bossFigure(def, x, y, u, time, o = {}) {
     const look = def.look, ink = o.hurt ? "#f7f0de" : "#1d1a17", side = o.side || 1;
@@ -2979,6 +3747,11 @@ sdk.initializeAsync()
     au.addColorStop(0, hexA(def.accent, o.mid ? 0.5 : 0.3)); au.addColorStop(1, hexA(def.accent, 0));
     ctx.fillStyle = au; ctx.fillRect(-u * 3.4, -u * 3, u * 6.8, u * 6.8);
     ctx.fillStyle = "rgba(29,26,23,0.18)"; ctx.beginPath(); ctx.ellipse(0, u * 2.2, u * 1.4, u * 0.26, 0, 0, Math.PI * 2); ctx.fill();
+    if (LOOKS[look]) {
+      const tip = LOOKS[look](u, time, o, def, ink);
+      if (o.cast && tip) castGlint(tip, u, time);
+      ctx.restore(); return;
+    }
     if (look === "lord") { // a black crescent behind, a cape spread like wings, blades circling
       ctx.fillStyle = o.mid ? "rgba(150,26,18,0.9)" : "rgba(29,26,23,0.85)";
       ctx.beginPath(); ctx.arc(0, -u * 1.0, u * 1.7, 0, Math.PI * 2); ctx.arc(u * 0.5, -u * 1.3, u * 1.5, 0, Math.PI * 2, true); ctx.fill();
@@ -3087,25 +3860,41 @@ sdk.initializeAsync()
       ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.moveTo(u * 0.8, u * 0.3); ctx.lineTo(u * 2.9, -u * 1.9); ctx.lineTo(u * 1.05, u * 0.55); ctx.closePath(); ctx.fill();
       ctx.strokeStyle = o.mid ? "#e0412a" : "#8b1a12"; ctx.lineWidth = 1.5; ctx.stroke(); tip = [u * 2.9, -u * 1.9];
     }
-    if (o.cast && tip) { // a glint on the weapon as it strikes
-      ctx.save(); ctx.translate(tip[0], tip[1]); ctx.rotate(time * 6);
-      ctx.fillStyle = "rgba(255,250,235,0.95)";
-      ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2, r = i % 2 ? u * 0.08 : u * 0.5; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill();
-      ctx.restore();
-    }
+    if (o.cast && tip) castGlint(tip, u, time);
+    ctx.restore();
+  }
+  function castGlint(tip, u, time) { // a glint on the weapon as it strikes
+    ctx.save(); ctx.translate(tip[0], tip[1]); ctx.rotate(time * 6);
+    ctx.fillStyle = "rgba(255,250,235,0.95)";
+    ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2, r = i % 2 ? u * 0.08 : u * 0.5; ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r); } ctx.closePath(); ctx.fill();
     ctx.restore();
   }
   function drawBossBar() {
     const b = G.boss; if (!b || b.downT > 0 || G.phase === "bossIntro") return;
-    const x = 16, w = W - 32, y = Math.max(92, H * 0.12);
-    ctx.save(); ctx.textBaseline = "alphabetic";
-    ctx.textAlign = "left"; ctx.font = `${Math.round(Math.min(S * 0.065, 28))}px "Nanum Brush Script", cursive`; ctx.fillStyle = "#1d1a17";
-    ctx.fillText(b.def.name, x, y - 6);
+    const d = b.def, x = 16, w = W - 32, y = Math.max(92, H * 0.12), sz = Math.round(Math.min(S * 0.085, 34)), [han, kor] = d.title.split(" · ");
+    ctx.save(); ctx.textBaseline = "middle";
+    // its seal: the first character of its name, white on red, pressed a little askew
+    ctx.save(); ctx.translate(x + sz / 2, y - sz / 2 - 6); ctx.rotate(-0.05);
+    ctx.fillStyle = "#c8321f"; ctx.fillRect(-sz / 2, -sz / 2, sz, sz);
+    ctx.strokeStyle = "rgba(247,240,222,0.85)"; ctx.lineWidth = 1.5; ctx.strokeRect(-sz / 2 + 3, -sz / 2 + 3, sz - 6, sz - 6);
+    ctx.fillStyle = "#f7f0de"; ctx.font = `900 ${Math.round(sz * 0.6)}px "Noto Serif KR", serif`; ctx.textAlign = "center"; ctx.fillText(han ? han[0] : d.name[0], 0, 1);
+    ctx.restore();
+    // its name in brush, what the 강호 calls it after
+    ctx.textAlign = "left"; ctx.font = `${Math.round(Math.min(S * 0.075, 32))}px "Nanum Brush Script", cursive`; ctx.fillStyle = "#1d1a17";
+    ctx.fillText(d.name, x + sz + 8, y - sz / 2 - 4);
     ctx.textAlign = "right"; ctx.font = `700 11px "Noto Serif KR", serif`; ctx.fillStyle = "#5b5248";
-    ctx.fillText(b.def.title, x + w, y - 8);
-    ctx.fillStyle = "rgba(29,26,23,0.16)"; ctx.fillRect(x, y, w, 6);
-    ctx.fillStyle = b.hurtT > 0 ? "#f7f0de" : b.def.accent; ctx.fillRect(x, y, w * Math.max(0, b.hp), 6);
-    if (b.def.mid && !b.mid) { ctx.fillStyle = "rgba(29,26,23,0.5)"; ctx.fillRect(x + w * 0.5 - 1, y - 2, 2, 10); }
+    ctx.fillText(kor || d.title, x + w, y - sz / 2 - 4);
+    // the bar: one brush stroke, round at both ends, a dry streak along its top
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(29,26,23,0.16)"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + w - 4, y + 4); ctx.stroke();
+    const end = x + 4 + (w - 8) * Math.max(0, b.hp);
+    if (b.hp > 0) {
+      const g = ctx.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, d.accent); g.addColorStop(1, hexA(d.accent, 0.75));
+      ctx.strokeStyle = b.hurtT > 0 ? "#f7f0de" : g; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(x + 4, y + 4); ctx.lineTo(end, y + 4); ctx.stroke();
+      ctx.strokeStyle = "rgba(247,240,222,0.45)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x + 8, y + 2); ctx.lineTo(Math.max(x + 8, end - 6), y + 2); ctx.stroke();
+      ctx.fillStyle = "#1d1a17"; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(end + 3 + i * 4, y + 4 + (i % 2 ? -3 : 3), 1.6 - i * 0.4, 0, Math.PI * 2); ctx.fill(); } // ink flicked off its end
+    }
+    if (d.mid && !b.mid) { ctx.fillStyle = "rgba(29,26,23,0.5)"; ctx.fillRect(x + w * 0.5 - 1, y - 2, 2, 12); }
     ctx.restore();
   }
   // break a line of words to fit a width
@@ -3160,11 +3949,63 @@ sdk.initializeAsync()
     ctx.restore();
   }
   // a chapter opening, or a boss stepping in: a brush stroke across the middle with the name on it
-  function drawCard() {
+  // a boss stepping in: the page darkens, a stroke of its colour slashes across, the boss itself stands in it,
+  // its name in great characters down one side, and a red seal with where you are stamped at the last
+  function drawBossCard(c, age, life, a, time) {
+    const d = c.boss, [han, kor] = d.title.split(" · "), cy = H * 0.43, ease = (k) => 1 - (1 - clamp(k, 0, 1)) ** 3;
+    ctx.save(); ctx.globalAlpha = Math.max(0, a);
+    ctx.fillStyle = "rgba(14,12,11,0.62)"; ctx.fillRect(0, 0, W, H);
+    ctx.save(); ctx.translate(W / 2, cy); ctx.rotate(-0.17); // the stroke, thick and ragged, laid on from the left
+    const sw = W * 1.7 * ease(age / 0.32), bh = S * 0.46;
+    ctx.fillStyle = hexA(d.accent, 0.88); ctx.beginPath(); ctx.moveTo(-W * 0.85, -bh / 2);
+    for (let x = -W * 0.85; x <= -W * 0.85 + sw; x += 12) ctx.lineTo(x, -bh / 2 + Math.sin(x * 0.05) * 6 + Math.sin(x * 0.17) * 3);
+    ctx.lineTo(-W * 0.85 + sw + bh * 0.25, 0);
+    for (let x = -W * 0.85 + sw; x >= -W * 0.85; x -= 12) ctx.lineTo(x, bh / 2 + Math.cos(x * 0.04) * 7 + Math.sin(x * 0.21) * 3);
+    ctx.closePath(); ctx.fill();
+    ctx.fillStyle = "rgba(14,12,11,0.35)"; for (let i = 0; i < 9; i++) { ctx.beginPath(); ctx.arc(-W * 0.85 + sw + ((i * 37) % 60) - 20, ((i * 53) % 100 - 50) * bh * 0.012, 2 + (i % 3), 0, Math.PI * 2); ctx.fill(); } // spatter at its end
+    ctx.restore();
+    // the boss, sliding in from the left
+    const fx = W * 0.36 - (1 - ease((age - 0.1) / 0.4)) * W * 0.5;
+    bossFigure(d, fx, cy - S * 0.05, S * 0.085, time, { side: 1, cast: age > 0.45 && age < 0.9 });
+    // its name in hanja, down the right side
+    const chars = [...(han || d.name)], fs = Math.round(S * (chars.length > 2 ? 0.13 : 0.17)), tx = W * 0.82 + (1 - ease((age - 0.2) / 0.35)) * W * 0.4;
+    ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.font = `900 ${fs}px "Noto Serif KR", serif`;
+    chars.forEach((ch, i) => { const y = cy - S * 0.08 - ((chars.length - 1) * fs * 1.05) / 2 + i * fs * 1.05;
+      ctx.fillStyle = "rgba(14,12,11,0.5)"; ctx.fillText(ch, tx + 3, y + 3); ctx.fillStyle = "#f7f0de"; ctx.fillText(ch, tx, y); });
+    // its name and what it is, under it
+    ctx.font = `${Math.round(S * 0.15)}px "Nanum Brush Script", cursive`; ctx.fillStyle = "#f7f0de"; ctx.fillText(d.name, W * 0.38, cy + S * 0.33);
+    ctx.font = `700 ${Math.round(S * 0.034)}px "Noto Serif KR", serif`; ctx.fillStyle = "rgba(247,240,222,0.85)"; ctx.fillText(kor || "", W * 0.38, cy + S * 0.43);
+    // the seal comes down last
+    if (age > 0.55) {
+      const k = clamp((age - 0.55) / 0.12, 0, 1), sz = S * 0.15, sc = 1.8 - 0.8 * k;
+      ctx.save(); ctx.translate(W * 0.82, cy + S * 0.36); ctx.rotate(-0.08); ctx.scale(sc, sc); ctx.globalAlpha *= k;
+      ctx.fillStyle = "#c8321f"; ctx.fillRect(-sz / 2, -sz / 2, sz, sz);
+      ctx.strokeStyle = "rgba(247,240,222,0.9)"; ctx.lineWidth = 2; ctx.strokeRect(-sz / 2 + 4, -sz / 2 + 4, sz - 8, sz - 8);
+      ctx.fillStyle = "#f7f0de"; ctx.font = `900 ${Math.round(sz * 0.3)}px "Noto Serif KR", serif`; ctx.fillText(d.stage || "決", 0, -sz * 0.1);
+      ctx.font = `900 ${Math.round(sz * 0.2)}px "Noto Serif KR", serif`; ctx.fillText("決戰", 0, sz * 0.22);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+  // a boss felled: 斬, a red seal pressed over the page
+  function drawStamp() {
+    const s = G.stamp; if (!s) return;
+    const age = (performance.now() - s.at) / 1000; if (age > 1.6) { G.stamp = null; return; }
+    const k = clamp(age / 0.16, 0, 1), sc = 2.4 - 1.4 * k, a = age > 1.1 ? (1.6 - age) / 0.5 : 1, sz = S * 0.42;
+    ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.rotate(-0.12); ctx.scale(sc, sc); ctx.globalAlpha = Math.max(0, a) * Math.min(1, k * 1.5);
+    ctx.fillStyle = "rgba(200,50,31,0.92)"; ctx.beginPath();
+    for (let i = 0; i < 24; i++) { const t = (i / 24) * Math.PI * 2, r = sz * 0.5 * (1 + Math.sin(i * 2.7) * 0.04); ctx.lineTo(Math.cos(t) * r * 1.0, Math.sin(t) * r); } // a round seal, its rim uneven
+    ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = "rgba(247,240,222,0.9)"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 0, sz * 0.42, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = "#f7f0de"; ctx.font = `900 ${Math.round(sz * 0.55)}px "Noto Serif KR", serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.fillText(s.ch, 0, sz * 0.03);
+    ctx.restore();
+  }
+  function drawCard(time) {
     const c = G.card; if (!c) return;
-    const age = (performance.now() - c.at) / 1000, life = c.life || (c.boss ? 1.9 : 2.6);
+    const age = (performance.now() - c.at) / 1000, life = c.life || (c.boss ? 2.4 : 2.6);
     if (age > life) return;
     const a = age < 0.3 ? age / 0.3 : age > life - 0.6 ? (life - age) / 0.6 : 1;
+    if (c.boss && c.boss.stage) return drawBossCard(c, age, life, age < 0.12 ? age / 0.12 : a, time);
     const cy = c.boss ? H * 0.42 : H * 0.43, bh = S * (c.boss ? 0.24 : 0.36), sw = W * Math.min(1, age / 0.28);
     ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.textAlign = "center"; ctx.textBaseline = "middle";
     if (c.boss) { // its name in great brushed characters behind the band, growing as it lands
@@ -3293,6 +4134,14 @@ sdk.initializeAsync()
       ctx.fillStyle = `rgba(200,50,31,${0.06 + k * 0.22})`; ctx.fillRect(w.x0, w.y0, w.x1 - w.x0, w.y1 - w.y0);
       ctx.strokeStyle = `rgba(200,50,31,${0.35 + pulse * 0.45})`; ctx.lineWidth = 2;
       ctx.strokeRect(w.x0 + 2, w.y0 + 2, w.x1 - w.x0 - 4, w.y1 - w.y0 - 4);
+    } else if (w.kind === "zone") { // 우중검: rain thickening over everything but the umbrella's shadow, which is ringed
+      ctx.save(); outside(w.x, w.y, w.R); ctx.clip("evenodd");
+      ctx.fillStyle = `rgba(200,50,31,${0.05 + k * 0.17})`; ctx.fillRect(0, 0, W, H);
+      rainStreaks(Math.round(20 + k * 70), S * 0.07, 0.25 + k * 0.35, time * 1.6);
+      ctx.restore();
+      ctx.strokeStyle = `rgba(200,50,31,${0.5 + pulse * 0.4})`; ctx.lineWidth = 2.5; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.arc(w.x, w.y, w.R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+      drawUmbrella(w.x, w.y, w.R * (1.4 - Math.min(1, k * 2) * 0.4), Math.min(1, k * 3) * 0.85, time); // it drifts down into place
     } else if (w.kind === "clone") { // a shadow at the edge, its line through you
       const reach = S * 4 * Math.min(1, k * 2);
       glowLine(w.x, w.y, w.x + Math.cos(w.ang) * reach, w.y + Math.sin(w.ang) * reach, S * 0.005, 0.3 + pulse * 0.4);
@@ -3672,8 +4521,18 @@ sdk.initializeAsync()
     ctx.lineTo(bw + bh * 0.4, 0);
     for (let x = bw; x >= -bw; x -= 8) ctx.lineTo(x, bh + Math.cos(x * 0.07) * 3);
     ctx.closePath(); ctx.fill();
+    if (G.boss && G.story) { // a boss's 비기: its colour struck under the band, and a red seal 秘 pressed on the band's end
+      ctx.strokeStyle = G.boss.def.accent; ctx.lineWidth = Math.max(3, fs * 0.08); ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(-bw * 0.9, bh + fs * 0.08); ctx.lineTo(bw * 0.95, bh + fs * 0.02); ctx.stroke();
+      const sz = fs * 0.62;
+      ctx.save(); ctx.translate(-bw - sz * 0.1, -bh * 0.35); ctx.rotate(-0.12);
+      ctx.fillStyle = "#c8321f"; ctx.fillRect(-sz / 2, -sz / 2, sz, sz);
+      ctx.fillStyle = "#f7f0de"; ctx.font = `900 ${Math.round(sz * 0.62)}px "Noto Serif KR", serif`; ctx.fillText("秘", 0, sz * 0.03);
+      ctx.restore();
+      ctx.font = `900 ${fs}px "Noto Serif KR", serif`;
+    }
     ctx.fillStyle = "#f7f0de"; ctx.fillText(c.h, 0, fs * 0.02);
-    ctx.font = `700 ${Math.round(fs * 0.32)}px "Noto Serif KR", serif`; ctx.fillStyle = "#e0573f"; ctx.fillText(c.k, 0, bh + fs * 0.32);
+    ctx.font = `700 ${Math.round(fs * 0.32)}px "Noto Serif KR", serif`; ctx.fillStyle = "#e0573f"; ctx.fillText(c.k, 0, bh + fs * 0.32 + (G.boss && G.story ? fs * 0.08 : 0));
     ctx.restore();
   }
   function drawBeam(h) { // a blade of light with a white-hot core, an afterglow trailing behind
@@ -4017,13 +4876,17 @@ sdk.initializeAsync()
   $("goMon").addEventListener("click", () => startEndless("mon"));
   $("story").addEventListener("click", () => { begin(); startStory(Number(store.get("storyCh", "0")) || 0); });
   $("storyNew").addEventListener("click", () => { begin(); store.set("storyCh", 0); startStory(0); });
-  function stageLabels() { // the stage button says which stage a run starts from, once it's past 1-1
-    const from = Number(store.get("stageTop", "0")) || 0;
-    $("stageSub").textContent = from > 0 ? `${stageDef(from).label}부터` : "";
-    $("stageSub").hidden = from === 0;
+  function stageLabels() { // the stage button says which stage a run starts from, once it's past 1-1, and the chosen difficulty is lit
+    const from = stageTop();
+    $("stageSub").textContent = from > 0 ? `${SL().name} ${stageDef(from).label}부터` : SL().name;
+    $("stageSub").hidden = false;
     $("stageNew").hidden = from === 0;
+    for (const b of document.querySelectorAll("#stageLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === stageLevel));
   }
-  $("goStage").addEventListener("click", () => { begin(); startStage(Number(store.get("stageTop", "0")) || 0); });
+  for (const b of document.querySelectorAll("#stageLvl button")) b.addEventListener("click", () => {
+    stageLevel = b.dataset.lvl; store.set("stageLevel", stageLevel); stageMemo.clear(); stageLabels();
+  });
+  $("goStage").addEventListener("click", () => { begin(); startStage(stageTop()); });
   $("stageNew").addEventListener("click", () => { begin(); startStage(0); });
   stageLabels();
   // 개발자 모드: only with ?dev in the address
