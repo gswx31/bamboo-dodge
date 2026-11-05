@@ -1275,7 +1275,7 @@ sdk.initializeAsync()
   function bigBeam() { const [x, y] = awayPoint(S * 0.18); beamAt(x, y); }
   function beamAt(x, y, skin) {
     const toMe = Math.atan2(P.y - y, P.x - x), dir = Math.random() < 0.5 ? 1 : -1;
-    const sweep = (Math.PI * 4) / 3, a0 = toMe + Math.PI, dur = 3.6;
+    const sweep = (Math.PI * 7) / 6, a0 = toMe + Math.PI, dur = 4.0; // a third of the circle it never reaches: walk there ahead of it
     G.warns.push({ kind: "beam", x, y, a0, dir, sweep, t: 0, dur: 1.0, delay: 0, fire(w) {
       G.hazards.push({ kind: "beam", skin, x: w.x, y: w.y, a0: w.a0, dir: w.dir, sweep: w.sweep, w: S * 0.03, t: 0, dur, best: Infinity, near: false,
         angle() { return this.a0 + this.dir * this.sweep * Math.min(1, this.t / this.dur); },
@@ -1681,8 +1681,8 @@ sdk.initializeAsync()
   // and the fifteenth tops out where the tenth used to. squash: a 장's difficulty clock; bossLv: a boss's level.
   // Then all of it a third easier again (same day: "전체적으로 30퍼"): the clock tops out at 70, bosses at 6.5,
   // and every boss fight runs at BOSS_PACE. Then, measured against a person's quarter-second thumb (11-05), the
-  // middle and the end flattened once more: the clock tops out at 62.
-  const squash = (t) => 28 + (t - 8) * 0.28;
+  // middle and the end flattened once more: the clock tops out at 56.
+  const squash = (t) => 28 + (t - 8) * 0.22;
   const bossLv = (w) => 0.7 * (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
   const BOSS_PACE = 0.8;
   // an ordinary stage at a little under full speed too: everything flies slower and every warning stays longer,
@@ -1911,8 +1911,8 @@ sdk.initializeAsync()
     G.hazards.push(h);
     return h;
   }
-  function aimedLine(x, y, speed = S * 0.85) { // an aim line from (x, y) through you, then a star along it
-    G.warns.push({ kind: "line", x, y, ang: Math.atan2(P.y - y, P.x - x), t: 0, dur: 0.65, delay: 0,
+  function aimedLine(x, y, speed = S * 0.85, dur = 0.65) { // an aim line from (x, y) through you, then a star along it
+    G.warns.push({ kind: "line", x, y, ang: Math.atan2(P.y - y, P.x - x), t: 0, dur, delay: 0,
       fire(w) { shoot("star", w.x, w.y, w.ang, speed, { spin: 18, r: S * 0.015 }); sfx.whoosh(); } });
     sfx.warn();
   }
@@ -2078,7 +2078,7 @@ sdk.initializeAsync()
         const k = this.real() % 3 < 1.6 ? 0.5 : 1.35; // (fast enough to feel, slow enough that a warning still gives you time)
         if (k !== G.timeK) { G.timeK = k; if (k < 1) { sfx.issen(); flash("236,224,196", 0.25); } else sfx.whoosh(); }
         this.next = (this.next ?? 0.3) - dt;
-        if (this.next <= 0) { this.next = Math.max(0.85, 1.0 - lvl() * 0.008); const [x, y] = edgePoint(); aimedLine(x, y, S * 0.7); }
+        if (this.next <= 0) { this.next = Math.max(0.85, 1.0 - lvl() * 0.008); const [x, y] = edgePoint(); aimedLine(x, y, S * 0.7, 0.9); } // (a longer line: in the fast it still lasts long enough to read)
         this.fan = (this.fan ?? 1.0) - dt; // in the slow, the boss piles up fans of stars; in the fast they all come at once
         if (this.fan <= 0) { this.fan = 2.2; if (G.boss) actFan(); }
       }, drawTime);
