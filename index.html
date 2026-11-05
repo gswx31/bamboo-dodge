@@ -122,7 +122,7 @@
   .mode b { font-family: var(--font-mark); font-weight: 900; font-size: 18px; letter-spacing: .06em; }
   .mode small { font-size: 12px; opacity: .85; }
   .mode--story { background: var(--seal); border-color: var(--seal); }
-  .mode--main { grid-column: 1 / -1; background: var(--seal); border-color: var(--seal); } /* the game itself, across the top */
+  .mode--main { background: var(--seal); border-color: var(--seal); } /* the game itself, first of the four */
   .mode--hard { background: #4a1410; border-color: #4a1410; }
   .mode--mon { background: #2f6b4a; border-color: #2f6b4a; }
   .rank__tabs { display: flex; gap: 6px; margin: -2px 0 6px; }
@@ -159,6 +159,9 @@
   .skin { display: grid; justify-items: center; gap: 6px; padding: 10px 8px; border: 1.5px solid var(--ink); }
   .skin.is-on { background: color-mix(in srgb, var(--ink) 8%, transparent); }
   .skin canvas { width: 72px; height: 72px; }
+  .skin--wide { grid-column: 1 / -1; grid-template-columns: 1fr minmax(96px, auto); justify-items: start; align-items: center; column-gap: 12px; row-gap: 2px; }
+  .skin--wide small { grid-column: 1; font-size: 12px; color: var(--ink-soft); }
+  .skin--wide button { grid-column: 2; grid-row: 1 / span 2; }
   .skin b { font-family: var(--font-mark); font-weight: 900; font-size: 16px; letter-spacing: .06em; }
   .skin button { font: inherit; font-size: 13px; width: 100%; padding: 6px 4px; cursor: pointer; border-radius: 0; border: 1.5px solid var(--ink); background: var(--ink); color: var(--slip); }
   .skin button:disabled { background: transparent; color: var(--ink-soft); border-color: var(--ink-soft); cursor: default; }
@@ -212,11 +215,13 @@
       <div class="modes">
         <button class="mode mode--story" id="story" hidden><b>스토리모드</b><small id="storySub" hidden></small></button>
         <button class="mode mode--main" id="goNormal"><b>일반모드</b></button>
+        <button class="mode" id="goStage"><b>스테이지모드</b><small id="stageSub" hidden></small></button>
         <button class="mode mode--ghost" id="go"><b>특수 효과만</b></button>
         <button class="mode mode--hard" id="goHard"><b>하드모드</b></button>
         <button class="mode mode--mon" id="goMon" hidden><b>요괴전</b></button>
       </div>
       <button class="link" id="storyNew" hidden>스토리모드 처음부터</button>
+      <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
       <div class="purse">
         <button class="shop-open" id="shopOpen">상점</button>
         <span class="coins" aria-label="가진 엽전"><i class="coin" aria-hidden="true"></i><span id="coins">0</span></span>
@@ -249,7 +254,7 @@
     <section class="slip" data-seal="敗" id="overSlip">
       <div class="result">
         <span class="result__label" id="overLabel">버틴 시간</span>
-        <span class="result__time"><span id="score">0.00</span><small>초</small></span>
+        <span class="result__time"><span id="score">0.00</span><small id="scoreUnit">초</small></span>
         <span class="result__meta" id="meta"></span>
         <span class="result__best" id="best"></span>
         <span class="result__coin" id="coinGain"></span>
@@ -274,27 +279,97 @@
 //
 // build.mjs writes this file into a copy of public/index.html as the first module, before the game's script.
 // The game never imports the SDK; this file talks to it through window.JUKLIM_GAME (pause, resume, silent switch,
-// back key, safe insets), which the game sets once its own script has run.
+// back key, safe insets), which the game sets once its own script has run, and answers the game's ads and shop
+// through window.JUKLIM_PLATFORM.
 //
-// Ads: only the full-screen one at a break (every fifth run), once AD.interstitial holds the placement id from the
-// console ([수익화 > 인앱 광고]; there are no test ids). Rewarded ads (revive, double 엽전) stay off: ONE store
-// confirms each reward by calling the game's own server (SSV), and this game has no server at a fixed address yet.
-// In-app purchases are off too (they need a server to check the purchase token), so the shop hides the paid skins.
+// Ads, once AD holds the placement ids from the console ([수익화 > 인앱 광고]; there are no test ids):
+//   - interstitial: at a break, every fifth run (not for someone who bought 광고 제거; the game skips it)
+//   - rewarded: revive, double 엽전. A reward counts only once ONE store has told our server (SSV, worker/src/onestore.js),
+//     which the console must know: 콜백 서버 = SERVER + "/onestore/ssv", with the API key the worker holds.
+// In-app purchases (managed products, kept forever): 광고 제거 and the two paid clothes. ONE store wants every purchase
+// checked and acknowledged by the game's server (unacknowledged ones are cancelled after three days), and the web SDK
+// has no purchase history, so the server keeps who owns what, by the player's ONE store playerId.
 import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js";
 
-const AD = { interstitial: "" };
-let breakAds = false; // known only after init: an id is set and this version of the app shows them
+const AD = { interstitial: "", rewarded: "" };
+const SKUS = ["juklim_noads", "juklim_skin_heuk", "juklim_skin_mae"]; // the console's In-App IDs, exactly
+const SERVER = "https://bamboo-dodge-scores.gswx31.workers.dev"; // the same Cloudflare worker as the 명부
+// known only after init: what this version of the app supports, and who is playing
+let breakAds = false, rewardAds = false, canBuy = false, canPrice = false, playerId = "";
 
 const sdk = createSDK();
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+const server = async (path, body) => {
+  const res = await fetch(SERVER + path, body ? { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) } : {});
+  return { status: res.status, body: await res.json().catch(() => ({})) };
+};
+const newId = () => crypto.randomUUID?.() ?? [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
 
+// ---- ads
 async function showBreakAd() {
   if (!breakAds) return false;
   const r = await sdk.ads.showInterstitialAsync({ placementId: AD.interstitial }); // never rejects; failed is fine too
   sdk.ads.loadInterstitial({ placementId: AD.interstitial }); // the next one, ready for the next break
   return r.status === "completed";
 }
-window.JUKLIM_PLATFORM = { name: "onestore", showBreakAd, rewardReady: () => false, showRewardAd: async () => false,
-  products: async () => null, buy: async () => false, restore: async () => null };
+// true only for an ad watched to the end AND confirmed to our server by ONE store (it usually lands within a second or two)
+async function showRewardAd() {
+  if (!rewardAds) return false;
+  const requestId = "r" + newId();
+  const r = await sdk.ads.showRewardedAsync({ placementId: AD.rewarded, requestId });
+  sdk.ads.loadRewarded({ placementId: AD.rewarded });
+  if (r.status !== "rewarded") return false; // closed early, or no ad to show: nothing is owed
+  for (let i = 0; i < 20; i++) {
+    try { if ((await server(`/onestore/reward/${requestId}`)).body.ok) return true; } catch { /* the network blinked: ask again */ }
+    await wait(600);
+  }
+  return false;
+}
+
+// ---- purchases. A purchase not yet confirmed by the server (the network dropped, the app was closed) waits in
+// localStorage and is tried again at the next start, well inside ONE store's three days.
+const PENDING = "juklim.osPending";
+const pending = () => { try { return JSON.parse(localStorage.getItem(PENDING) || "[]"); } catch { return []; } };
+const setPending = (list) => { try { localStorage.setItem(PENDING, JSON.stringify(list)); } catch { /* private mode */ } };
+async function confirm(sku, purchaseToken) {
+  for (let i = 0; i < 3; i++) {
+    try {
+      const r = await server("/onestore/iap/verify", { productId: sku, purchaseToken, playerId });
+      if (r.body.ok) { setPending(pending().filter((p) => p.purchaseToken !== purchaseToken)); return true; }
+      if (r.status < 500) { setPending(pending().filter((p) => p.purchaseToken !== purchaseToken)); return false; } // ONE store says no
+    } catch { /* no answer: try again */ }
+    await wait(1500);
+  }
+  return false; // still pending
+}
+async function products() {
+  if (!canPrice) return null;
+  const list = await sdk.iap.getProductDetailsAsync(SKUS);
+  return list.map((p) => ({ sku: p.productId, name: p.title,
+    price: p.priceCurrencyCode === "KRW" ? `${Number(p.price).toLocaleString("ko-KR")}원` : `${p.price} ${p.priceCurrencyCode}` }));
+}
+async function buy(sku, grant) {
+  if (!canBuy) return false;
+  let r;
+  try { r = await sdk.iap.purchase({ productId: sku, developerPayload: playerId }); }
+  catch (e) {
+    if (e?.reason !== "already_owned") return false; // user_cancelled and the like: nothing to say
+    const got = await restore(); // bought before, on this account
+    return got?.some((o) => o.sku === sku) ? grant() : false;
+  }
+  setPending([...pending(), { sku, purchaseToken: r.purchaseToken }]);
+  return (await confirm(sku, r.purchaseToken)) ? grant() : false;
+}
+async function restore() {
+  if (!playerId) return null;
+  for (const p of pending()) await confirm(p.sku, p.purchaseToken);
+  try {
+    const r = await server(`/onestore/iap/owned?player=${encodeURIComponent(playerId)}`);
+    return Array.isArray(r.body.skus) ? r.body.skus.map((sku) => ({ sku, refunded: false })) : null;
+  } catch { return null; }
+}
+
+window.JUKLIM_PLATFORM = { name: "onestore", showBreakAd, rewardReady: () => rewardAds, showRewardAd, products, buy, restore };
 
 // The game's script comes after this one, and the SDK's answers can arrive before it has run.
 const gameReady = new Promise((resolve) => {
@@ -302,7 +377,6 @@ const gameReady = new Promise((resolve) => {
   look();
 });
 const withGame = (fn) => { if (window.JUKLIM_GAME) fn(window.JUKLIM_GAME); else gameReady.then(fn); };
-const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const bar = (p) => { const f = document.getElementById("osBootFill"); if (f) f.style.width = p + "%"; };
 const done = () => document.getElementById("osBoot")?.remove();
@@ -321,6 +395,7 @@ sdk.onBackPressed(() => window.JUKLIM_GAME?.back() ?? false);
 sdk.initializeAsync()
   .then(async (info) => {
     if (info.err) { done(); return; } // a plain browser: the game runs as it does on the web
+    playerId = info.playerId || "";
     const g = await gameReady;
     if (info.safeArea) g.setInsets(info.safeArea); // inside the frame the browser's own insets read 0
     g.silent(!!info.ringerSilent);
@@ -332,8 +407,13 @@ sdk.initializeAsync()
     sdk.setLoadingProgress(100); bar(100);
     await sdk.startGameAsync();
     done();
-    breakAds = !!AD.interstitial && sdk.ads.isSupported("interstitial");
-    if (breakAds) sdk.ads.loadInterstitial({ placementId: AD.interstitial }); // so the first break doesn't wait for loading
+    breakAds = !!AD.interstitial && !!sdk.ads?.isSupported("interstitial");
+    rewardAds = !!AD.rewarded && !!sdk.ads?.isSupported("rewarded");
+    canBuy = !!sdk.iap?.isSupported("purchase");
+    canPrice = canBuy && !!sdk.iap.isSupported("getProductDetails");
+    if (breakAds) sdk.ads.loadInterstitial({ placementId: AD.interstitial }); // so the first ad doesn't wait for loading
+    if (rewardAds) sdk.ads.loadRewarded({ placementId: AD.rewarded });
+    window.dispatchEvent(new Event("juklim:platform")); // the game asks again: prices, what this player owns, the ad buttons
   })
   .catch(done); // whatever went wrong, the game itself still plays
 </script>
@@ -741,6 +821,7 @@ sdk.initializeAsync()
   const M = { lvl: -1, step: 0, next: 0, mel: null, up: false };
   function musicLevel() {
     if (G.mode !== "play") return -1;
+    if (G.stageRun) return Math.min(3, Math.floor(stageDef(G.sg).w / 3) + (G.boss ? 1 : 0));
     if (G.story) return Math.min(2, Math.floor(G.ch / 2) + (G.boss ? 1 : 0));
     const l = G.stage < 3 ? 0 : G.stage < 7 ? 1 : G.t < FRENZY ? 2 : 3;
     return G.kind === "hard" ? Math.min(3, l + 1) : l;
@@ -827,6 +908,8 @@ sdk.initializeAsync()
     kind: "normal", // which training: "normal" 죽림 수련 (bamboo, the red ones now and then), "red" 붉은 칼 (only the red ones), "hard" 아수라
     rt: 0, // how long this training run has lasted (아수라's 段 clock runs faster than this)
     mons: [], seen: new Set(), monT: 1, msg: null, // 요괴전: the monsters on the field, which ones have shown up, the next one's wait, the battle box
+    // 스테이지 모드 (it runs on the story's machinery, so G.story is true too): which stage, the draws made so far, the record when the run began
+    stageRun: false, sg: 0, seedN: {}, stageTop0: 0,
   };
   const HIT = () => S * 0.012; // a forgiving hitbox
   const NEAR = () => S * 0.042;
@@ -848,8 +931,8 @@ sdk.initializeAsync()
   }
   // 죽림 수련: bamboo is the main thing to dodge and the red attacks come about half as often, as surprises
   const RARE = 2;
-  // every wait between attacks in the three modes, a fifth longer (on a phone the finger is all you have to dodge with)
-  const EASE = 1.2;
+  // every wait between attacks in the three modes, two fifths longer (on a phone the finger is all you have to dodge with)
+  const EASE = 1.4;
   // 아수라: bamboo and every red attack at full rate, the 段 clock half again as fast, warnings shorter,
   // half the attacks landing anywhere on the screen rather than on you, and nasty follow-ups
   const HARD = { clock: 1.5, start: 16, warn: 1.3, twice: 0.4, follow: 0.35 };
@@ -859,7 +942,7 @@ sdk.initializeAsync()
   }
 
   /** The steady attacks: when each opens, its first wait, and its spawn. `pace` < 1 as time runs on. */
-  const pace = () => Math.max(0.34, 1 - G.t / 140) * (G.t >= FRENZY ? 0.72 : 1) * Math.max(0.45, 1 - endless() * 0.06);
+  const pace = () => Math.max(0.34, 1 - G.t / 170) * (G.t >= FRENZY ? 0.72 : 1) * Math.max(0.45, 1 - endless() * 0.06); // 170: the waits shrink gently
   const PATTERNS = {
     line: { from: 0, first: 0.8, every: () => rnd(2.6, 3.4) * pace(), spawn: spawnLine },
     draw: { from: 8, first: 0.8, every: () => rnd(3.6, 4.6) * pace(), spawn: () => spawnSlash(false) },
@@ -1290,7 +1373,7 @@ sdk.initializeAsync()
 
   const CUT_PHASES = ["prologue", "bossIntro", "bossMid", "bossDown", "ending"];
   function startStory(ch, retry = false) {
-    G.story = true; G.ch = ch; reset(); G.mode = "play"; runStart();
+    G.story = true; G.stageRun = false; G.ch = ch; reset(); G.mode = "play"; runStart();
     setTheme(CHAPTERS[ch].theme, true);
     $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false;
     if (ch === 0 && !retry) { G.phase = "prologue"; say(PROLOGUE(), enterTitle); } else enterTitle();
@@ -1308,10 +1391,11 @@ sdk.initializeAsync()
     G.bigT = rnd(4, 5.5);
   }
   function enterBoss() {
-    const def = BOSSES[CHAPTERS[G.ch].boss];
+    const sd = G.stageRun ? stageDef(G.sg) : null, def = sd ? sd.bossDef : BOSSES[CHAPTERS[G.ch].boss];
     clearField();
     G.phase = "bossIntro";
     G.boss = { def, x: W / 2, y: -S * 0.3, tx: W / 2, ty: H * 0.24, wT: 1.5, hp: 1, actT: 1.2, last: "", hurtT: 0, castT: 0, downT: 0, mid: false, landed: false };
+    if (sd) { G.boss.mid = sd.world.power >= 1; G.boss.waitK = sd.bossWaitK; } // the second time round they come at full strength
     G.card = { boss: def, at: performance.now() };
     sfx.taiko(); setTimeout(() => sfx.taiko(), 220); G.dark = 1;
     say(def.intro(), () => { G.phase = "boss"; });
@@ -1325,7 +1409,7 @@ sdk.initializeAsync()
     G.stopT = 0.16; G.slow = 0.35; G.slowT = 0.8; G.shake = reduced ? 0 : 22; G.zoom = 0.08; flash("255,250,235", 0.9);
     G.bonus += 3; // a boss felled is worth three seconds
     sfx.issen(); buzz([40, 30, 90]);
-    say(b.def.down(), nextChapter);
+    say(b.def.down(), G.stageRun ? stageClear : nextChapter);
   }
   function nextChapter() {
     G.boss = null;
@@ -1352,6 +1436,7 @@ sdk.initializeAsync()
   }
 
   function storyStep(dt, realDt) {
+    if (G.stageRun) return stageStep(dt, realDt);
     const ch = CHAPTERS[G.ch];
     stepLines(realDt);
     if (G.phase === "title") { G.pt += realDt; if (G.pt >= 2.6) enterFight(); }
@@ -1391,26 +1476,26 @@ sdk.initializeAsync()
     }
     if (b.hp <= 0) return bossDown();
     b.actT -= dt;
-    if (b.actT <= 0) {
+    if (b.actT <= 0) fixed("act", () => {
       const pool = def.acts.filter((a) => a !== b.last), a = pool[Math.floor(Math.random() * pool.length)];
       b.last = a; ACTS[a].run(); b.castT = 0.4;
-      b.actT = ACTS[a].wait * (b.mid ? 0.8 : 1);
-    }
+      b.actT = ACTS[a].wait * (b.mid ? 0.8 : 1) * (b.waitK || 1);
+    });
     // its body is a blade too: the robe, from the chest down
     const u = bossUnit(def);
     if (P.inv <= 0) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u * 1.0) return die(P.x, P.y);
     // the chapter's first attack keeps coming, slower, and the bamboo too
-    const k = CHAPTERS[G.ch].pats[0];
+    const k = G.stageRun ? stageDef(G.sg).world.pats[0] : CHAPTERS[G.ch].pats[0];
     G.timers[k] -= dt;
-    if (G.timers[k] <= 0) { PATTERNS[k].spawn(); G.timers[k] = PATTERNS[k].every() * 1.6; }
+    if (G.timers[k] <= 0) fixed(k, () => { PATTERNS[k].spawn(); G.timers[k] = PATTERNS[k].every() * 1.6; });
     G.timers.bamboo -= dt;
-    if (G.timers.bamboo <= 0) { spawnBamboo(); G.timers.bamboo = 0.95 * pace(); }
+    if (G.timers.bamboo <= 0) fixed("bamboo", () => { spawnBamboo(); G.timers.bamboo = 0.95 * pace(); });
   }
   function moveBoss(dt) {
     const b = G.boss;
     b.hurtT = Math.max(0, b.hurtT - dt); b.castT = Math.max(0, b.castT - dt);
     if (b.downT > 0) b.downT += dt;
-    if (G.phase === "boss") { b.wT -= dt; if (b.wT <= 0) { b.wT = rnd(1.8, 3); b.tx = rnd(W * 0.22, W * 0.78); b.ty = rnd(H * 0.2, H * 0.29); } }
+    if (G.phase === "boss") { b.wT -= dt; if (b.wT <= 0) fixed("move", () => { b.wT = rnd(1.8, 3); b.tx = rnd(W * 0.22, W * 0.78); b.ty = rnd(H * 0.2, H * 0.29); }); }
     const k = Math.min(1, dt * (b.landed ? 1.6 : 4));
     b.x += (b.tx - b.x) * k; b.y += (b.ty - b.y) * k;
     const u = bossUnit(b.def);
@@ -1433,6 +1518,155 @@ sdk.initializeAsync()
     if (!b || G.phase !== "boss") return;
     b.hp -= amount; b.hurtT = 0.12;
     burstInk(b.x, b.y, 5);
+  }
+
+  // ------------------------------------------------------------------ 스테이지 모드
+  // 1-1 … 1-5, then 2-1: one run that carries on stage after stage for as long as nothing hits you. Each 장 is a
+  // place with its own attacks. Its X-1 brings in something new, X-2 mixes all it has, X-3 adds its big moves,
+  // X-4 throws everything thicker, and X-5 is its boss. After the tenth 장 the road goes on, harder each time.
+  // A stage throws the same things in the same order on every try, so it can be learned (fixed()).
+  const WORLDS = [
+    { name: "죽림", theme: "grove", boss: 0, fresh: "line", pats: ["line"], big: ["spikes"], diff: [0, 16] },
+    { name: "월하 계곡", theme: "gorge", boss: 1, fresh: "draw", pats: ["line", "draw"], big: ["spikes", "palm"], diff: [6, 26] },
+    { name: "적염사", theme: "temple", boss: 2, fresh: "clones", pats: ["line", "draw"], big: ["clones", "palm", "spiral"], diff: [14, 36] },
+    { name: "백설령", theme: "snow", boss: 3, fresh: "homing", pats: ["line", "draw", "homing"], big: ["spiral", "ring", "flick"], diff: [22, 46] },
+    { name: "흑월봉", theme: "moon", boss: 4, fresh: "rain", pats: ["line", "draw", "homing"], big: ["rain", "ring", "roar", "triple"], diff: [30, 56] },
+    // the second round: the same places, everything mixed, the bosses at full strength
+    { name: "불탄 죽림", theme: "grove", boss: 0, fresh: "cross", pats: ["line", "draw", "homing", "cross"], big: ["triple", "rain", "silk", "spikes"], diff: [40, 66] },
+    { name: "안개 계곡", theme: "gorge", boss: 1, fresh: "beam", pats: ["line", "draw", "homing", "cross"], big: ["beam", "mist", "clones", "spiral"], diff: [48, 74] },
+    { name: "붉은 절", theme: "temple", boss: 2, fresh: "burst", pats: ["line", "draw", "homing", "cross", "burst"], big: ["roar", "triple", "silk", "palm", "flick"], diff: [56, 82] },
+    { name: "얼음 고개", theme: "snow", boss: 3, fresh: "mist", pats: ["line", "draw", "homing", "cross", "burst"], big: ["mist", "ring", "rain", "beam", "flick"], diff: [64, 90] },
+    { name: "검은 달", theme: "moon", boss: 4, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [72, 96] },
+  ];
+  const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", homing: "따라붙는 칼", cross: "십자 발도", burst: "터지는 칼",
+    spikes: "죽순", palm: "장풍", clones: "그림자", spiral: "칼바람", flick: "탄지신통", ring: "천라지망", roar: "사자후",
+    rain: "칼비", silk: "천잠사", triple: "삼연참", beam: "검기", mist: "독무" };
+  // the five stages of a 장: how long, how far apart the attacks (× their usual wait), and the line on its card
+  const STEPS = [
+    { dur: 18, gap: 1.5, sub: (w) => (w.fresh ? `처음 보는 공격: ${ATTACK_NAMES[w.fresh]}` : w.power > 1 ? "더 빨라진다" : "모든 공격이 나온다") },
+    { dur: 20, gap: 1.35, sub: () => "공격이 섞여 온다" },
+    { dur: 22, gap: 1.25, sub: () => "큰 기술이 나온다" },
+    { dur: 24, gap: 1.12, sub: () => "쉴 틈 없이 몰아친다" },
+    { dur: 4, gap: 1.6, sub: (w) => `보스 ${BOSSES[w.boss].name}` }, // a few seconds of the 장's first attack, then the boss
+  ];
+  function worldOf(w) {
+    if (w < WORLDS.length) return { ...WORLDS[w], power: w >= 5 ? 1 : 0 };
+    const k = w - WORLDS.length + 1, last = WORLDS[WORLDS.length - 1];
+    return { ...WORLDS[5 + ((k - 1) % 5)], name: "끝없는 길", fresh: "", pats: last.pats, big: last.big, diff: [72 + 6 * k, 96 + 6 * k], power: 1 + Math.ceil(k / 3) };
+  }
+  const stageMemo = new Map();
+  function stageDef(i) { // stage i (0 is 1-1): everything about it
+    if (stageMemo.has(i)) return stageMemo.get(i);
+    const w = Math.floor(i / 5), s = i % 5, wd = worldOf(w), step = STEPS[s];
+    const freshBig = BIG.some((b) => b.key === wd.fresh), lo = wd.diff[0], span = wd.diff[1] - wd.diff[0];
+    const d = { i, w, s, label: `${w + 1}-${s + 1}`, world: wd, theme: wd.theme, dur: step.dur, sub: step.sub(wd),
+      gap: Math.max(0.8, step.gap - 0.05 * Math.max(0, wd.power - 1)), diff: [lo + span * s / 5, lo + span * (s + 1) / 5],
+      pats: wd.pats, big: [], bigEvery: [6.5, 8.5], boss: s === 4 };
+    d.bamboo = 0.62 * d.gap;
+    if (s === 0) { // the new thing on its own, with the bamboo
+      d.pats = wd.fresh && !freshBig ? [wd.fresh] : wd.fresh ? [wd.pats[0]] : wd.pats;
+      d.big = freshBig ? [wd.fresh] : wd.fresh ? [] : wd.big.slice(0, 1); d.bigEvery = [6, 7.5];
+    }
+    if (s === 2) { d.big = wd.big.slice(0, 2); d.bigEvery = [7.5, 9.5]; }
+    if (s === 3) { d.big = wd.big; d.bigEvery = [6, 8]; }
+    if (s === 4) {
+      d.pats = [wd.pats[0]];
+      const base = BOSSES[wd.boss];
+      d.bossDef = { ...base, hp: base.hp * (1 + 0.15 * wd.power) }; // the boss lasts longer each round, and acts sooner
+      d.bossWaitK = Math.max(0.6, 1 - 0.08 * wd.power);
+    }
+    stageMemo.set(i, d);
+    return d;
+  }
+  // In 스테이지 모드, fn draws its randomness from the stage and how many times this thing has come before,
+  // so the n-th 발도 of 2-3 flies the same way every try. Anywhere else it's left to chance as ever.
+  function fixed(tag, fn) {
+    if (!G.stageRun) return fn();
+    const n = (G.seedN[tag] = (G.seedN[tag] || 0) + 1);
+    let h = 2166136261 ^ (G.sg * 977);
+    for (const c of `${tag}:${n}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+    let a = h >>> 0;
+    const real = Math.random;
+    Math.random = () => { // mulberry32
+      a = (a + 0x6d2b79f5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+    try { return fn(); } finally { Math.random = real; }
+  }
+  function startStage(i) {
+    G.story = true; G.stageRun = true; G.sg = i; G.ch = 0; reset(); G.mode = "play"; runStart();
+    G.stageTop0 = Number(store.get("stageTop", "0")) || 0;
+    setTheme(stageDef(i).theme, true);
+    $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false;
+    reachStage(i); enterStage();
+  }
+  function enterStage() { // its card, a breath with nothing in the air
+    const sd = stageDef(G.sg);
+    G.phase = "title"; G.pt = 0; G.seedN = {}; G.boss = null;
+    G.card = { ch: { num: sd.label, name: sd.world.name, sub: sd.sub }, at: performance.now(), life: 1.7 };
+    $("stage").textContent = `${sd.label} · ${sd.world.name}`;
+    sfx.stage();
+  }
+  function enterStageFight() {
+    const sd = stageDef(G.sg);
+    G.phase = "fight"; G.ct = 0; G.timers = { bamboo: 0.6 }; G.lastBig = "";
+    for (const k of sd.pats) G.timers[k] = PATTERNS[k].first + 0.5;
+    G.bigT = sd.big.length ? 4 : Infinity;
+  }
+  function stageClear() {
+    const sd = stageDef(G.sg), pay = sd.boss ? ECON.chapter : ECON.stage;
+    clearField(); G.boss = null;
+    addCoins(pay); G.chapCoins = (G.chapCoins || 0) + pay; drillProgress("stage", 1, true);
+    G.sg++; reachStage(G.sg);
+    const next = stageDef(G.sg);
+    if (next.s === 0) { setTheme(next.theme, true); sfx.taiko(); } // a new 장, a new place
+    enterStage();
+  }
+  // the furthest stage ever reached, and the 장 a new run may start from
+  function reachStage(i) {
+    if (i > (Number(store.get("stageTop", "0")) || 0)) store.set("stageTop", i);
+    store.set("stageFrom", Math.max(Number(store.get("stageFrom", "0")) || 0, Math.floor(i / 5)));
+  }
+  function stageStep(dt, realDt) {
+    const sd = stageDef(G.sg);
+    stepLines(realDt);
+    if (G.phase === "title") { G.pt += realDt; if (G.pt >= 1.7) enterStageFight(); }
+    else if (G.phase === "fight") {
+      G.ct += dt; G.st += dt;
+      G.t = sd.diff[0] + (sd.diff[1] - sd.diff[0]) * Math.min(1, G.ct / sd.dur); // how hard things are, for the shared attacks
+      G.timers.bamboo -= dt;
+      if (G.timers.bamboo <= 0) fixed("bamboo", () => { spawnBamboo(); G.timers.bamboo = sd.bamboo * pace(); });
+      for (const k of sd.pats) {
+        G.timers[k] -= dt;
+        if (G.timers[k] <= 0) fixed(k, () => { PATTERNS[k].spawn(); G.timers[k] = PATTERNS[k].every() * sd.gap; });
+      }
+      G.bigT -= dt;
+      if (G.bigT <= 0) fixed("big", () => {
+        const pool = sd.big.length > 1 ? sd.big.filter((k) => k !== G.lastBig) : sd.big;
+        runBig(BIG.find((b) => b.key === pool[Math.floor(Math.random() * pool.length)]));
+        G.bigT = rnd(sd.bigEvery[0], sd.bigEvery[1]);
+      });
+      if (G.ct >= sd.dur) { if (sd.boss) enterBoss(); else stageClear(); }
+    } else if (G.phase === "boss") {
+      G.st += dt;
+      stepBoss(dt);
+    }
+    if (G.boss) moveBoss(realDt);
+    G.safe = G.phase !== "fight" && G.phase !== "boss";
+  }
+  function overStage() {
+    const sd = stageDef(G.sg), time = Math.round((G.st + G.bonus) * 100) / 100, top = Number(store.get("stageTop", "0")) || 0;
+    $("overSlip").dataset.seal = "敗"; $("overLabel").textContent = "쓰러진 곳";
+    $("score").textContent = sd.label; $("scoreUnit").hidden = true;
+    $("meta").textContent = `${sd.world.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. ${time.toFixed(2)}초 버텼다. 간발 ${G.near}번`;
+    $("best").textContent = G.sg > G.stageTop0 ? "새 최고 기록" : `최고 기록 ${stageDef(top).label}`;
+    $("again").textContent = sd.s === 0 ? "다 시" : `${sd.w + 1}-1부터`; // a 장 starts over from its first stage
+    $("hud").hidden = true; $("over").hidden = false;
+    syncRevive(); showGain(payRun()); syncDouble();
+    renderRank();
+    $("again").focus({ preventScroll: true });
   }
 
   // ---- lines being spoken: letter by letter; a tap shows the rest, another moves on
@@ -2280,7 +2514,7 @@ sdk.initializeAsync()
   // a chapter opening, or a boss stepping in: a brush stroke across the middle with the name on it
   function drawCard() {
     const c = G.card; if (!c) return;
-    const age = (performance.now() - c.at) / 1000, life = c.boss ? 1.9 : 2.6;
+    const age = (performance.now() - c.at) / 1000, life = c.life || (c.boss ? 1.9 : 2.6);
     if (age > life) return;
     const a = age < 0.3 ? age / 0.3 : age > life - 0.6 ? (life - age) / 0.6 : 1;
     const cy = c.boss ? H * 0.42 : H * 0.43, bh = S * (c.boss ? 0.24 : 0.36), sw = W * Math.min(1, age / 0.28);
@@ -3068,7 +3302,7 @@ sdk.initializeAsync()
   }
   function startEndless(kind = G.kind) {
     begin();
-    G.story = false; G.kind = kind; setTheme(kind === "mon" ? "field" : "grove", true);
+    G.story = false; G.stageRun = false; G.kind = kind; setTheme(kind === "mon" ? "field" : "grove", true);
     reset(); G.mode = "play"; runStart();
     if (kind === "mon") showBanner({ name: "一段 · 요괴전" });
     if (hard()) { G.t = HARD.start; G.stage = stageIndex(G.t); showBanner(stageInfo(G.stage)); G.bigT = 3; } // 아수라 starts a few 段 in
@@ -3076,7 +3310,8 @@ sdk.initializeAsync()
   }
   function over() {
     G.mode = "over";
-    if (G.story) return overStory(false);
+    $("scoreUnit").hidden = false;
+    if (G.story) return G.stageRun ? overStage() : overStory(false);
     const score = Math.round((G.rt + G.bonus) * 100) / 100;
     $("overSlip").dataset.seal = "敗"; $("overLabel").textContent = "버틴 시간"; $("again").textContent = "다 시";
     $("score").textContent = score.toFixed(2);
@@ -3117,14 +3352,24 @@ sdk.initializeAsync()
   $("goMon").addEventListener("click", () => startEndless("mon"));
   $("story").addEventListener("click", () => { begin(); startStory(Number(store.get("storyCh", "0")) || 0); });
   $("storyNew").addEventListener("click", () => { begin(); store.set("storyCh", 0); startStory(0); });
+  function stageLabels() { // the stage button says which 장 a run starts from, once there's more than the first
+    const from = Number(store.get("stageFrom", "0")) || 0;
+    $("stageSub").textContent = from > 0 ? `${from + 1}-1부터` : "";
+    $("stageSub").hidden = from === 0;
+    $("stageNew").hidden = from === 0;
+  }
+  $("goStage").addEventListener("click", () => { begin(); startStage((Number(store.get("stageFrom", "0")) || 0) * 5); });
+  $("stageNew").addEventListener("click", () => { begin(); startStage(0); });
+  stageLabels();
   $("again").addEventListener("click", () => adBreak(() => {
+    if (G.stageRun) { begin(); return startStage(Math.floor(G.sg / 5) * 5); } // from the first stage of the 장 you fell in
     if (!G.story) return startEndless(G.kind);
     begin();
     if (G.cleared) startStory(0); else startStory(G.ch, true);
   }));
   $("home").addEventListener("click", () => adBreak(() => {
-    G.mode = "menu"; G.story = false; G.boss = null; G.lines = []; G.card = null;
-    setTheme("grove", true); storyLabels();
+    G.mode = "menu"; G.story = false; G.stageRun = false; G.boss = null; G.lines = []; G.card = null;
+    setTheme("grove", true); storyLabels(); stageLabels();
     $("over").hidden = true; $("start").hidden = false; $("hud").hidden = true;
     P.x = W / 2; P.y = H * 0.58; G.shots = []; G.warns = []; G.cuts = []; G.hazards = []; G.mons = [];
   }));
@@ -3162,9 +3407,13 @@ sdk.initializeAsync()
   let runsSinceAd = Number(store.get("runsSinceAd", "0")) || 0, adBusy = false;
   function countRun() { runsSinceAd++; store.set("runsSinceAd", runsSinceAd); }
   function adSeen() { runsSinceAd = 0; store.set("runsSinceAd", 0); }
+  // 광고 제거, bought once: the break ad never comes again. The ads a player chooses (carry on, double the 엽전) stay theirs to take.
+  const NOADS = { sku: "juklim_noads", name: "광고 제거" };
+  let noAds = store.get("noads", "0") === "1";
+  function grantNoAds(on = true) { noAds = on; store.set("noads", on ? "1" : "0"); }
   async function adBreak(then) {
     if (adBusy) return; // a second tap while the ad is up
-    if (runsSinceAd >= AD_EVERY) {
+    if (runsSinceAd >= AD_EVERY && !noAds) {
       adBusy = true;
       let shown = false;
       try { shown = await Promise.race([platform().showBreakAd(), new Promise((r) => setTimeout(() => r(false), 45000))]); } catch { shown = false; }
@@ -3178,7 +3427,7 @@ sdk.initializeAsync()
   // The run goes on only when the player taps again after the ad, because some Toss versions never say the ad has closed.
   function syncRevive() {
     const b = $("revive");
-    b.hidden = G.story || G.revived || !platform().rewardReady();
+    b.hidden = (G.story && !G.stageRun) || G.revived || !platform().rewardReady(); // the story gives a chapter back for free; the stages don't
     b.disabled = false; b.dataset.state = ""; b.textContent = "광고 보고 이어하기";
   }
   $("revive").addEventListener("click", async () => {
@@ -3215,7 +3464,7 @@ sdk.initializeAsync()
   async function syncShop() { // Toss's own records win: bought on another phone, or refunded
     try {
       const got = await platform().restore();
-      if (got) for (const o of got) { const id = skuSkin(o.sku); if (id) grantSkin(id, !o.refunded); }
+      if (got) for (const o of got) { const id = skuSkin(o.sku); if (id) grantSkin(id, !o.refunded); else if (o.sku === NOADS.sku) grantNoAds(!o.refunded); }
       const list = await platform().products();
       prices = {}; if (list) for (const p of list) prices[p.sku] = p.price;
     } catch { /* keep what we had */ }
@@ -3231,6 +3480,15 @@ sdk.initializeAsync()
   }
   function renderShop() {
     const grid = $("shopGrid"); grid.replaceChildren();
+    if (noAds || prices[NOADS.sku]) { // only where it's on sale (the plain web has no ads to take away)
+      const card = document.createElement("div"); card.className = "skin skin--wide";
+      const name = document.createElement("b"); name.textContent = NOADS.name;
+      const what = document.createElement("small"); what.textContent = "다섯 판마다 나오는 광고가 사라진다";
+      const b = document.createElement("button"); b.type = "button";
+      if (noAds) { b.textContent = "구매함"; b.disabled = true; }
+      else { b.textContent = prices[NOADS.sku]; b.addEventListener("click", () => buyNoAds(b)); }
+      card.append(name, what, b); grid.append(card);
+    }
     for (const [id, sk] of Object.entries(HERO_SKINS)) {
       // inside Toss with nothing on sale (no business registered yet, so no in-app purchases): leave it out, don't tease it
       if (sk.sku && !owned.has(id) && !prices[sk.sku] && platform().name !== "web") continue;
@@ -3255,6 +3513,12 @@ sdk.initializeAsync()
     $("shopNote").textContent = owned.has(id) ? `${sk.name}${josa(sk.name, "을", "를")} 입었다.` : "결제가 되지 않았다.";
     renderShop();
   }
+  async function buyNoAds(b) {
+    b.disabled = true; b.textContent = "결제 중";
+    try { await platform().buy(NOADS.sku, () => { grantNoAds(); return true; }); } catch { /* told below */ }
+    $("shopNote").textContent = noAds ? "이제 광고가 나오지 않는다." : "결제가 되지 않았다.";
+    renderShop();
+  }
   $("shopOpen").addEventListener("click", () => {
     $("start").hidden = true; $("shop").hidden = false;
     $("shopNote").textContent = "옷은 모양과 잔상만 바꾼다. 맞는 범위와 속도는 그대로다.";
@@ -3276,7 +3540,8 @@ sdk.initializeAsync()
     perSecond: 1,   // for every second survived (a 30-second run with a few 간발 pays about 40)
     perNear: 2,     // for every 간발
     hard: 1.5,      // 하드모드 pays half again
-    chapter: 30,    // each story chapter passed
+    chapter: 30,    // each story chapter passed, and each boss stage of 스테이지 모드
+    stage: 8,       // each other stage of 스테이지 모드
     daily: 30,      // the first visit of a day
     drill: 60,      // each of the day's three 수련
   };
@@ -3293,6 +3558,7 @@ sdk.initializeAsync()
     { id: "combo", text: "간발 5연속", goal: 5, of: (r) => r.combo },
     { id: "red", text: "특수 효과만 30초", goal: 30, of: (r) => (r.kind === "red" ? r.time : 0) },
     { id: "hard", text: "하드모드 30초", goal: 30, of: (r) => (r.kind === "hard" ? r.time : 0) },
+    { id: "stage", text: "스테이지 세 개 깨기", goal: 3, add: true },
   ];
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   function pickDrills(day) { // a small seeded shuffle of the pool
@@ -3367,7 +3633,7 @@ sdk.initializeAsync()
     G.gain = g.earned + g.drills + g.chap;
     G.gainParts = [];
     if (g.drills) G.gainParts.push(`수련 +${g.drills}`);
-    if (g.chap) G.gainParts.push(`장 +${g.chap}`);
+    if (g.chap) G.gainParts.push(`${G.stageRun ? "스테이지" : "장"} +${g.chap}`);
     renderGain();
   }
   function renderGain() {
