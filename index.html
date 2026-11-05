@@ -1677,6 +1677,10 @@ sdk.initializeAsync()
     const k = w - WORLDS.length + 1, last = WORLDS[WORLDS.length - 1];
     return { ...WORLDS[5 + ((k - 1) % 10)], name: "끝없는 길", fresh: "", pats: last.pats, big: last.big, diff: [112 + 6 * k, 136 + 6 * k], power: 1 + Math.ceil(k / 3) };
   }
+  // The difficulty curve, squeezed (2026-11-05: "1~10이면 3~7로"): the first 장 starts where the fourth used to,
+  // and the fifteenth tops out where the tenth used to. squash: a 장's difficulty clock; bossLv: a boss's level.
+  const squash = (t) => 36 + (t - 8) * 0.445;
+  const bossLv = (w) => (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
   const stageMemo = new Map();
   function stageDef(i) { // stage i (0 is 1-1): everything about it
     if (stageMemo.has(i)) return stageMemo.get(i);
@@ -1684,7 +1688,7 @@ sdk.initializeAsync()
     const freshBig = BIG.some((b) => b.key === wd.fresh), lo = wd.diff[0], span = wd.diff[1] - wd.diff[0];
     const sub = w < STAGE_LINES.length ? STAGE_LINES[w][s] : ROAD_LINES[((w - STAGE_LINES.length) * 5 + s) % ROAD_LINES.length];
     const d = { i, w, s, label: `${w + 1}-${s + 1}`, world: wd, theme: wd.theme, dur: step.dur, sub,
-      gap: Math.max(0.8, step.gap - 0.05 * Math.max(0, wd.power - 1)), diff: [lo + span * s / 5, lo + span * (s + 1) / 5],
+      gap: Math.max(0.8, step.gap - 0.05 * Math.max(0, wd.power - 1)), diff: [squash(lo + span * s / 5), squash(lo + span * (s + 1) / 5)],
       pats: wd.pats, big: [], bigEvery: [6.5, 8.5], boss: s === 4 };
     d.bamboo = 0.62 * d.gap;
     if (s === 0) { // the new thing on its own, with the bamboo
@@ -1696,7 +1700,7 @@ sdk.initializeAsync()
     if (s === 4) {
       d.pats = [wd.pats[0]];
       // the boss: the 장's own attacks all through its fight, and its one 비기 (bossFight); harder the further in
-      d.bossSet = BOSS_SET[wd.boss]; d.bossDef = bossDefOf(d.bossSet); d.lv = w < 15 ? w : 14 + (w - 14) * 0.5;
+      d.bossSet = BOSS_SET[wd.boss]; d.bossDef = bossDefOf(d.bossSet); d.lv = bossLv(w);
     }
     stageMemo.set(i, d);
     return d;
@@ -1903,7 +1907,7 @@ sdk.initializeAsync()
   const drumBeat = () => Math.max(0.36, 0.46 - lvl() * 0.007); // 뇌음's beat: its 비기 and its music keep the same time
   // how far into the game this boss is (0 for 1-5 … 14 for 15-5, more on the endless road): its 비기 grow with it
   // and within one fight, each time it comes again it comes a little harder
-  const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 1.5 : 0);
+  const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 1.0 : 0);
   function blackQuarter(warn = 1.3, other = false) { // 흑월역's one quarter: the one you stand in (or, `other`, one beside it)
     G.hazards.push({ kind: "void", t: 0, dur: warn + 2.6, warn, q: null, best: Infinity, near: true,
       step() {
@@ -2187,7 +2191,7 @@ sdk.initializeAsync()
   function devStep(dt, realDt) {
     stepLines(realDt);
     if (!G.dev) return; // its last words just ended: back at the list already
-    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], G.dev.i, 32); }
+    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], bossLv(G.dev.i), 32); }
     if (G.boss) moveBoss(realDt);
     G.safe = (G.phase !== "boss") || G.devInv;
   }
