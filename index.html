@@ -994,7 +994,7 @@ sdk.initializeAsync()
     mons: [], seen: new Set(), monT: 1, msg: null, // 요괴전: the monsters on the field, which ones have shown up, the next one's wait, the battle box
     // 스테이지 모드 (it runs on the story's machinery, so G.story is true too): which stage, the draws made so far, the record when the run began
     stageRun: false, sg: 0, seedN: {}, stageTop0: 0,
-    timeK: 1, freezeT: 0, eclipse: null, // what a boss's 비기 is doing to time and light
+    timeK: 1, bossK: 1, freezeT: 0, eclipse: null, // what a boss's 비기 is doing to time and light (and the fight's own slower pace)
     dev: null, devInv: true, // 개발자 모드 (?dev): which boss's 비기 is being watched, and whether you can be hit
   };
   const HIT = () => S * 0.012; // a forgiving hitbox
@@ -1008,7 +1008,7 @@ sdk.initializeAsync()
       flash: 0, zoom: 0, stopT: 0, dark: 0, bigT: 0, lastBig: "",
       bigSeen: new Set(), callout: null,
       phase: "", pt: 0, ct: 0, st: 0, boss: null, lines: [], lineI: 0, lineT: 0, onLines: null, card: null, safe: false, cleared: false, banner: null,
-      timeK: 1, freezeT: 0, eclipse: null,
+      timeK: 1, bossK: 1, freezeT: 0, eclipse: null,
       mons: [], seen: new Set(), monT: 1, msg: null,
     });
     Object.assign(P, { x: W / 2, y: H * 0.58, dx: 0, dy: -1, inv: 0, push: null });
@@ -1520,7 +1520,7 @@ sdk.initializeAsync()
   function clearField() {
     for (const s of G.shots) { if (!s.dead) { s.dead = true; shatter(s); } }
     G.warns = []; G.hazards = []; G.cuts = [];
-    G.timeK = 1; G.freezeT = 0; G.eclipse = null; // and whatever a 비기 had done to time and light is undone
+    G.timeK = 1; G.bossK = 1; G.freezeT = 0; G.eclipse = null; // and whatever a 비기 had done to time and light is undone
   }
 
   function storyStep(dt, realDt) {
@@ -1679,8 +1679,11 @@ sdk.initializeAsync()
   }
   // The difficulty curve, squeezed (2026-11-05: "1~10이면 3~7로"): the first 장 starts where the fourth used to,
   // and the fifteenth tops out where the tenth used to. squash: a 장's difficulty clock; bossLv: a boss's level.
-  const squash = (t) => 36 + (t - 8) * 0.445;
-  const bossLv = (w) => (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
+  // Then all of it a third easier again (same day: "전체적으로 30퍼"): the clock tops out at 70, bosses at 6.5,
+  // and every boss fight runs at BOSS_PACE.
+  const squash = (t) => 28 + (t - 8) * 0.33;
+  const bossLv = (w) => 0.7 * (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
+  const BOSS_PACE = 0.8;
   const stageMemo = new Map();
   function stageDef(i) { // stage i (0 is 1-1): everything about it
     if (stageMemo.has(i)) return stageMemo.get(i);
@@ -1904,10 +1907,10 @@ sdk.initializeAsync()
       fire(w) { shoot("star", w.x, w.y, w.ang, speed, { spin: 18, r: S * 0.015 }); sfx.whoosh(); } });
     sfx.warn();
   }
-  const drumBeat = () => Math.max(0.36, 0.46 - lvl() * 0.007); // 뇌음's beat: its 비기 and its music keep the same time
+  const drumBeat = () => Math.max(0.46, 0.56 - lvl() * 0.007); // 뇌음's beat: its 비기 and its music keep the same time
   // how far into the game this boss is (0 for 1-5 … 14 for 15-5, more on the endless road): its 비기 grow with it
   // and within one fight, each time it comes again it comes a little harder
-  const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 1.0 : 0);
+  const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 0.5 : 0);
   // `active`: how long it stays black. Whoever calls it must lift it before the next one is chosen, or two rows
   // could go black together and leave nowhere to stand.
   function blackQuarter(warn = 1.3, other = false, active = 2.6) { // 흑월역's one quarter: the one you stand in (or, `other`, one beside it)
@@ -1926,10 +1929,10 @@ sdk.initializeAsync()
   // each returns how many seconds it takes
   const SIGS = {
     twin() { // two shadows at once, mirror images: from the side walls, then from top and bottom, by turns
-      const waves = 7 + Math.floor(lvl() / 3), gap = Math.max(0.36, 0.52 - lvl() * 0.012);
+      const waves = 5 + Math.floor(lvl() / 4), gap = Math.max(0.55, 0.72 - lvl() * 0.012);
       for (let k = 0; k < waves; k++) {
         const pair = {}, across = k % 2 === 0; // across the screen (left and right), or down it (top and bottom)
-        for (const side of [1, -1]) G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur: 0.6, delay: k * gap,
+        for (const side of [1, -1]) G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur: 0.8, delay: k * gap,
           place(w) {
             if (pair.at === undefined) {
               if (across) { pair.at = clamp(P.y + rnd(-S * 0.15, S * 0.15), S * 0.12, H - S * 0.12); pair.ang = Math.atan2(P.y - pair.at, P.x - S * 0.03); }
@@ -1944,24 +1947,24 @@ sdk.initializeAsync()
       return waves * gap + 1.2;
     },
     lotus() { // rings of petals out from the boss, a stop, and home again through you
-      const n = 18 + Math.round(lvl()), rings = 4 + Math.floor(lvl() / 4);
-      for (let k = 0; k < rings; k++) G.warns.push({ kind: "ring", x: G.boss.x, y: G.boss.y, n, off: 0, t: 0, dur: 0.7, delay: k * 0.7,
+      const n = 12 + Math.round(lvl() * 0.6), rings = 3;
+      for (let k = 0; k < rings; k++) G.warns.push({ kind: "ring", x: G.boss.x, y: G.boss.y, n, off: 0, t: 0, dur: 0.85, delay: k * 1.0,
         // one petal of every ring flies straight at you (out, and home along the same line): no gap stays safe
         place(w) { w.x = G.boss.x; w.y = G.boss.y; w.off = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
         fire(w) {
           // they turn only once past you, so the one aimed at you crosses you going out and again coming home
-          const sp = S * (0.72 + lvl() * 0.012), ret = clamp(Math.hypot(P.x - w.x, P.y - w.y) / sp + 0.3, 0.6, 2.2);
+          const sp = S * (0.58 + lvl() * 0.01), ret = clamp(Math.hypot(P.x - w.x, P.y - w.y) / sp + 0.3, 0.6, 2.4);
           for (let i = 0; i < n; i++) shoot("star", w.x, w.y, w.off + (i / n) * Math.PI * 2, sp, { spin: 16, r: S * 0.015, ret });
           sfx.burst(); flash("242,201,208", 0.12);
         } });
-      return (rings - 1) * 0.7 + 0.7 + 2.6;
+      return (rings - 1) * 1.0 + 0.85 + 3.0;
     },
     fire() { // the ground in cells, half of them burning at a time: checkerboard, then rows, then columns, faster each beat
       // each fire reaches its cell's corners, so no corner is ever safe: on every beat you must be in the middle of a cold cell
       const cols = 4, rows = 6, top = H * 0.14, cw = W / cols, ch = (H - top) / rows, r = Math.hypot(cw, ch) / 2;
       const hot = (c, row, k) => [(c + row) % 2, row % 2, c % 2][Math.floor(k / 2) % 3] === k % 2;
       let at = 0;
-      [0.8, 0.72, 0.64, 0.58, 0.52, 0.48, 0.45, 0.42, 0.42, 0.4, 0.4, 0.4].map((v) => v * Math.max(0.78, 1 - lvl() * 0.015)).forEach((dur, k) => {
+      [1.15, 1.05, 1.0, 0.95, 0.9, 0.85, 0.85, 0.8].map((v) => v * Math.max(0.85, 1 - lvl() * 0.012)).forEach((dur, k) => {
         for (let c = 0; c < cols; c++) for (let row = 0; row < rows; row++) if (hot(c, row, k))
           G.warns.push({ kind: "spike", x: (c + 0.5) * cw, y: top + (row + 0.5) * ch, r, seed: rnd(0, 6), t: 0, dur, delay: at, fire(w) { spikeErupt(w.x, w.y, w.r, "fire"); } });
         later(at, () => sfx.taiko());
@@ -1971,32 +1974,32 @@ sdk.initializeAsync()
     },
     frost() { // fans of stars from all round, then everything in the air freezes; it thaws twice as fast. Twice over.
       const sources = [[() => G.boss.x, () => G.boss.y], [() => S * 0.06, () => H * 0.3], [() => W - S * 0.06, () => H * 0.3], [() => S * 0.06, () => H * 0.85], [() => W - S * 0.06, () => H * 0.85]];
-      for (let round = 0; round < 2; round++) sources.forEach(([fx, fy], k) =>
-        G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.55, delay: round * 3.2 + k * 0.1,
+      const from = sources.slice(0, lvl() >= 7 ? 5 : 3); // the boss and the two upper sides; the lower corners too, late on
+      from.forEach(([fx, fy], k) =>
+        G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.7, delay: k * 0.12,
           place(w) { w.x = fx(); w.y = fy(); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
-          fire(w) { const m = 3 + Math.floor(lvl() / 4); for (let i = -m; i <= m; i++) shoot("star", w.x, w.y, w.ang + i * 0.13, S * 0.6, { spin: 14, r: S * 0.015 }); sfx.whoosh(); } }));
-      controller(6.6, function () {
-        const t = this.real(), round = t < 3.2 ? 0 : 1, at = round * 3.2 + 1.1;
-        if (this.froze !== round && t >= at) { this.froze = round; this.thawed = false; G.freezeT = 1.3; sfx.issen(); flash("230,240,250", 0.45); }
-        if (this.froze === round && !this.thawed && !(G.freezeT > 0)) { this.thawed = true; const k = 2.2 + lvl() * 0.04; for (const s of G.shots) { s.vx *= k; s.vy *= k; } sfx.burst(); G.shake = Math.max(G.shake, 10); }
+          fire(w) { for (let i = -2; i <= 2; i++) shoot("star", w.x, w.y, w.ang + i * 0.2, S * 0.45, { spin: 14, r: S * 0.015 }); sfx.whoosh(); } }));
+      controller(4.2, function () {
+        if (!this.froze && this.real() >= 1.3) { this.froze = true; G.freezeT = 1.6; sfx.issen(); flash("230,240,250", 0.45); }
+        if (this.froze && !this.thawed && !(G.freezeT > 0)) { this.thawed = true; const k = 1.5 + lvl() * 0.02; for (const s of G.shots) { s.vx *= k; s.vy *= k; } sfx.burst(); G.shake = Math.max(G.shake, 10); }
       }, () => { if (G.freezeT > 0) { ctx.fillStyle = `rgba(214,232,245,${0.3 * Math.min(1, G.freezeT * 2)})`; ctx.fillRect(0, 0, W, H); } });
-      return 6.8;
+      return 4.6;
     },
     void() { // black quarters, each where you stand (two at once after the first), fans of stars into what's left
       // each one lifts 0.3 s before the next is chosen, so there's always a whole row (two quarters) to stand in
-      const gap = Math.max(2.4, 2.9 - lvl() * 0.04), warn = Math.max(0.9, 1.15 - lvl() * 0.02), active = gap - warn - 0.3;
-      for (let k = 0; k < 4; k++) {
-        later(k * gap, () => { blackQuarter(warn, false, active); if (k > 0) blackQuarter(warn, true, active); });
+      const gap = Math.max(2.8, 3.2 - lvl() * 0.04), warn = Math.max(1.1, 1.35 - lvl() * 0.02), active = gap - warn - 0.3;
+      for (let k = 0; k < 3; k++) {
+        later(k * gap, () => { blackQuarter(warn, false, active); if (k > 0 && lvl() >= 7) blackQuarter(warn, true, active); }); // a whole row only late on
         later(k * gap + warn + 0.3, () => G.boss && actFan());
       }
-      return 4 * gap + 0.8;
+      return 3 * gap + 0.8;
     },
     wind() { // a wind blowing toward one wall (seen, not felt), the blades coming from that wall; it turns every couple of seconds
       const h = controller(7, function (dt) {
         const dir = Math.floor(this.real() / 2.2) % 2 === 0 ? 1 : -1;
         if (dir !== this.dir) { this.dir = dir; sfx.whoosh(); flash("240,244,236", 0.15); } // (it only shows the wind: you aren't pushed)
         this.next = (this.next ?? 0.4) - dt;
-        if (this.next <= 0) { this.next = Math.max(0.2, 0.3 - lvl() * 0.006); aimedLine(dir > 0 ? W + S * 0.04 : -S * 0.04, clamp(P.y + rnd(-S * 0.3, S * 0.3), S * 0.1, H - S * 0.1), S * 0.9); }
+        if (this.next <= 0) { this.next = Math.max(0.4, 0.55 - lvl() * 0.01); aimedLine(dir > 0 ? W + S * 0.04 : -S * 0.04, clamp(P.y + rnd(-S * 0.3, S * 0.3), S * 0.1, H - S * 0.1), S * 0.8); }
       }, drawWind);
       h.dir = 1;
       return 7.4;
@@ -2005,9 +2008,9 @@ sdk.initializeAsync()
       controller(6.5, function (dt) {
         this.next = (this.next ?? 0.2) - dt;
         if (this.next > 0) return;
-        this.next = Math.max(0.14, 0.22 - lvl() * 0.005);
+        this.next = Math.max(0.3, 0.42 - lvl() * 0.006);
         const [x, y] = edgePoint();
-        shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * (0.55 + lvl() * 0.01), { r: S * 0.011, veil: true });
+        shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * (0.42 + lvl() * 0.008), { r: S * 0.011, veil: true });
         if (Math.random() < 0.5) sfx.tick();
       }, () => { ctx.fillStyle = "rgba(225,228,230,0.22)"; ctx.fillRect(0, 0, W, H); });
       return 8;
@@ -2015,51 +2018,51 @@ sdk.initializeAsync()
     drum() { // a blade's path laid at your feet on every beat; on the fourth, two of them crossed
       const beat = drumBeat();
       let k = 0;
-      for (let bar = 0; bar < 5; bar++) for (let i = 0; i < 4; i++, k++) {
+      for (let bar = 0; bar < 4; bar++) for (let i = 0; i < 4; i++, k++) {
         const turn = bar * Math.PI / 8; // each bar the paths come round at a new angle
         const angs = i === 3 ? [turn + Math.PI / 4, turn - Math.PI / 4] : [turn + [0, Math.PI / 2, Math.PI / 4][i]];
-        angs.forEach((ang, j) => G.warns.push({ kind: "band", x: 0, y: 0, ang, w: S * 0.08, t: 0, dur: beat * 1.35, delay: k * beat,
+        angs.forEach((ang, j) => G.warns.push({ kind: "band", x: 0, y: 0, ang, w: S * 0.075, t: 0, dur: beat * 1.7, delay: k * beat,
           place(w) { w.x = P.x; w.y = P.y; if (j === 0) sfx.taiko(); }, fire(w) { landCut(w); } }));
       }
-      return 20 * beat + 1.2;
+      return 16 * beat + 1.4;
     },
     mirror() { // fans of stars that come back off the walls, twice (three times, late on)
-      const volleys = 6 + Math.floor(lvl() / 4), bounces = lvl() >= 8 ? 3 : 2;
-      for (let k = 0; k < volleys; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.5, delay: k * 0.65,
+      const volleys = 4 + Math.floor(lvl() / 5), bounces = lvl() >= 9 ? 3 : 2;
+      for (let k = 0; k < volleys; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.7, delay: k * 0.95,
         place(w) { w.x = G.boss.x; w.y = G.boss.y; w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
-        fire(w) { for (let i = -3; i <= 3; i++) shoot("star", w.x, w.y, w.ang + i * 0.26, S * 0.8, { spin: 16, r: S * 0.015, bounces }); sfx.whoosh(); } });
-      return volleys * 0.65 + 2.8;
+        fire(w) { for (let i = -2; i <= 2; i++) shoot("star", w.x, w.y, w.ang + i * 0.3, S * 0.65, { spin: 16, r: S * 0.015, bounces }); sfx.whoosh(); } });
+      return volleys * 0.95 + 3.0;
     },
     eclipse() { // the light goes out but for a ring round you; the aim lines still burn, the stars come out of the dark
       G.eclipse = { at: performance.now(), dur: 7 };
       controller(7, function (dt) {
         this.next = (this.next ?? 0.6) - dt;
         if (this.next > 0) return;
-        this.next = Math.max(0.3, 0.4 - lvl() * 0.006);
+        this.next = Math.max(0.45, 0.6 - lvl() * 0.008);
         const [x, y] = edgePoint();
-        aimedLine(x, y, S * 0.9);
+        aimedLine(x, y, S * 0.8);
       });
       return 7.8;
     },
     swords() { // a row of swords hung across the sky, falling one after another, there and back
       const n = 26, gap = W / n; // close enough that there's no standing between them: only where they've already fallen
-      const step = Math.max(0.04, 0.06 - lvl() * 0.0015), go = S * (1.9 + lvl() * 0.03);
-      // left to right, right to left, then from both walls in to the middle, and from the middle out
-      const orders = [(i) => i, (i) => n - 1 - i, (i) => Math.min(i, n - 1 - i), (i) => Math.abs(i - (n - 1) / 2)];
-      orders.forEach((order, pass) => later(pass * 2.1, () => {
+      const step = Math.max(0.055, 0.075 - lvl() * 0.0015), go = S * (1.6 + lvl() * 0.02);
+      // left to right, right to left, then from both walls in to the middle (and, late on, from the middle out)
+      const orders = [(i) => i, (i) => n - 1 - i, (i) => Math.min(i, n - 1 - i), (i) => Math.abs(i - (n - 1) / 2)].slice(0, lvl() >= 9 ? 4 : 3);
+      orders.forEach((order, pass) => later(pass * 2.6, () => {
         for (let col = 0; col < n; col++) shoot("sword", (col + 0.5) * gap, H * 0.1, Math.PI / 2, 0, { len: S * 0.13, r: S * 0.013, hold: 0.85 + order(col) * step, go });
         sfx.warn();
       }));
-      return 3 * 2.1 + 0.85 + n * step + 1.2;
+      return (orders.length - 1) * 2.6 + 0.85 + n * step + 1.2;
     },
     time() { // slow, then fast, over and over; your finger keeps its own time
       const h = controller(8.5, function (dt) {
-        const k = this.real() % 2.6 < 1.4 ? 0.35 : 1.9;
+        const k = this.real() % 3 < 1.6 ? 0.4 : 1.6;
         if (k !== G.timeK) { G.timeK = k; if (k < 1) { sfx.issen(); flash("236,224,196", 0.25); } else sfx.whoosh(); }
-        this.next = (this.next ?? 0.2) - dt;
-        if (this.next <= 0) { this.next = Math.max(0.2, 0.3 - lvl() * 0.006); spawnLine(); }
-        this.fan = (this.fan ?? 0.8) - dt; // in the slow, the boss piles up fans of stars; in the fast they all come at once
-        if (this.fan <= 0) { this.fan = 0.7; if (G.boss) actFan(); }
+        this.next = (this.next ?? 0.3) - dt;
+        if (this.next <= 0) { this.next = Math.max(0.4, 0.55 - lvl() * 0.008); spawnLine(); }
+        this.fan = (this.fan ?? 1.0) - dt; // in the slow, the boss piles up fans of stars; in the fast they all come at once
+        if (this.fan <= 0) { this.fan = 1.3; if (G.boss) actFan(); }
       }, drawTime);
       h.end = () => { G.timeK = 1; };
       return 9;
@@ -2068,15 +2071,15 @@ sdk.initializeAsync()
       const cx = W / 2, cy = H * 0.55, R = S * 0.055;
       const h = controller(8, function (dt) {
         const a = this.real() * 0.7; this.ox = cx + Math.cos(a) * S * 0.18; this.oy = cy + Math.sin(a) * S * 0.24;
-        const dx = this.ox - P.x, dy = this.oy - P.y, d = Math.hypot(dx, dy) || 1, pull = S * (0.22 + lvl() * 0.007 + 0.26 * Math.min(1, this.real() / 2));
+        const dx = this.ox - P.x, dy = this.oy - P.y, d = Math.hypot(dx, dy) || 1, pull = S * (0.14 + lvl() * 0.005 + 0.16 * Math.min(1, this.real() / 2));
         P.x += (dx / d) * pull * dt; P.y += (dy / d) * pull * dt;
       }, drawOrb);
       Object.assign(h, { ox: cx + S * 0.18, oy: cy, R, dist() { return Math.max(0, Math.hypot(P.x - this.ox, P.y - this.oy) - R); } });
-      for (let k = 0; k < 4; k++) later(0.6 + k * 1.8, () => spiralAt(h.ox, h.oy));
+      for (let k = 0; k < 3; k++) later(0.8 + k * 2.4, () => spiralAt(h.ox, h.oy));
       return 8.4;
     },
     shadow() { // you, a moment ago, walking your own path; stand still and it catches you
-      const lag = Math.max(0.85, 1.2 - lvl() * 0.02);
+      const lag = Math.max(1.1, 1.45 - lvl() * 0.02);
       const h = controller(9, function () {
         const now = this.real();
         this.path.push([now, P.x, P.y]);
@@ -2084,13 +2087,13 @@ sdk.initializeAsync()
         if (now >= lag) { this.on = true; this.gx = this.path[0][1]; this.gy = this.path[0][2]; }
       }, drawShadow);
       Object.assign(h, { path: [], on: false, gx: P.x, gy: P.y, dist() { return this.on ? Math.max(0, Math.hypot(P.x - this.gx, P.y - this.gy) - S * 0.03) : Infinity; } });
-      for (let k = 0; k < 14; k++) later(1.2 + k * 0.55, () => { const [x, y] = edgePoint(); aimedLine(x, y, S * 1.0); });
+      for (let k = 0; k < 7; k++) later(1.6 + k * 1.05, () => { const [x, y] = edgePoint(); aimedLine(x, y, S * 0.8); });
       return 9.4;
     },
     final() { // all of it: 추혼's shadow at your back, 흑월역's quarters coming down, fans of stars, and time itself bending
       SIGS.shadow();
-      for (let k = 0; k < 4; k++) later(1.0 + k * 2.3, () => { blackQuarter(0.9, false, 1.1); if (k > 0) blackQuarter(0.9, true, 1.1); }); // each lifted before the next
-      for (let k = 0; k < 8; k++) later(1.6 + k * 1.0, () => G.boss && actFan());
+      for (let k = 0; k < 3; k++) later(1.2 + k * 2.8, () => blackQuarter(1.1, false, 1.4)); // each lifted before the next
+      for (let k = 0; k < 5; k++) later(2.0 + k * 1.5, () => G.boss && actFan());
       later(4.5, () => { const h = controller(3.5, function () { G.timeK = this.real() % 1.75 < 1 ? 0.45 : 1.6; }, drawTime); h.end = () => { G.timeK = 1; }; });
       return 9.6;
     },
@@ -2203,8 +2206,9 @@ sdk.initializeAsync()
   function bossFight(dt, d, lv, seconds) {
     const b = G.boss, f = G.fight;
     f.lv = lv;
+    G.bossK = BOSS_PACE; // the whole fight at four fifths speed (cleared with the field when it ends)
     G.t = 20 + lv * 6; // how hard the shared attacks are
-    b.hp -= dt / seconds;
+    b.hp -= dt / (seconds * BOSS_PACE); // (by the wall clock: the fight lasts as long as ever)
     if (b.hp <= 0) return bossDown();
     if (f.wait > 0) { // it has said its line: now the technique
       f.wait -= dt;
@@ -2212,12 +2216,12 @@ sdk.initializeAsync()
     } else if ((f.sigT -= dt) <= 0 && b.hp > 0.06) fixed("sig", () => {
       if (f.n === 0 && !f.said) { f.said = true; say([{ who: d.name, text: withName(d.sigLine) }], null); f.wait = 1.0; f.sigT = Infinity; return; }
       callout(...d.sigName); G.dark = 1; b.castT = 0.6; f.n++;
-      f.sigT = SIGS[d.sig]() + Math.max(0.3, 0.9 - lv * 0.04); // the next one comes almost at once
+      f.sigT = SIGS[d.sig]() + Math.max(1.2, 1.8 - lv * 0.05); // a breath, then the next one
     });
     // behind it, the boss's own element drifting across (some have none): a backdrop, the 비기 is the fight
     if (d.bg) {
       G.timers.drift = (G.timers.drift ?? 0.8) - dt;
-      if (G.timers.drift <= 0) fixed("drift", () => { spawnDrift(d.bg); G.timers.drift = 0.85 * pace(); });
+      if (G.timers.drift <= 0) fixed("drift", () => { spawnDrift(d.bg); G.timers.drift = 1.2 * pace(); });
     }
     // its body is a blade too
     const u = bossUnit(b.def);
@@ -2571,7 +2575,8 @@ sdk.initializeAsync()
     G.cine += (cine - G.cine) * Math.min(1, dt * 6);
     if (G.stopT > 0) { G.stopT -= dt; draw(now / 1000); return; } // hit-stop: the world holds its breath
     if (G.slowT > 0) { G.slowT -= dt; if (G.slowT <= 0) G.slow = 1; }
-    const sdt = dt * G.slow * (G.timeK || 1); // timeK: a boss bending time (광음); your own finger keeps its pace
+    // timeK: a boss bending time (광음); bossK: every boss fight a little slower than life. Your own finger keeps its pace.
+    const sdt = dt * G.slow * (G.timeK || 1) * (G.bossK || 1);
     if (G.mode === "play") step(sdt, dt);
     else if (G.mode === "dying") { G.dieT += dt; stepWorld(sdt * 0.25); if (G.dieT > 1.1) over(); }
     else stepWorld(sdt); // the title and result screens: the grove keeps moving behind
