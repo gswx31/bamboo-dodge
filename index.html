@@ -1908,8 +1908,10 @@ sdk.initializeAsync()
   // how far into the game this boss is (0 for 1-5 … 14 for 15-5, more on the endless road): its 비기 grow with it
   // and within one fight, each time it comes again it comes a little harder
   const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 1.0 : 0);
-  function blackQuarter(warn = 1.3, other = false) { // 흑월역's one quarter: the one you stand in (or, `other`, one beside it)
-    G.hazards.push({ kind: "void", t: 0, dur: warn + 2.6, warn, q: null, best: Infinity, near: true,
+  // `active`: how long it stays black. Whoever calls it must lift it before the next one is chosen, or two rows
+  // could go black together and leave nowhere to stand.
+  function blackQuarter(warn = 1.3, other = false, active = 2.6) { // 흑월역's one quarter: the one you stand in (or, `other`, one beside it)
+    G.hazards.push({ kind: "void", t: 0, dur: warn + active, warn, q: null, best: Infinity, near: true,
       step() {
         if (!this.q) {
           const qs = QUADS(), mine = qs.findIndex((r) => inRect(P.x, P.y, r));
@@ -1981,14 +1983,15 @@ sdk.initializeAsync()
       return 6.8;
     },
     void() { // black quarters, each where you stand (two at once after the first), fans of stars into what's left
-      const gap = Math.max(1.8, 2.4 - lvl() * 0.05), warn = Math.max(0.75, 1.0 - lvl() * 0.02);
+      // each one lifts 0.3 s before the next is chosen, so there's always a whole row (two quarters) to stand in
+      const gap = Math.max(2.4, 2.9 - lvl() * 0.04), warn = Math.max(0.9, 1.15 - lvl() * 0.02), active = gap - warn - 0.3;
       for (let k = 0; k < 4; k++) {
-        later(k * gap, () => { blackQuarter(warn); if (k > 0) blackQuarter(warn, true); });
-        later(k * gap + warn + 0.2, () => G.boss && actFan());
+        later(k * gap, () => { blackQuarter(warn, false, active); if (k > 0) blackQuarter(warn, true, active); });
+        later(k * gap + warn + 0.3, () => G.boss && actFan());
       }
-      return 4 * gap + 1.2;
+      return 4 * gap + 0.8;
     },
-    wind() { // a wind leaning on you toward one wall, the blades coming from that wall; it turns every couple of seconds
+    wind() { // a wind blowing toward one wall (seen, not felt), the blades coming from that wall; it turns every couple of seconds
       const h = controller(7, function (dt) {
         const dir = Math.floor(this.real() / 2.2) % 2 === 0 ? 1 : -1;
         if (dir !== this.dir) { this.dir = dir; sfx.whoosh(); flash("240,244,236", 0.15); } // (it only shows the wind: you aren't pushed)
@@ -2032,9 +2035,9 @@ sdk.initializeAsync()
       controller(7, function (dt) {
         this.next = (this.next ?? 0.6) - dt;
         if (this.next > 0) return;
-        this.next = Math.max(0.18, 0.28 - lvl() * 0.006);
+        this.next = Math.max(0.3, 0.4 - lvl() * 0.006);
         const [x, y] = edgePoint();
-        aimedLine(x, y, S * 1.0);
+        aimedLine(x, y, S * 0.9);
       });
       return 7.8;
     },
@@ -2086,7 +2089,7 @@ sdk.initializeAsync()
     },
     final() { // all of it: 추혼's shadow at your back, 흑월역's quarters coming down, fans of stars, and time itself bending
       SIGS.shadow();
-      for (let k = 0; k < 4; k++) later(1.0 + k * 2.1, () => { blackQuarter(0.8); if (k > 0) blackQuarter(0.8, true); });
+      for (let k = 0; k < 4; k++) later(1.0 + k * 2.3, () => { blackQuarter(0.9, false, 1.1); if (k > 0) blackQuarter(0.9, true, 1.1); }); // each lifted before the next
       for (let k = 0; k < 8; k++) later(1.6 + k * 1.0, () => G.boss && actFan());
       later(4.5, () => { const h = controller(3.5, function () { G.timeK = this.real() % 1.75 < 1 ? 0.45 : 1.6; }, drawTime); h.end = () => { G.timeK = 1; }; });
       return 9.6;
