@@ -1838,8 +1838,8 @@ sdk.initializeAsync()
       what: "화면 네 칸 중 내가 서 있는 칸이 검게 물든다. 1.3초 안에 빠져나가야 하고, 검은 칸에 있으면 죽는다. 그 사이 부채꼴 표창. 세 번.",
       intro: "{me}. 네 사부도 그 검으로는 나를 막지 못했다.", sigLine: "이 땅의 넷 중 하나는 이미 달이 삼켰다.", down: "결국… 그 늙은이의 검이었나." },
     { stage: "6-5", name: "풍운객", title: "風雲客 · 떠도는 바람", look: "snow", accent: "#5e8a5a", theme: "grove", sig: "wind", sigName: ["疾風", "질풍"],
-      what: "바람이 한쪽으로 계속 밀어붙이고, 바람이 미는 쪽 벽에서 칼이 날아온다. 중간에 바람 방향이 바뀐다.",
-      intro: "바람은 칼을 들지 않는다. 너를 칼 쪽으로 밀 뿐.", sigLine: "버텨라. 바람은 지치지 않는다.", down: "바람이 멎으니… 내가 설 곳도 없군." },
+      what: "바람이 한쪽으로 불고, 바람이 불어 가는 쪽 벽에서 칼이 날아온다. 바람 방향이 2초마다 바뀐다.",
+      intro: "바람은 칼을 들지 않는다. 칼을 실어 나를 뿐.", sigLine: "버텨라. 바람은 지치지 않는다.", down: "바람이 멎으니… 내가 설 곳도 없군." },
     { stage: "7-5", name: "무영", title: "無影 · 그림자 없는 자", look: "twins", accent: "#55525c", theme: "gorge", sig: "veil", sigName: ["無影劍", "무영검"],
       what: "경고 없이 보이지 않는 쿠나이가 사방에서 날아온다. 내 몸 가까이 와야만 보인다.",
       intro: "보이는 칼은 칼이 아니다.", sigLine: "눈을 감아라. 어차피 보이지 않는다.", down: "보지 않고도 피하는가. 그럼 됐다." },
@@ -1991,8 +1991,7 @@ sdk.initializeAsync()
     wind() { // a wind leaning on you toward one wall, the blades coming from that wall; it turns every couple of seconds
       const h = controller(7, function (dt) {
         const dir = Math.floor(this.real() / 2.2) % 2 === 0 ? 1 : -1;
-        if (dir !== this.dir) { this.dir = dir; sfx.whoosh(); flash("240,244,236", 0.15); }
-        P.x += dir * S * (0.42 + lvl() * 0.012) * dt;
+        if (dir !== this.dir) { this.dir = dir; sfx.whoosh(); flash("240,244,236", 0.15); } // (it only shows the wind: you aren't pushed)
         this.next = (this.next ?? 0.4) - dt;
         if (this.next <= 0) { this.next = Math.max(0.2, 0.3 - lvl() * 0.006); aimedLine(dir > 0 ? W + S * 0.04 : -S * 0.04, clamp(P.y + rnd(-S * 0.3, S * 0.3), S * 0.1, H - S * 0.1), S * 0.9); }
       }, drawWind);
