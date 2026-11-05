@@ -73,29 +73,6 @@
     width: 36px; height: 36px; border-radius: 50%; font-size: 16px; cursor: pointer;
   }
   .mute:focus-visible, .btn:focus-visible, .nick:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
-  /* 순보: a round seal of a button at the bottom right; the ring round it fills as it charges */
-  .guard {
-    --p: 1;
-    position: absolute;
-    right: max(18px, var(--sa-right));
-    bottom: max(22px, var(--sa-bottom));
-    width: 76px; height: 76px; border-radius: 50%;
-    border: 2px solid var(--ink); background: color-mix(in srgb, var(--slip) 85%, transparent);
-    font-family: var(--font-mark); font-weight: 900; font-size: 24px; color: var(--ink);
-    display: grid; place-items: center; align-content: center; cursor: pointer; touch-action: none;
-    transition: opacity .3s, transform .1s;
-  }
-  .guard small { display: block; font-family: var(--font-body); font-weight: 400; font-size: 11px; margin-top: -4px; }
-  .guard::before {
-    content: ""; position: absolute; inset: -6px; border-radius: 50%; pointer-events: none;
-    background: conic-gradient(var(--seal) calc(var(--p) * 360deg), color-mix(in srgb, var(--ink) 14%, transparent) 0);
-    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-    mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 3px));
-  }
-  .guard:not(.is-ready) { color: var(--ink-soft); }
-  .guard.is-ready { color: var(--seal); border-color: var(--seal); }
-  .guard.is-on { transform: scale(0.92); background: var(--slip); }
-
   .screen {
     position: absolute; inset: 0;
     display: grid; place-items: center;
@@ -223,7 +200,6 @@
       <button class="mute" id="mute" aria-label="소리 켜고 끄기">♪</button>
     </div>
   </div>
-  <button class="guard" id="guard" hidden aria-label="순보 (0.5초 무적, 10초마다 충전)">瞬<small>순보</small></button>
 
   <div class="screen" id="start">
     <section class="slip" data-seal="竹">
@@ -232,7 +208,6 @@
       <ul class="keys">
         <li><b>이동</b> 화면 아무 데나 대고 끌기. 키보드는 방향키나 WASD</li>
         <li><b>간발</b> 아슬아슬하게 피하면 시간이 는다</li>
-        <li><b>순보</b> 瞬 버튼이나 스페이스. 가던 쪽으로 슈욱 내달리며 0.5초 동안 무적, 10초마다 다시 찬다</li>
       </ul>
       <input class="nick" id="nick" maxlength="10" placeholder="검객 이름" autocomplete="off">
       <div class="modes">
@@ -734,7 +709,6 @@ sdk.initializeAsync()
     hum: () => tone(70, 3.4, 0.05, "sawtooth", 150),
     ready: sound((t) => { pluck(t, 659.25, 0.22, sfxBus, 1.4); pluck(t + 0.09, 880, 0.2, sfxBus, 1.6); }),
     issen: sound((t) => { noise(0.55, 8000, 300, 0.45, "highpass"); tone(110, 1.3, 0.2, "sine", 50); tone(660, 0.9, 0.05, "triangle", 330); gong(t, 0.1, sfxBus, 440, 2.4); }),
-    guard: () => { noise(0.32, 500, 4200, 0.24); tone(520, 0.2, 0.04, "sine", 1300); }, // 슈우웅
     roar: () => { noise(0.75, 420, 70, 0.45, "lowpass"); tone(92, 0.75, 0.18, "sawtooth", 48); },
     palm: () => { noise(0.4, 260, 1400, 0.32); tone(70, 0.4, 0.15, "sine", 40); },
     hiss: () => noise(0.9, 3200, 1400, 0.07, "highpass"),
@@ -842,9 +816,7 @@ sdk.initializeAsync()
   }
   // past 120 s everything keeps getting quicker, without end
   const endless = () => Math.max(0, G.t - ENDLESS_FROM) / ENDLESS_EVERY;
-  const P = { x: 0, y: 0, dx: 0, dy: -1, inv: 0, guard: 0, guardCd: 0, dash: 0, trail: [] };
-  // 순보: a short rush, half a second as a see-through blur that blades pass through, ready again ten seconds later
-  const GUARD = { dur: 0.5, every: 10 };
+  const P = { x: 0, y: 0, dx: 0, dy: -1, inv: 0 };
   const G = {
     mode: "menu", t: 0, bonus: 0, near: 0, combo: 0, comboT: 0, stage: 0, slow: 1, slowT: 0, shake: 0,
     shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], leaves: [], decals: [], timers: {}, dieT: 0, banner: null,
@@ -870,13 +842,15 @@ sdk.initializeAsync()
       phase: "", pt: 0, ct: 0, st: 0, boss: null, lines: [], lineI: 0, lineT: 0, onLines: null, card: null, safe: false, cleared: false, banner: null,
       mons: [], seen: new Set(), monT: 1, msg: null,
     });
-    Object.assign(P, { x: W / 2, y: H * 0.58, dx: 0, dy: -1, inv: 0, guard: 0, guardCd: 0, dash: 0, trail: [], push: null });
+    Object.assign(P, { x: W / 2, y: H * 0.58, dx: 0, dy: -1, inv: 0, push: null });
     for (const k of Object.keys(PATTERNS)) G.timers[k] = PATTERNS[k].first * (G.kind === "normal" ? 3 : 1);
     G.timers.bamboo = 0.4;
     if (!G.story) showBanner(STAGES[0]);
   }
   // 죽림 수련: bamboo is the main thing to dodge and the red attacks come about half as often, as surprises
   const RARE = 2;
+  // every wait between attacks in the three modes, a fifth longer (on a phone the finger is all you have to dodge with)
+  const EASE = 1.2;
   // 아수라: bamboo and every red attack at full rate, the 段 clock half again as fast, warnings shorter,
   // half the attacks landing anywhere on the screen rather than on you, and nasty follow-ups
   const HARD = { clock: 1.5, start: 16, warn: 1.3, twice: 0.4, follow: 0.35 };
@@ -1319,7 +1293,7 @@ sdk.initializeAsync()
   function startStory(ch, retry = false) {
     G.story = true; G.ch = ch; reset(); G.mode = "play"; runStart();
     setTheme(CHAPTERS[ch].theme, true);
-    $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("guard").hidden = false;
+    $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false;
     if (ch === 0 && !retry) { G.phase = "prologue"; say(PROLOGUE(), enterTitle); } else enterTitle();
   }
   function enterTitle() {
@@ -1746,7 +1720,6 @@ sdk.initializeAsync()
     const k = e.key.toLowerCase();
     if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", " ", "shift"].includes(k)) e.preventDefault();
     if ((k === " " || k === "enter") && G.mode === "play" && G.lines.length) { nextLine(); return; }
-    if ((k === " " || k === "shift") && G.mode === "play" && !e.repeat) guard();
     if (k === "enter" && G.mode === "menu") startEndless();
     keys.add(k);
   });
@@ -1806,16 +1779,8 @@ sdk.initializeAsync()
       if (P.push.t <= 0) P.push = null;
     }
     if (wade < 1 && Math.random() < realDt * 8) G.parts.push({ kind: "glow", color: "#8fbf6a", x: P.x + rnd(-8, 8), y: P.y + rnd(-6, 6), vx: 0, vy: -rnd(15, 35), r: rnd(1.5, 3), life: 0.6, t: 0 });
-    if (P.dash > 0) { // 순보: a rush the way you were heading, leaving afterimages
-      P.dash -= realDt;
-      P.x += P.dx * S * 2.6 * realDt; P.y += P.dy * S * 2.6 * realDt;
-      P.trail.push({ x: P.x, y: P.y, t: 0 });
-    }
     P.x = clamp(P.x, edge(), W - edge()); P.y = clamp(P.y, edge(), H - edge());
     P.inv = Math.max(0, P.inv - realDt);
-    P.guard = Math.max(0, P.guard - realDt); P.guardCd = Math.max(0, P.guardCd - realDt);
-    for (const tr of P.trail) tr.t += realDt;
-    if (P.trail.length) P.trail = P.trail.filter((tr) => tr.t < 0.35);
     if (G.story) storyStep(dt, realDt); else endlessStep(dt);
     if (G.mode !== "play") return; // a boss's body can end it
     stepWorld(dt);
@@ -1825,6 +1790,7 @@ sdk.initializeAsync()
   // 무한 수련: a new 段 every so often, each bringing something, the big moves taking turns
   function endlessStep(dt) {
     if (G.kind === "mon") return monStep(dt);
+    const adt = dt / EASE; // the attacks' own clock, a little slow: the 段 still turn on the real one
     G.rt += dt;
     G.t += dt * (hard() ? HARD.clock : 1);
     const rare = G.kind === "normal" ? RARE : 1;
@@ -1835,18 +1801,18 @@ sdk.initializeAsync()
       if (b) { runBig(b); G.bigT = rnd(5.5, 7) * rare; }
     }
     if (G.kind !== "red") { // the bamboo never stops
-      G.timers.bamboo -= dt;
+      G.timers.bamboo -= adt;
       if (G.timers.bamboo <= 0) { spawnBamboo(); G.timers.bamboo = (hard() ? 0.4 : 0.5) * pace(); }
     }
     // the steady attacks (in 아수라 some come twice at once, the second somewhere else)
     for (const [k, p] of Object.entries(PATTERNS)) {
       if (G.t < p.from || (p.only && !p.only.includes(G.kind))) continue;
-      G.timers[k] -= dt;
+      G.timers[k] -= adt;
       if (G.timers[k] <= 0) { p.spawn(); if (hard() && Math.random() < HARD.twice) p.spawn(); G.timers[k] = p.every() * rare; }
     }
     // the big moves take turns; in 광란 two can come at once
     if (G.t >= BIG[0].from) {
-      G.bigT -= dt;
+      G.bigT -= adt;
       if (G.bigT <= 0) {
         const open = BIG.filter((b) => b.from <= G.t), fresh = open.find((b) => !G.bigSeen.has(b.key)); // a newly opened one comes first
         const pool = open.length > 1 ? open.filter((b) => b.key !== G.lastBig) : open;
@@ -1995,14 +1961,6 @@ sdk.initializeAsync()
     hurtBoss(0.025);
   }
 
-  // 순보: whoosh — a short rush the way you were heading, see-through, nothing can touch you for half a second
-  function guard() {
-    if (G.mode !== "play" || G.safe || P.guardCd > 0) return;
-    P.guard = GUARD.dur; P.inv = Math.max(P.inv, GUARD.dur); P.guardCd = GUARD.every;
-    P.dash = 0.2; P.trail = [{ x: P.x, y: P.y, t: 0 }]; G.dashes = (G.dashes || 0) + 1;
-    for (let i = 0; i < 10; i++) G.parts.push({ kind: "ink", x: P.x, y: P.y, vx: rnd(-1, 1) * S * 0.2 - P.dx * S * 0.4, vy: rnd(-1, 1) * S * 0.2 - P.dy * S * 0.4, r: rnd(1.5, 4), life: rnd(0.25, 0.5), t: 0 });
-    sfx.guard(); buzz(15);
-  }
   function die(x, y) {
     if (G.mode !== "play") return;
     G.mode = "dying"; G.dieT = 0; G.shake = reduced ? 0 : 22;
@@ -2923,9 +2881,9 @@ sdk.initializeAsync()
     if (h.dodgeT > 0) { const e = Math.sin((h.dodgeT / 0.32) * Math.PI); x += h.nx * r * 0.45 * e; y += h.ny * r * 0.45 * e; rot += h.dir * 0.75 * e; sy *= 1 - 0.14 * e; sx *= 1 + 0.08 * e; }
     if (h.spinT > 0) rot += (1 - Math.pow(h.spinT / 0.4, 3)) * Math.PI * 2 * h.dir;
     const po = { x, y, rot, sx, sy }; h.pose = po;
-    // 경공: afterimages and leaves while moving fast (순보 already leaves its own)
+    // 경공: afterimages and leaves while moving fast
     h.ghostT -= dt;
-    if (play && sp > 1.3 && h.ghostT <= 0 && !(P.dash > 0)) { h.ghosts.push(heroSnap(SKIN.ghostLife, 0.3)); h.ghostT = 0.032; }
+    if (play && sp > 1.3 && h.ghostT <= 0) { h.ghosts.push(heroSnap(SKIN.ghostLife, 0.3)); h.ghostT = 0.032; }
     if (play && SKIN.mote && sp > 0.5) { h.moteT -= dt * Math.min(4, sp); if (h.moteT <= 0) { heroMote(); h.moteT = 0.09; } }
     if (play && sp > 1 && ohx * h.hx + ohy * h.hy < -0.2) heroKick();
     for (let i = h.ghosts.length - 1; i >= 0; i--) { h.ghosts[i].t += dt; if (h.ghosts[i].t >= h.ghosts[i].life) h.ghosts.splice(i, 1); }
@@ -3018,7 +2976,6 @@ sdk.initializeAsync()
   function drawPlayer(time) {
     if (G.mode === "dying" && G.dieT > 0.15) return;
     const r = heroR(), po = heroStep(time), sk = SKIN, run = Math.min(1, Math.hypot(HERO.vx, HERO.vy) / S / 1.6);
-    for (const tr of P.trail) heroGhost({ x: tr.x, y: tr.y, rot: po.rot, sx: 1, sy: 1 }, r, 0.32 * (1 - tr.t / 0.35)); // 순보's, along the rush
     for (const g of HERO.ghosts) heroGhost(g, r, g.a * (1 - g.t / g.life));
     for (const m of HERO.motes) {
       const a = 1 - m.t / m.life, s = m.size;
@@ -3030,8 +2987,7 @@ sdk.initializeAsync()
       ctx.restore();
     }
     ctx.save();
-    if (P.guard > 0) ctx.globalAlpha = 0.4; // see-through while it lasts
-    else if (P.inv > 0 && Math.floor(time * 20) % 2) ctx.globalAlpha = 0.45;
+    if (P.inv > 0 && Math.floor(time * 20) % 2) ctx.globalAlpha = 0.45;
     const hop = clamp((P.y - po.y) / r, 0, 1);
     ctx.fillStyle = "rgba(29,26,23,0.16)"; ctx.beginPath(); ctx.ellipse(P.x, P.y + r * 1.15, r * 0.95 * (1 - hop * 0.3), r * 0.22, 0, 0, Math.PI * 2); ctx.fill();
     ctx.lineCap = "round"; ctx.strokeStyle = sk.band;
@@ -3100,12 +3056,6 @@ sdk.initializeAsync()
     if (G.mode === "play") {
       $("time").textContent = ((G.story ? G.st : G.rt) + G.bonus).toFixed(2);
       $("hud").style.opacity = G.cine > 0.5 ? "0" : "1";
-      const gb = $("guard");
-      gb.style.setProperty("--p", (1 - P.guardCd / GUARD.every).toFixed(3)); // the ring fills as it charges
-      gb.classList.toggle("is-ready", P.guardCd <= 0);
-      gb.classList.toggle("is-on", P.guard > 0);
-      gb.style.opacity = G.cine > 0.5 ? "0" : "1";
-      gb.style.pointerEvents = G.cine > 0.5 ? "none" : ""; // in a scene a tap goes to the lines
     }
     requestAnimationFrame(hud);
   }
@@ -3123,7 +3073,7 @@ sdk.initializeAsync()
     reset(); G.mode = "play"; runStart();
     if (kind === "mon") showBanner({ name: "一段 · 요괴전" });
     if (hard()) { G.t = HARD.start; G.stage = stageIndex(G.t); showBanner(stageInfo(G.stage)); G.bigT = 3; } // 아수라 starts a few 段 in
-    $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("guard").hidden = false;
+    $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false;
   }
   function over() {
     G.mode = "over";
@@ -3137,7 +3087,7 @@ sdk.initializeAsync()
     const myBest = Number(store.get(bestKey(G.kind), "0")) || 0, isBest = score > myBest;
     if (isBest) store.set(bestKey(G.kind), score);
     $("best").textContent = isBest ? "새 최고 기록" : `내 최고 ${myBest.toFixed(2)}초`;
-    $("hud").hidden = true; $("guard").hidden = true; $("over").hidden = false;
+    $("hud").hidden = true; $("over").hidden = false;
     syncRevive(); showGain(payRun()); syncDouble();
     shown = G.kind; renderRank();
     $("again").focus({ preventScroll: true });
@@ -3151,7 +3101,7 @@ sdk.initializeAsync()
     $("meta").textContent = cleared ? `흑월을 베었다. 간발 ${G.near}번` : `${ch.num} ${ch.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. 간발 ${G.near}번`;
     $("best").textContent = cleared ? `지금까지 ${Number(store.get("storyClears", "1")) || 1}번 마쳤다` : "";
     $("again").textContent = cleared ? "처음부터" : "이 장 다시";
-    $("hud").hidden = true; $("guard").hidden = true; $("over").hidden = false; $("revive").hidden = true; // the story gives a chapter back for free
+    $("hud").hidden = true; $("over").hidden = false; $("revive").hidden = true; // the story gives a chapter back for free
     showGain(payRun()); syncDouble();
     renderRank();
     $("again").focus({ preventScroll: true });
@@ -3176,11 +3126,10 @@ sdk.initializeAsync()
   $("home").addEventListener("click", () => adBreak(() => {
     G.mode = "menu"; G.story = false; G.boss = null; G.lines = []; G.card = null;
     setTheme("grove", true); storyLabels();
-    $("over").hidden = true; $("start").hidden = false; $("hud").hidden = true; $("guard").hidden = true;
+    $("over").hidden = true; $("start").hidden = false; $("hud").hidden = true;
     P.x = W / 2; P.y = H * 0.58; G.shots = []; G.warns = []; G.cuts = []; G.hazards = []; G.mons = [];
   }));
   storyLabels();
-  $("guard").addEventListener("pointerdown", (e) => { e.preventDefault(); e.stopPropagation(); guard(); }); // a thumb on it never starts a drag
   $("mute").addEventListener("click", () => {
     muted = !muted; store.set("muted", muted ? "1" : "0"); $("mute").textContent = muted ? "×" : "♪";
     if (master) master.gain.setTargetAtTime(muted || ringerSilent ? 0 : 1, ac.currentTime, 0.05);
@@ -3247,8 +3196,8 @@ sdk.initializeAsync()
   function revive() {
     G.revived = true; G.mode = "play"; G.dieT = 0; G.shake = 0; G.stopT = 0;
     clearField(); G.mons = [];
-    Object.assign(P, { inv: 2, guard: 0, dash: 0, trail: [], push: null }); // two seconds to find your feet
-    $("over").hidden = true; $("revive").hidden = true; $("hud").hidden = false; $("guard").hidden = false;
+    Object.assign(P, { inv: 2, push: null }); // two seconds to find your feet
+    $("over").hidden = true; $("revive").hidden = true; $("hud").hidden = false;
     flash("255,250,235", 0.35); sfx.ready();
   }
 
@@ -3345,7 +3294,6 @@ sdk.initializeAsync()
     { id: "combo", text: "간발 5연속", goal: 5, of: (r) => r.combo },
     { id: "red", text: "특수 효과만 30초", goal: 30, of: (r) => (r.kind === "red" ? r.time : 0) },
     { id: "hard", text: "하드모드 30초", goal: 30, of: (r) => (r.kind === "hard" ? r.time : 0) },
-    { id: "dash", text: "한 판에 순보 5번", goal: 5, of: (r) => r.dashes },
   ];
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
   function pickDrills(day) { // a small seeded shuffle of the pool
@@ -3396,7 +3344,7 @@ sdk.initializeAsync()
 
   // a run begins: fresh counts for what it will earn (and the ad count goes on)
   function runStart() {
-    Object.assign(G, { revived: false, maxCombo: 0, dashes: 0, paidT: 0, paidN: 0, doubled: false, chapCoins: 0, lastPay: 0 });
+    Object.assign(G, { revived: false, maxCombo: 0, paidT: 0, paidN: 0, doubled: false, chapCoins: 0, lastPay: 0 });
     countRun(); drillDay(); drillProgress("runs", 1, true);
     $("drillNote").hidden = true;
   }
@@ -3406,7 +3354,7 @@ sdk.initializeAsync()
     const dt = Math.max(0, time - (G.paidT || 0)), dn = Math.max(0, near - (G.paidN || 0));
     G.paidT = time; G.paidN = near;
     const earned = Math.round((dt * ECON.perSecond + dn * ECON.perNear) * (!story && G.kind === "hard" ? ECON.hard : 1));
-    const r = { kind: story ? "story" : G.kind, time, near, combo: G.maxCombo || 0, dashes: G.dashes || 0 };
+    const r = { kind: story ? "story" : G.kind, time, near, combo: G.maxCombo || 0 };
     let drills = 0;
     for (const d of DRILLS) if (d.of) drills += drillProgress(d.id, d.of(r));
     if (r.kind === "hard" && time >= 60) grantSkin("seol", true, true); // a minute in 하드모드 earns the 설산 clothes
