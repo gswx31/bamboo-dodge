@@ -1526,7 +1526,7 @@ sdk.initializeAsync()
   // X-4 throws everything thicker, and X-5 is its boss. After the tenth 장 the road goes on, harder each time.
   // A stage throws the same things in the same order on every try, so it can be learned (fixed()).
   const WORLDS = [
-    { name: "죽림", theme: "grove", boss: 0, fresh: "line", pats: ["line"], big: ["spikes"], diff: [0, 16] },
+    { name: "죽림", theme: "grove", boss: 0, fresh: "line", pats: ["line"], big: ["spikes"], diff: [8, 22] },
     { name: "월하 계곡", theme: "gorge", boss: 1, fresh: "draw", pats: ["line", "draw"], big: ["spikes", "palm"], diff: [6, 26] },
     { name: "적염사", theme: "temple", boss: 2, fresh: "clones", pats: ["line", "draw"], big: ["clones", "palm", "spiral"], diff: [14, 36] },
     { name: "백설령", theme: "snow", boss: 3, fresh: "homing", pats: ["line", "draw", "homing"], big: ["spiral", "ring", "flick"], diff: [22, 46] },
@@ -1541,14 +1541,37 @@ sdk.initializeAsync()
   const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", homing: "따라붙는 칼", cross: "십자 발도", burst: "터지는 칼",
     spikes: "죽순", palm: "장풍", clones: "그림자", spiral: "칼바람", flick: "탄지신통", ring: "천라지망", roar: "사자후",
     rain: "칼비", silk: "천잠사", triple: "삼연참", beam: "검기", mist: "독무" };
-  // the five stages of a 장: how long, how far apart the attacks (× their usual wait), and the line on its card
-  const STEPS = [
-    { dur: 18, gap: 1.5, sub: (w) => (w.fresh ? `처음 보는 공격: ${ATTACK_NAMES[w.fresh]}` : w.power > 1 ? "더 빨라진다" : "모든 공격이 나온다") },
-    { dur: 20, gap: 1.35, sub: () => "공격이 섞여 온다" },
-    { dur: 22, gap: 1.25, sub: () => "큰 기술이 나온다" },
-    { dur: 24, gap: 1.12, sub: () => "쉴 틈 없이 몰아친다" },
-    { dur: 4, gap: 1.6, sub: (w) => `보스 ${BOSSES[w.boss].name}` }, // a few seconds of the 장's first attack, then the boss
+  // the five stages of a 장: how long, and how far apart the attacks (× their usual wait)
+  const STEPS = [ // thirty seconds each (the boss stage: four, then the boss for BOSS_SECONDS)
+    { dur: 30, gap: 1.3 },
+    { dur: 30, gap: 1.2 },
+    { dur: 30, gap: 1.1 },
+    { dur: 30, gap: 1.0 },
+    { dur: 4, gap: 1.4 },
   ];
+  const BOSS_SECONDS = 26;
+  // The line on each stage's card. X-1 is something the 사부 once said, about the attack that comes in now (in quotes);
+  // X-2 to X-4 are what the 강호 says about the 장's master, nearer the truth each time; X-5 is the hush before it.
+  const STAGE_LINES = [
+    ["“붉은 줄이 그어지면 칼이 그 길로 온다”", "숲에서 쓰러진 자들은 상처가 꼭 둘이었다", "발소리는 하나인데 칼은 두 번 온다", "흑월교 척후 쌍영, 둘이서 한 사람을 벤다", "대숲이 갑자기 조용해졌다"],
+    ["“발밑에 붉은 띠가 깔리면 띠 밖으로 나가라”", "달 뜨는 밤엔 물소리가 칼 소리로 들린다", "물 위를 걷는 여인을 봤다는 뱃사공이 있다", "수류검 연화, 벤 자리에 물자국만 남긴다", "물안개 사이로 연꽃 향이 난다"],
+    ["“그림자는 네가 서 있던 자리로 달려든다”", "불탄 절의 종이 밤마다 혼자 운다", "파계한 중 하나가 아직 절을 지킨다고 한다", "적염 대사, 제 손으로 절에 불을 지른 자", "염불 소리가 들린다"],
+    ["“따라오는 칼은 크게 돌면 빗나간다”", "고개를 넘던 상인들은 봄이 되어서야 발견됐다", "눈 위에 발자국은 없고 칼자국만 있다", "머리가 하얗게 센 검귀가 산다고 한다", "눈보라가 멎었다"],
+    ["“하늘이 붉어지면 비가 아니라 칼이 내린다”", "교주는 칼을 두 번 휘두른 적이 없다고 한다", "청죽문이 불탄 밤에도 교주가 앞장서 있었다", "사부의 원수가 저 봉우리 위에 있다", "검은 달이 떴다"],
+    ["“띠가 엇갈려 깔리면 둘 다 벗어나라”", "교주가 쓰러지자 흑월교 잔당이 흩어졌다", "쌍영이 살아 있다는 말이 돈다", "둘이 하나처럼 움직여 더 빨라졌다고 한다", "타다 남은 대숲에서 발소리가 겹친다"],
+    ["“검기가 닿지 않는 자리는 미리 비어 보인다”", "안개가 걷히지 않는 계곡이 생겼다", "연화가 물 대신 안개를 벤다는 소문이다", "계곡에 들어간 검객이 하나도 돌아오지 않았다", "안개 속에서 누가 웃는다"],
+    ["“칼이 사방으로 터지면 줄과 줄 사이에 서라”", "다 탄 줄 알았던 절에 다시 불이 붙었다", "적염 대사가 업을 다 씻지 못했다고 한다", "이번엔 절 전체가 그의 칼이 되었다", "목탁 소리가 멎었다"],
+    ["“독무에 발을 들이면 걸음이 무거워진다”", "고개 위의 눈이 한여름에도 녹지 않는다", "설귀가 네 이름을 묻고 다닌다고 한다", "설귀는 한 번 진 상대를 잊지 않는다", "숨이 하얗게 언다"],
+    ["“이제 네게 가르칠 것이 없다”", "쓰러졌던 교주가 다시 일어났다는 소문이다", "흑월교가 마지막 남은 힘을 모으고 있다", "검은 달 아래서 모든 것이 끝난다", "사부의 검을 쥔 손에 땀이 밴다"],
+  ];
+  // past the tenth 장 the 강호 talks about you
+  const ROAD_LINES = ["객잔마다 네 이야기를 한다", "너를 찾아 산을 오르는 자들이 생겼다", "어떤 이는 네가 사람이 아니라고 한다", "아이들이 대나무 막대로 네 흉내를 낸다",
+    "또 한 명의 고수가 길을 막는다", "네 이름을 걸고 내기를 하는 자들이 있다", "강호에 너보다 오래 버틴 자는 없다", "누가 네 앞에서 칼을 뽑겠는가",
+    "길이 끝나지 않는다. 너도 멈추지 않는다", "고수들이 줄을 서서 너를 기다린다", "이제 네가 소문이 되었다", "어디선가 사부가 웃고 있을 것이다"];
+  // what the 강호 calls you once a 장 is behind you (the n-th 장's), then the road's own names, the last one for good
+  const TITLES = ["죽림의 생존자", "월하의 객", "불을 건넌 자", "설령의 칼", "흑월을 벤 검객", "잿더미의 검", "안개를 가른 칼", "업화를 건넌 자", "얼음 고개의 주인", "검은 달을 지운 자"];
+  const ROAD_TITLES = ["강호의 소문", "이름난 검객", "천하가 아는 칼", "무명검성"];
+  const titleOf = (w) => (w < TITLES.length ? TITLES[w] : ROAD_TITLES[Math.min(w - TITLES.length, ROAD_TITLES.length - 1)]);
   function worldOf(w) {
     if (w < WORLDS.length) return { ...WORLDS[w], power: w >= 5 ? 1 : 0 };
     const k = w - WORLDS.length + 1, last = WORLDS[WORLDS.length - 1];
@@ -1559,7 +1582,8 @@ sdk.initializeAsync()
     if (stageMemo.has(i)) return stageMemo.get(i);
     const w = Math.floor(i / 5), s = i % 5, wd = worldOf(w), step = STEPS[s];
     const freshBig = BIG.some((b) => b.key === wd.fresh), lo = wd.diff[0], span = wd.diff[1] - wd.diff[0];
-    const d = { i, w, s, label: `${w + 1}-${s + 1}`, world: wd, theme: wd.theme, dur: step.dur, sub: step.sub(wd),
+    const sub = w < STAGE_LINES.length ? STAGE_LINES[w][s] : ROAD_LINES[((w - STAGE_LINES.length) * 5 + s) % ROAD_LINES.length];
+    const d = { i, w, s, label: `${w + 1}-${s + 1}`, world: wd, theme: wd.theme, dur: step.dur, sub,
       gap: Math.max(0.8, step.gap - 0.05 * Math.max(0, wd.power - 1)), diff: [lo + span * s / 5, lo + span * (s + 1) / 5],
       pats: wd.pats, big: [], bigEvery: [6.5, 8.5], boss: s === 4 };
     d.bamboo = 0.62 * d.gap;
@@ -1572,7 +1596,7 @@ sdk.initializeAsync()
     if (s === 4) {
       d.pats = [wd.pats[0]];
       const base = BOSSES[wd.boss];
-      d.bossDef = { ...base, hp: base.hp * (1 + 0.15 * wd.power) }; // the boss lasts longer each round, and acts sooner
+      d.bossDef = { ...base, hp: BOSS_SECONDS }; // every boss lasts as long; each round it acts sooner
       d.bossWaitK = Math.max(0.6, 1 - 0.08 * wd.power);
     }
     stageMemo.set(i, d);
@@ -1604,7 +1628,7 @@ sdk.initializeAsync()
   }
   function enterStage() { // its card, a breath with nothing in the air
     const sd = stageDef(G.sg);
-    G.phase = "title"; G.pt = 0; G.seedN = {}; G.boss = null;
+    G.phase = "title"; G.pt = 0; G.seedN = {}; G.boss = null; G.titleLen = 1.7; G.next = null;
     G.card = { ch: { num: sd.label, name: sd.world.name, sub: sd.sub }, at: performance.now(), life: 1.7 };
     $("stage").textContent = `${sd.label} · ${sd.world.name}`;
     sfx.stage();
@@ -1622,17 +1646,24 @@ sdk.initializeAsync()
     G.sg++; reachStage(G.sg);
     const next = stageDef(G.sg);
     if (next.s === 0) { setTheme(next.theme, true); sfx.taiko(); } // a new 장, a new place
-    enterStage();
+    if (!sd.boss) return enterStage();
+    // a 장 behind you: first the name the 강호 gives you for it, then the next 장's first card
+    store.set("stageTitle", Math.max(Number(store.get("stageTitle", "-1")), sd.w));
+    G.phase = "title"; G.pt = 0; G.titleLen = 2.4; G.next = enterStage;
+    G.card = { ch: { num: "별호", name: titleOf(sd.w), sub: "강호가 너를 이렇게 부르기 시작했다" }, at: performance.now(), life: 2.4 };
+    sfx.stage();
   }
-  // the furthest stage ever reached, and the 장 a new run may start from
+  // the furthest stage ever reached: where a new run starts
   function reachStage(i) {
     if (i > (Number(store.get("stageTop", "0")) || 0)) store.set("stageTop", i);
-    store.set("stageFrom", Math.max(Number(store.get("stageFrom", "0")) || 0, Math.floor(i / 5)));
   }
   function stageStep(dt, realDt) {
     const sd = stageDef(G.sg);
     stepLines(realDt);
-    if (G.phase === "title") { G.pt += realDt; if (G.pt >= 1.7) enterStageFight(); }
+    if (G.phase === "title") {
+      G.pt += realDt;
+      if (G.pt >= (G.titleLen || 1.7)) { const next = G.next; G.next = null; if (next) next(); else enterStageFight(); }
+    }
     else if (G.phase === "fight") {
       G.ct += dt; G.st += dt;
       G.t = sd.diff[0] + (sd.diff[1] - sd.diff[0]) * Math.min(1, G.ct / sd.dur); // how hard things are, for the shared attacks
@@ -1661,8 +1692,9 @@ sdk.initializeAsync()
     $("overSlip").dataset.seal = "敗"; $("overLabel").textContent = "쓰러진 곳";
     $("score").textContent = sd.label; $("scoreUnit").hidden = true;
     $("meta").textContent = `${sd.world.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. ${time.toFixed(2)}초 버텼다. 간발 ${G.near}번`;
-    $("best").textContent = G.sg > G.stageTop0 ? "새 최고 기록" : `최고 기록 ${stageDef(top).label}`;
-    $("again").textContent = sd.s === 0 ? "다 시" : `${sd.w + 1}-1부터`; // a 장 starts over from its first stage
+    const title = Number(store.get("stageTitle", "-1")), named = title >= 0 ? `. 별호 ${titleOf(title)}` : "";
+    $("best").textContent = (G.sg > G.stageTop0 ? "새 최고 기록" : `최고 기록 ${stageDef(top).label}`) + named;
+    $("again").textContent = `${sd.label} 다시`; // the stage you fell in, from its start
     $("hud").hidden = true; $("over").hidden = false;
     syncRevive(); showGain(payRun()); syncDouble();
     renderRank();
@@ -2535,8 +2567,8 @@ sdk.initializeAsync()
       ctx.font = `${Math.round(S * 0.13)}px "Nanum Brush Script", cursive`; ctx.fillStyle = "#f7f0de"; ctx.fillText(c.boss.name, W / 2, cy - S * 0.02);
       ctx.font = `700 ${Math.round(S * 0.032)}px "Noto Serif KR", serif`; ctx.fillStyle = "rgba(247,240,222,0.85)"; ctx.fillText(c.boss.title, W / 2, cy + S * 0.075);
     } else {
-      ctx.font = `900 ${Math.round(S * 0.06)}px "Noto Serif KR", serif`; ctx.fillStyle = "#e0573f"; ctx.fillText(c.ch.num, W / 2, cy - S * 0.11);
-      ctx.font = `${Math.round(S * 0.15)}px "Nanum Brush Script", cursive`; ctx.fillStyle = "#f7f0de"; ctx.fillText(c.ch.name, W / 2, cy + S * 0.005);
+      ctx.font = `900 ${Math.round(S * 0.05)}px "Noto Serif KR", serif`; ctx.fillStyle = "#e0573f"; ctx.fillText(c.ch.num, W / 2, cy - S * 0.125);
+      ctx.font = `${Math.round(S * 0.14)}px "Nanum Brush Script", cursive`; ctx.fillStyle = "#f7f0de"; ctx.fillText(c.ch.name, W / 2, cy + S * 0.02);
       ctx.font = `700 ${Math.round(S * 0.032)}px "Noto Serif KR", serif`; ctx.fillStyle = "rgba(247,240,222,0.8)"; ctx.fillText(c.ch.sub, W / 2, cy + S * 0.11);
     }
     ctx.restore();
@@ -3352,17 +3384,17 @@ sdk.initializeAsync()
   $("goMon").addEventListener("click", () => startEndless("mon"));
   $("story").addEventListener("click", () => { begin(); startStory(Number(store.get("storyCh", "0")) || 0); });
   $("storyNew").addEventListener("click", () => { begin(); store.set("storyCh", 0); startStory(0); });
-  function stageLabels() { // the stage button says which 장 a run starts from, once there's more than the first
-    const from = Number(store.get("stageFrom", "0")) || 0;
-    $("stageSub").textContent = from > 0 ? `${from + 1}-1부터` : "";
+  function stageLabels() { // the stage button says which stage a run starts from, once it's past 1-1
+    const from = Number(store.get("stageTop", "0")) || 0;
+    $("stageSub").textContent = from > 0 ? `${stageDef(from).label}부터` : "";
     $("stageSub").hidden = from === 0;
     $("stageNew").hidden = from === 0;
   }
-  $("goStage").addEventListener("click", () => { begin(); startStage((Number(store.get("stageFrom", "0")) || 0) * 5); });
+  $("goStage").addEventListener("click", () => { begin(); startStage(Number(store.get("stageTop", "0")) || 0); });
   $("stageNew").addEventListener("click", () => { begin(); startStage(0); });
   stageLabels();
   $("again").addEventListener("click", () => adBreak(() => {
-    if (G.stageRun) { begin(); return startStage(Math.floor(G.sg / 5) * 5); } // from the first stage of the 장 you fell in
+    if (G.stageRun) { begin(); return startStage(G.sg); } // the stage you fell in, from its start
     if (!G.story) return startEndless(G.kind);
     begin();
     if (G.cleared) startStory(0); else startStory(G.ch, true);
