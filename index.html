@@ -266,7 +266,7 @@
   <div class="screen" id="dev" hidden>
     <section class="slip" data-seal="試">
       <h2 class="shop-title">보스 비기</h2>
-      <p class="shop-note">15장까지의 보스와 비기. 보기를 누르면 그 장의 맵 공격 위로 보스가 비기 하나를 쉬지 않고 쓴다 (32초).</p>
+      <p class="shop-note">15장까지의 보스와 비기. 보기를 누르면 보스가 비기 하나를 쉬지 않고 쓰고, 뒤로는 그 보스에 어울리는 것이 흘러간다 (32초).</p>
       <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
       <button class="btn btn--ghost" id="devClose">돌아가기</button>
@@ -1864,13 +1864,24 @@ sdk.initializeAsync()
       what: "추혼의 그림자가 따라오는 가운데, 흑월역의 검은 칸이 차례로 내려앉는다.",
       intro: "이름 없는 검객이 여기까지 왔군. 나도 이름이 없다.", sigLine: "네 그림자와 내 달, 둘 다 피해 보아라.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
   ];
-  // the steady attacks of each boss's 장, which keep coming all through its fight (the map's own pattern)
-  const BOSS_MAP = {
-    twin: ["line"], lotus: ["line", "draw"], fire: ["line", "draw"], frost: ["line", "draw"], void: ["line", "draw", "homing"],
-    wind: ["draw", "cross"], veil: ["line", "draw"], drum: ["line", "homing"], mirror: ["line", "draw", "homing"], eclipse: ["draw", "homing", "cross"],
-    swords: ["line", "draw", "homing"], time: ["line", "draw", "cross"], gravity: ["line", "draw", "cross"], shadow: ["line", "draw", "cross"], final: ["line", "draw", "homing", "cross"],
+  // what drifts across each boss's fight behind its 비기, unannounced, read as it comes: the boss's own element
+  // (the grove's bamboo only where the grove is; nothing at all where the 비기 should stand alone)
+  const BOSS_BG = {
+    twin: "bamboo", lotus: "water", fire: "fire", frost: "ice", void: null, wind: "bamboo", veil: null, drum: null,
+    mirror: "ice", eclipse: null, swords: null, time: null, gravity: null, shadow: "wisp", final: null,
   };
-  BOSS_SET.forEach((b) => { b.pats = BOSS_MAP[b.sig]; });
+  const BG_NAMES = { bamboo: "대나무", water: "물방울 칼", fire: "불똥", ice: "고드름", wisp: "도깨비불" };
+  BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; });
+  function spawnDrift(kind) {
+    if (kind === "bamboo") return spawnBamboo();
+    if (kind === "ice") { // icicles let go from the top
+      shoot("sword", rnd(S * 0.05, W - S * 0.05), -S * 0.08, Math.PI / 2 + rnd(-0.12, 0.12), S * rnd(0.55, 0.75), { len: S * 0.09, r: S * 0.006, ice: true });
+      return;
+    }
+    const [x, y] = edgePoint(), aim = Math.atan2(P.y - y, P.x - x) + rnd(-0.45, 0.45) * (Math.random() < 0.6 ? 1 : 2.2);
+    shoot("kunai", x, y, aim, S * rnd(0.4, 0.58), { r: S * 0.011, skin: kind }); // water, fire, wisp: drawn as their own
+    if (Math.random() < 0.25) sfx.whoosh();
+  }
   const withName = (text) => text.replace("{me}", me());
   const later = (sec, fn) => G.warns.push({ kind: "none", t: 0, dur: 0, delay: sec, fire: () => fn() });
   const QUADS = () => [[0, 0, W / 2, H / 2], [W / 2, 0, W, H / 2], [0, H / 2, W / 2, H], [W / 2, H / 2, W, H]];
@@ -2197,12 +2208,11 @@ sdk.initializeAsync()
       callout(...d.sigName); G.dark = 1; b.castT = 0.6; f.n++;
       f.sigT = SIGS[d.sig]() + Math.max(0.3, 0.9 - lv * 0.04); // the next one comes almost at once
     });
-    // the 장's own, all through the fight
-    G.timers.bamboo = (G.timers.bamboo ?? 0.8) - dt;
-    if (G.timers.bamboo <= 0) fixed("bamboo", () => { spawnBamboo(); G.timers.bamboo = 1.1 * pace(); });
-    const k = d.pats[0]; // only the 장's first steady attack, sparse: a backdrop, the 비기 is the fight
-    G.timers[k] = (G.timers[k] ?? PATTERNS[k].first + 1) - dt;
-    if (G.timers[k] <= 0) fixed(k, () => { PATTERNS[k].spawn(); G.timers[k] = PATTERNS[k].every() * 2.2; });
+    // behind it, the boss's own element drifting across (some have none): a backdrop, the 비기 is the fight
+    if (d.bg) {
+      G.timers.drift = (G.timers.drift ?? 0.8) - dt;
+      if (G.timers.drift <= 0) fixed("drift", () => { spawnDrift(d.bg); G.timers.drift = 0.85 * pace(); });
+    }
     // its body is a blade too
     const u = bossUnit(b.def);
     if (P.inv <= 0 && !G.safe) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u) return die(P.x, P.y);
@@ -2223,7 +2233,7 @@ sdk.initializeAsync()
       head.append(who, sig);
       const what = document.createElement("p"); what.textContent = d.what;
       const lines = document.createElement("dl");
-      for (const [k, t] of [["등장", d.intro], ["비기", d.sigLine], ["쓰러질 때", d.down]]) {
+      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음 (비기만)"], ["등장", d.intro], ["비기", d.sigLine], ["쓰러질 때", d.down]]) {
         const dt = document.createElement("dt"); dt.textContent = k;
         const dd = document.createElement("dd"); dd.textContent = withName(t);
         lines.append(dt, dd);
