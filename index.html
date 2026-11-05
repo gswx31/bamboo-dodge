@@ -302,12 +302,24 @@
 // The game never imports the SDK; this file talks to it through window.JUKLIM_GAME (pause, resume, silent switch,
 // back key, safe insets), which the game sets once its own script has run.
 //
-// What it does not do yet: ads and in-app purchases. Both need ONE store placement and product ids, and
-// purchases need a server that checks the purchase token, so the platform below says "none" and the shop
-// hides the skins that are sold for money.
+// Ads: only the full-screen one at a break (every fifth run), once AD.interstitial holds the placement id from the
+// console ([수익화 > 인앱 광고]; there are no test ids). Rewarded ads (revive, double 엽전) stay off: ONE store
+// confirms each reward by calling the game's own server (SSV), and this game has no server at a fixed address yet.
+// In-app purchases are off too (they need a server to check the purchase token), so the shop hides the paid skins.
 import { createSDK } from "https://h5sdk.onestore.net/lib/v1.1.0/onestore-h5-sdk.min.js";
 
-window.JUKLIM_PLATFORM = { name: "onestore", showBreakAd: async () => false, rewardReady: () => false, showRewardAd: async () => false,
+const AD = { interstitial: "" };
+let breakAds = false; // known only after init: an id is set and this version of the app shows them
+
+const sdk = createSDK();
+
+async function showBreakAd() {
+  if (!breakAds) return false;
+  const r = await sdk.ads.showInterstitialAsync({ placementId: AD.interstitial }); // never rejects; failed is fine too
+  sdk.ads.loadInterstitial({ placementId: AD.interstitial }); // the next one, ready for the next break
+  return r.status === "completed";
+}
+window.JUKLIM_PLATFORM = { name: "onestore", showBreakAd, rewardReady: () => false, showRewardAd: async () => false,
   products: async () => null, buy: async () => false, restore: async () => null };
 
 // The game's script comes after this one, and the SDK's answers can arrive before it has run.
@@ -320,8 +332,6 @@ const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const bar = (p) => { const f = document.getElementById("osBootFill"); if (f) f.style.width = p + "%"; };
 const done = () => document.getElementById("osBoot")?.remove();
-
-const sdk = createSDK();
 
 // ---- the app's events: registered before init, since they can come right after it
 sdk.on("pause", () => withGame((g) => g.pause())); // background, an ad, a payment: the same pause, safe to repeat
@@ -348,6 +358,8 @@ sdk.initializeAsync()
     sdk.setLoadingProgress(100); bar(100);
     await sdk.startGameAsync();
     done();
+    breakAds = !!AD.interstitial && sdk.ads.isSupported("interstitial");
+    if (breakAds) sdk.ads.loadInterstitial({ placementId: AD.interstitial }); // so the first break doesn't wait for loading
   })
   .catch(done); // whatever went wrong, the game itself still plays
 </script>
