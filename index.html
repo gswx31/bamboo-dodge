@@ -3500,6 +3500,7 @@ sdk.initializeAsync()
   // 비워두면 지금처럼 같은 서버를 쓴다. 예: "https://juklim.내주소.com"
   // A wrapper can set window.JUKLIM_API_BASE before this script runs; null means no 명부 at all (the box stays hidden).
   const API_BASE = window.JUKLIM_API_BASE === undefined ? "" : window.JUKLIM_API_BASE;
+  if (API_BASE === null) $("nick").hidden = true; // the name is only for the 명부: with none, don't ask for it
   async function api(mode, body) {
     const r = await fetch(API_BASE + "/api/scores" + (mode === "normal" ? "" : "?mode=" + mode), body
       ? { method: "POST", headers: { "content-type": "application/json", "x-key": key }, body: JSON.stringify(body) }
