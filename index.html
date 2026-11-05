@@ -266,8 +266,8 @@
   <div class="screen" id="dev" hidden>
     <section class="slip" data-seal="試">
       <h2 class="shop-title">보스 비기</h2>
-      <p class="shop-note">15장까지의 보스와 비기. 보기를 누르면 그 보스가 비기만 세 번 쓴다.</p>
-      <label class="dev-inv"><input type="checkbox" id="devInv" checked> 맞아도 죽지 않게 보기</label>
+      <p class="shop-note">15장까지의 보스와 비기. 보기를 누르면 그 장의 맵 공격 위로 보스가 비기 하나를 쉬지 않고 쓴다 (32초).</p>
+      <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
       <button class="btn btn--ghost" id="devClose">돌아가기</button>
     </section>
@@ -1422,7 +1422,7 @@ sdk.initializeAsync()
     clearField();
     G.phase = "bossIntro";
     G.boss = { def, x: W / 2, y: -S * 0.3, tx: W / 2, ty: H * 0.24, wT: 1.5, hp: 1, actT: 1.2, last: "", hurtT: 0, castT: 0, downT: 0, mid: false, landed: false };
-    if (sd) { G.boss.mid = sd.world.power >= 1; G.boss.waitK = sd.bossWaitK; } // the second time round they come at full strength
+    if (sd) G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; // 스테이지 모드: its 비기 on a clock (bossFight)
     G.card = { boss: def, at: performance.now() };
     sfx.taiko(); setTimeout(() => sfx.taiko(), 220); G.dark = 1;
     say(def.intro(), () => { G.phase = "boss"; });
@@ -1560,12 +1560,17 @@ sdk.initializeAsync()
     { name: "적염사", theme: "temple", boss: 2, fresh: "clones", pats: ["line", "draw"], big: ["clones", "palm", "spiral"], diff: [14, 36] },
     { name: "백설령", theme: "snow", boss: 3, fresh: "homing", pats: ["line", "draw", "homing"], big: ["spiral", "ring", "flick"], diff: [22, 46] },
     { name: "흑월봉", theme: "moon", boss: 4, fresh: "rain", pats: ["line", "draw", "homing"], big: ["rain", "ring", "roar", "triple"], diff: [30, 56] },
-    // the second round: the same places, everything mixed, the bosses at full strength
-    { name: "불탄 죽림", theme: "grove", boss: 0, fresh: "cross", pats: ["line", "draw", "homing", "cross"], big: ["triple", "rain", "silk", "spikes"], diff: [40, 66] },
-    { name: "안개 계곡", theme: "gorge", boss: 1, fresh: "beam", pats: ["line", "draw", "homing", "cross"], big: ["beam", "mist", "clones", "spiral"], diff: [48, 74] },
-    { name: "붉은 절", theme: "temple", boss: 2, fresh: "burst", pats: ["line", "draw", "homing", "cross", "burst"], big: ["roar", "triple", "silk", "palm", "flick"], diff: [56, 82] },
-    { name: "얼음 고개", theme: "snow", boss: 3, fresh: "mist", pats: ["line", "draw", "homing", "cross", "burst"], big: ["mist", "ring", "rain", "beam", "flick"], diff: [64, 90] },
-    { name: "검은 달", theme: "moon", boss: 4, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [72, 96] },
+    // past 흑월봉, the same places again with new masters in them, everything mixed and quicker
+    { name: "불탄 죽림", theme: "grove", boss: 5, fresh: "cross", pats: ["line", "draw", "homing", "cross"], big: ["triple", "rain", "silk", "spikes"], diff: [40, 66] },
+    { name: "안개 계곡", theme: "gorge", boss: 6, fresh: "beam", pats: ["line", "draw", "homing", "cross"], big: ["beam", "mist", "clones", "spiral"], diff: [48, 74] },
+    { name: "붉은 절", theme: "temple", boss: 7, fresh: "burst", pats: ["line", "draw", "homing", "cross", "burst"], big: ["roar", "triple", "silk", "palm", "flick"], diff: [56, 82] },
+    { name: "얼음 고개", theme: "snow", boss: 8, fresh: "mist", pats: ["line", "draw", "homing", "cross", "burst"], big: ["mist", "ring", "rain", "beam", "flick"], diff: [64, 90] },
+    { name: "검은 달", theme: "moon", boss: 9, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [72, 96] },
+    { name: "검총", theme: "field", boss: 10, fresh: "silk", pats: ["line", "draw", "homing", "cross", "burst"], big: ["silk", "rain", "triple", "spikes", "beam"], diff: [80, 104] },
+    { name: "광음곡", theme: "gorge", boss: 11, fresh: "flick", pats: ["line", "draw", "homing", "cross", "burst"], big: ["flick", "spiral", "ring", "clones", "mist"], diff: [88, 112] },
+    { name: "귀일봉", theme: "moon", boss: 12, fresh: "roar", pats: ["line", "draw", "homing", "cross", "burst"], big: ["roar", "ring", "spiral", "beam", "palm"], diff: [96, 120] },
+    { name: "추혼로", theme: "temple", boss: 13, fresh: "triple", pats: ["line", "draw", "homing", "cross", "burst"], big: ["triple", "clones", "silk", "flick", "rain"], diff: [104, 128] },
+    { name: "천하봉", theme: "grove", boss: 14, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [112, 136] },
   ];
   const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", homing: "따라붙는 칼", cross: "십자 발도", burst: "터지는 칼",
     spikes: "죽순", palm: "장풍", clones: "그림자", spiral: "칼바람", flick: "탄지신통", ring: "천라지망", roar: "사자후",
@@ -1587,24 +1592,30 @@ sdk.initializeAsync()
     ["“그림자는 네가 서 있던 자리로 달려든다”", "불탄 절의 종이 밤마다 혼자 운다", "파계한 중 하나가 아직 절을 지킨다고 한다", "적염 대사, 제 손으로 절에 불을 지른 자", "염불 소리가 들린다"],
     ["“따라오는 칼은 크게 돌면 빗나간다”", "고개를 넘던 상인들은 봄이 되어서야 발견됐다", "눈 위에 발자국은 없고 칼자국만 있다", "머리가 하얗게 센 검귀가 산다고 한다", "눈보라가 멎었다"],
     ["“하늘이 붉어지면 비가 아니라 칼이 내린다”", "교주는 칼을 두 번 휘두른 적이 없다고 한다", "청죽문이 불탄 밤에도 교주가 앞장서 있었다", "사부의 원수가 저 봉우리 위에 있다", "검은 달이 떴다"],
-    ["“띠가 엇갈려 깔리면 둘 다 벗어나라”", "교주가 쓰러지자 흑월교 잔당이 흩어졌다", "쌍영이 살아 있다는 말이 돈다", "둘이 하나처럼 움직여 더 빨라졌다고 한다", "타다 남은 대숲에서 발소리가 겹친다"],
-    ["“검기가 닿지 않는 자리는 미리 비어 보인다”", "안개가 걷히지 않는 계곡이 생겼다", "연화가 물 대신 안개를 벤다는 소문이다", "계곡에 들어간 검객이 하나도 돌아오지 않았다", "안개 속에서 누가 웃는다"],
-    ["“칼이 사방으로 터지면 줄과 줄 사이에 서라”", "다 탄 줄 알았던 절에 다시 불이 붙었다", "적염 대사가 업을 다 씻지 못했다고 한다", "이번엔 절 전체가 그의 칼이 되었다", "목탁 소리가 멎었다"],
-    ["“독무에 발을 들이면 걸음이 무거워진다”", "고개 위의 눈이 한여름에도 녹지 않는다", "설귀가 네 이름을 묻고 다닌다고 한다", "설귀는 한 번 진 상대를 잊지 않는다", "숨이 하얗게 언다"],
+    ["“띠가 엇갈려 깔리면 둘 다 벗어나라”", "타다 남은 대숲에 바람이 그치질 않는다", "바람을 등에 지고 다니는 검객이 있다고 한다", "풍운객, 그가 지나간 자리엔 칼만 남는다", "바람이 한쪽으로 쏠린다"],
+    ["“검기가 닿지 않는 자리는 미리 비어 보인다”", "안개가 걷히지 않는 계곡이 생겼다", "베인 자들은 칼을 보지 못했다고 한다", "무영, 그림자도 소리도 없는 자객", "안개 속에서 칼끝이 반짝였다"],
+    ["“칼이 사방으로 터지면 줄과 줄 사이에 서라”", "버려진 절에서 밤마다 북소리가 난다", "북이 울릴 때마다 땅에 칼자국이 생긴다고 한다", "뇌음, 북 한 번에 칼 한 자루를 떨어뜨리는 승려", "목탁 소리가 멎고 북소리가 시작됐다"],
+    ["“독무에 발을 들이면 걸음이 무거워진다”", "고개 위의 눈이 한여름에도 녹지 않는다", "얼음 벽에 비친 칼이 진짜 칼보다 빠르다고 한다", "빙경, 받은 칼을 그대로 돌려보내는 여인", "얼음 벽마다 네 얼굴이 비친다"],
     ["“이제 네게 가르칠 것이 없다”", "쓰러졌던 교주가 다시 일어났다는 소문이다", "흑월교가 마지막 남은 힘을 모으고 있다", "검은 달 아래서 모든 것이 끝난다", "사부의 검을 쥔 손에 땀이 밴다"],
+    ["“실이 팽팽해지면 그 줄에 닿지 마라”", "주인을 잃은 칼들이 묻힌 골짜기가 있다", "밤이면 칼무덤에서 쇠 우는 소리가 난다", "검총주, 만 자루 칼을 거느린 자", "하늘에 칼이 걸렸다"],
+    ["“조준선이 번쩍이면 이미 늦다. 미리 움직여라”", "골짜기에 들어간 사람이 하루 만에 백발이 되어 나왔다", "그 안에선 해가 빨리 졌다가 늦게 뜬다고 한다", "광음, 시간을 손에 쥔 노인", "물방울이 공중에서 멈췄다"],
+    ["“사자후는 틈이 하나다. 그 틈으로 빠져나가라”", "봉우리 위로 날아가던 새들이 떨어진다", "모든 것이 한 점으로 끌려간다고 한다", "귀일, 세상을 삼키는 검은 점", "발이 저절로 앞으로 끌려간다"],
+    ["“세 번 벤다. 세 번 다 자리를 옮겨라”", "이 길을 걸으면 발소리가 하나 더 들린다", "돌아본 자는 모두 제 그림자에 베였다", "추혼, 지나온 길을 칼로 바꾸는 자", "뒤에서 누가 따라온다"],
+    ["“여기서부터는 네 검으로 가라”", "천하제일을 가린다는 봉우리가 있다", "그 위에 이름 없는 고수가 기다린다", "무명, 이름을 버리고 천하를 얻은 자", "바람도 숨을 죽였다"],
   ];
   // past the tenth 장 the 강호 talks about you
   const ROAD_LINES = ["객잔마다 네 이야기를 한다", "너를 찾아 산을 오르는 자들이 생겼다", "어떤 이는 네가 사람이 아니라고 한다", "아이들이 대나무 막대로 네 흉내를 낸다",
     "또 한 명의 고수가 길을 막는다", "네 이름을 걸고 내기를 하는 자들이 있다", "강호에 너보다 오래 버틴 자는 없다", "누가 네 앞에서 칼을 뽑겠는가",
     "길이 끝나지 않는다. 너도 멈추지 않는다", "고수들이 줄을 서서 너를 기다린다", "이제 네가 소문이 되었다", "어디선가 사부가 웃고 있을 것이다"];
   // what the 강호 calls you once a 장 is behind you (the n-th 장's), then the road's own names, the last one for good
-  const TITLES = ["죽림의 생존자", "월하의 객", "불을 건넌 자", "설령의 칼", "흑월을 벤 검객", "잿더미의 검", "안개를 가른 칼", "업화를 건넌 자", "얼음 고개의 주인", "검은 달을 지운 자"];
-  const ROAD_TITLES = ["강호의 소문", "이름난 검객", "천하가 아는 칼", "무명검성"];
+  const TITLES = ["죽림의 생존자", "월하의 객", "불을 건넌 자", "설령의 칼", "흑월을 벤 검객", "바람을 이긴 자", "보이지 않는 칼을 본 자", "북소리를 넘은 자", "얼음 거울을 깬 자", "검은 달을 지운 자",
+    "만검의 주인", "시간을 넘은 자", "끌려가지 않는 자", "그림자를 이긴 자", "천하제일"];
+  const ROAD_TITLES = ["무명검성"];
   const titleOf = (w) => (w < TITLES.length ? TITLES[w] : ROAD_TITLES[Math.min(w - TITLES.length, ROAD_TITLES.length - 1)]);
   function worldOf(w) {
     if (w < WORLDS.length) return { ...WORLDS[w], power: w >= 5 ? 1 : 0 };
     const k = w - WORLDS.length + 1, last = WORLDS[WORLDS.length - 1];
-    return { ...WORLDS[5 + ((k - 1) % 5)], name: "끝없는 길", fresh: "", pats: last.pats, big: last.big, diff: [72 + 6 * k, 96 + 6 * k], power: 1 + Math.ceil(k / 3) };
+    return { ...WORLDS[5 + ((k - 1) % 10)], name: "끝없는 길", fresh: "", pats: last.pats, big: last.big, diff: [112 + 6 * k, 136 + 6 * k], power: 1 + Math.ceil(k / 3) };
   }
   const stageMemo = new Map();
   function stageDef(i) { // stage i (0 is 1-1): everything about it
@@ -1624,9 +1635,8 @@ sdk.initializeAsync()
     if (s === 3) { d.big = wd.big; d.bigEvery = [6, 8]; }
     if (s === 4) {
       d.pats = [wd.pats[0]];
-      const base = BOSSES[wd.boss];
-      d.bossDef = { ...base, hp: BOSS_SECONDS }; // every boss lasts as long; each round it acts sooner
-      d.bossWaitK = Math.max(0.6, 1 - 0.08 * wd.power);
+      // the boss: the 장's own attacks all through its fight, and its one 비기 (bossFight); harder the further in
+      d.bossSet = BOSS_SET[wd.boss]; d.bossDef = bossDefOf(d.bossSet); d.lv = w < 15 ? w : 14 + (w - 14) * 0.5;
     }
     stageMemo.set(i, d);
     return d;
@@ -1711,10 +1721,24 @@ sdk.initializeAsync()
       if (G.ct >= sd.dur) { if (sd.boss) enterBoss(); else stageClear(); }
     } else if (G.phase === "boss") {
       G.st += dt;
-      stepBoss(dt);
+      bossFight(dt, sd.bossSet, sd.lv, BOSS_SECONDS);
     }
     if (G.boss) moveBoss(realDt);
     G.safe = G.phase !== "fight" && G.phase !== "boss";
+  }
+  function drawStageBar() { // 스테이지 모드, a stage without a boss: how much of it is left, across the top
+    if (!G.stageRun || G.phase !== "fight") return;
+    const sd = stageDef(G.sg);
+    if (sd.boss) return; // (the boss's own bar does this in its stage)
+    const left = Math.max(0, sd.dur - G.ct), x = 16, w = W - 32, y = Math.max(92, H * 0.12);
+    ctx.save(); ctx.textBaseline = "alphabetic";
+    ctx.textAlign = "left"; ctx.font = `${Math.round(Math.min(S * 0.055, 24))}px "Nanum Brush Script", cursive`; ctx.fillStyle = "#1d1a17";
+    ctx.fillText(sd.world.name, x, y - 6);
+    ctx.textAlign = "right"; ctx.font = `700 12px "Noto Serif KR", serif`; ctx.fillStyle = left < 5 ? "#c8321f" : "#5b5248";
+    ctx.fillText(`${Math.ceil(left)}초 남음`, x + w, y - 8);
+    ctx.fillStyle = "rgba(29,26,23,0.16)"; ctx.fillRect(x, y, w, 6);
+    ctx.fillStyle = "#c8321f"; ctx.fillRect(x, y, w * (left / sd.dur), 6);
+    ctx.restore();
   }
   function overStage() {
     const sd = stageDef(G.sg), time = Math.round((G.st + G.bonus) * 100) / 100, top = Number(store.get("stageTop", "0")) || 0;
@@ -1780,6 +1804,13 @@ sdk.initializeAsync()
       what: "추혼의 그림자가 따라오는 가운데, 흑월역의 검은 칸이 차례로 내려앉는다.",
       intro: "이름 없는 검객이 여기까지 왔군. 나도 이름이 없다.", sigLine: "네 그림자와 내 달, 둘 다 피해 보아라.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
   ];
+  // the steady attacks of each boss's 장, which keep coming all through its fight (the map's own pattern)
+  const BOSS_MAP = {
+    twin: ["line"], lotus: ["line", "draw"], fire: ["line", "draw"], frost: ["line", "draw"], void: ["line", "draw", "homing"],
+    wind: ["draw", "cross"], veil: ["line", "draw"], drum: ["line", "homing"], mirror: ["line", "draw", "homing"], eclipse: ["draw", "homing", "cross"],
+    swords: ["line", "draw", "homing"], time: ["line", "draw", "cross"], gravity: ["line", "draw", "cross"], shadow: ["line", "draw", "cross"], final: ["line", "draw", "homing", "cross"],
+  };
+  BOSS_SET.forEach((b) => { b.pats = BOSS_MAP[b.sig]; });
   const withName = (text) => text.replace("{me}", me());
   const later = (sec, fn) => G.warns.push({ kind: "none", t: 0, dur: 0, delay: sec, fire: () => fn() });
   const QUADS = () => [[0, 0, W / 2, H / 2], [W / 2, 0, W, H / 2], [0, H / 2, W / 2, H], [W / 2, H / 2, W, H]];
@@ -1798,8 +1829,10 @@ sdk.initializeAsync()
       fire(w) { shoot("star", w.x, w.y, w.ang, speed, { spin: 18, r: S * 0.015 }); sfx.whoosh(); } });
     sfx.warn();
   }
-  function blackQuarter() { // 흑월역's one quarter: the one you stand in when it's chosen
-    G.hazards.push({ kind: "void", t: 0, dur: 4.5, warn: 1.3, q: null, best: Infinity, near: true,
+  // how far into the game this boss is (0 for 1-5 … 14 for 15-5, more on the endless road): its 비기 grow with it
+  const lvl = () => G.fight?.lv || 0;
+  function blackQuarter(warn = 1.3) { // 흑월역's one quarter: the one you stand in when it's chosen
+    G.hazards.push({ kind: "void", t: 0, dur: warn + 3.2, warn, q: null, best: Infinity, near: true,
       step() {
         if (!this.q) { const qs = QUADS(); this.q = qs.find((r) => inRect(P.x, P.y, r)) || qs[0]; sfx.warn(); }
         if (!this.rang && this.t >= this.warn) { this.rang = true; sfx.taiko(); G.shake = Math.max(G.shake, 8); }
@@ -1810,31 +1843,34 @@ sdk.initializeAsync()
   // each returns how many seconds it takes
   const SIGS = {
     twin() { // two shadows at once, one from each wall, mirror images
-      for (let k = 0; k < 4; k++) {
+      const waves = 5 + Math.floor(lvl() / 3), gap = Math.max(0.42, 0.62 - lvl() * 0.015);
+      for (let k = 0; k < waves; k++) {
         const pair = {};
-        for (const side of [1, -1]) G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur: 0.8, delay: k * 0.75,
+        for (const side of [1, -1]) G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur: 0.7, delay: k * gap,
           place(w) {
             if (pair.y === undefined) { pair.y = clamp(P.y + rnd(-S * 0.2, S * 0.2), S * 0.12, H - S * 0.12); pair.ang = Math.atan2(P.y - pair.y, P.x - S * 0.03); sfx.warn(); }
             w.x = side > 0 ? S * 0.03 : W - S * 0.03; w.y = pair.y; w.ang = side > 0 ? pair.ang : Math.PI - pair.ang;
           },
           fire(w) { cloneDash(w.x, w.y, w.ang); } });
       }
-      return 4 * 0.75 + 1.6;
+      return waves * gap + 1.5;
     },
-    lotus() { // a ring of petals out from the boss, a stop, and home again through you
-      const n = 14;
-      for (let k = 0; k < 2; k++) G.warns.push({ kind: "ring", x: G.boss.x, y: G.boss.y, n, off: k * (Math.PI / n) + rnd(0, 0.2), t: 0, dur: 0.9, delay: k * 1.2,
-        place(w) { w.x = G.boss.x; w.y = G.boss.y; sfx.warn(); },
+    lotus() { // rings of petals out from the boss, a stop, and home again through you
+      const n = 16 + lvl(), rings = 3 + Math.floor(lvl() / 4);
+      for (let k = 0; k < rings; k++) G.warns.push({ kind: "ring", x: G.boss.x, y: G.boss.y, n, off: 0, t: 0, dur: 0.8, delay: k * 0.85,
+        // one petal of every ring flies straight at you (out, and home along the same line): no gap stays safe
+        place(w) { w.x = G.boss.x; w.y = G.boss.y; w.off = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
         fire(w) {
-          for (let i = 0; i < n; i++) shoot("star", w.x, w.y, w.off + (i / n) * Math.PI * 2, S * 0.62, { spin: 16, r: S * 0.015, ret: 0.95 });
+          for (let i = 0; i < n; i++) shoot("star", w.x, w.y, w.off + (i / n) * Math.PI * 2, S * (0.66 + lvl() * 0.01), { spin: 16, r: S * 0.015, ret: 0.9 });
           sfx.burst(); flash("242,201,208", 0.12);
         } });
-      return 1.2 + 0.9 + 3.2;
+      return (rings - 1) * 0.85 + 0.8 + 3.0;
     },
     fire() { // the ground as a checkerboard, half of it burning at a time, faster each beat
-      const cols = 4, rows = 6, top = H * 0.14, cw = W / cols, ch = (H - top) / rows, r = Math.min(cw, ch) * 0.52;
+      // each fire reaches its cell's corners, so no corner is ever safe: on every beat you must be in the middle of a cold cell
+      const cols = 4, rows = 6, top = H * 0.14, cw = W / cols, ch = (H - top) / rows, r = Math.hypot(cw, ch) / 2;
       let at = 0;
-      [1.0, 0.9, 0.8, 0.72, 0.64, 0.58, 0.52, 0.5].forEach((dur, k) => {
+      [0.9, 0.8, 0.72, 0.64, 0.58, 0.52, 0.48, 0.45, 0.45, 0.45].map((v) => v * Math.max(0.75, 1 - lvl() * 0.02)).forEach((dur, k) => {
         for (let c = 0; c < cols; c++) for (let row = 0; row < rows; row++) if ((c + row) % 2 === k % 2)
           G.warns.push({ kind: "spike", x: (c + 0.5) * cw, y: top + (row + 0.5) * ch, r, seed: rnd(0, 6), t: 0, dur, delay: at, fire(w) { spikeErupt(w.x, w.y, w.r, "fire"); } });
         later(at, () => sfx.taiko());
@@ -1846,24 +1882,25 @@ sdk.initializeAsync()
       [[() => G.boss.x, () => G.boss.y], [() => S * 0.06, () => H * 0.35], [() => W - S * 0.06, () => H * 0.35]].forEach(([fx, fy], k) =>
         G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.6, delay: k * 0.15,
           place(w) { w.x = fx(); w.y = fy(); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
-          fire(w) { for (let i = -3; i <= 3; i++) shoot("star", w.x, w.y, w.ang + i * 0.16, S * 0.5, { spin: 14, r: S * 0.015 }); sfx.whoosh(); } }));
+          fire(w) { const m = 3 + Math.floor(lvl() / 4); for (let i = -m; i <= m; i++) shoot("star", w.x, w.y, w.ang + i * 0.14, S * 0.55, { spin: 14, r: S * 0.015 }); sfx.whoosh(); } }));
       controller(4.6, function () {
         if (!this.froze && this.real() >= 1.3) { this.froze = true; G.freezeT = 1.6; sfx.issen(); flash("230,240,250", 0.45); }
-        if (this.froze && !this.thawed && !(G.freezeT > 0)) { this.thawed = true; for (const s of G.shots) { s.vx *= 1.9; s.vy *= 1.9; } sfx.burst(); G.shake = Math.max(G.shake, 10); }
+        if (this.froze && !this.thawed && !(G.freezeT > 0)) { this.thawed = true; const k = 2 + lvl() * 0.04; for (const s of G.shots) { s.vx *= k; s.vy *= k; } sfx.burst(); G.shake = Math.max(G.shake, 10); }
       }, () => { if (G.freezeT > 0) { ctx.fillStyle = `rgba(214,232,245,${0.3 * Math.min(1, G.freezeT * 2)})`; ctx.fillRect(0, 0, W, H); } });
       return 5;
     },
-    void() { // three black quarters, each where you stand, with fans of stars between
-      for (let k = 0; k < 3; k++) { later(k * 3.4, blackQuarter); later(k * 3.4 + 1.9, () => G.boss && actFan()); }
-      return 3 * 3.4 + 1.6;
+    void() { // black quarters, each where you stand, with fans of stars between
+      const gap = Math.max(2.2, 3.0 - lvl() * 0.06), warn = Math.max(0.85, 1.15 - lvl() * 0.03);
+      for (let k = 0; k < 3; k++) { later(k * gap, () => blackQuarter(warn)); later(k * gap + warn + 0.3, () => G.boss && actFan()); }
+      return 3 * gap + 1.4;
     },
     wind() { // a wind leaning on you toward one wall, the blades coming from that wall; halfway it turns
       const h = controller(7, function (dt) {
         const dir = this.real() < 3.5 ? 1 : -1;
         if (dir !== this.dir) { this.dir = dir; sfx.whoosh(); flash("240,244,236", 0.15); }
-        P.x += dir * S * 0.3 * dt;
+        P.x += dir * S * (0.32 + lvl() * 0.01) * dt;
         this.next = (this.next ?? 0.5) - dt;
-        if (this.next <= 0) { this.next = 0.55; aimedLine(dir > 0 ? W + S * 0.04 : -S * 0.04, clamp(P.y + rnd(-S * 0.3, S * 0.3), S * 0.1, H - S * 0.1), S * 0.9); }
+        if (this.next <= 0) { this.next = Math.max(0.3, 0.45 - lvl() * 0.01); aimedLine(dir > 0 ? W + S * 0.04 : -S * 0.04, clamp(P.y + rnd(-S * 0.3, S * 0.3), S * 0.1, H - S * 0.1), S * 0.9); }
       }, drawWind);
       h.dir = 1;
       return 7.4;
@@ -1872,15 +1909,15 @@ sdk.initializeAsync()
       controller(6.5, function (dt) {
         this.next = (this.next ?? 0.2) - dt;
         if (this.next > 0) return;
-        this.next = 0.42;
+        this.next = Math.max(0.22, 0.34 - lvl() * 0.008);
         const [x, y] = edgePoint();
-        shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * 0.45, { r: S * 0.011, veil: true });
+        shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * (0.48 + lvl() * 0.01), { r: S * 0.011, veil: true });
         if (Math.random() < 0.5) sfx.tick();
       }, () => { ctx.fillStyle = "rgba(225,228,230,0.22)"; ctx.fillRect(0, 0, W, H); });
       return 8;
     },
     drum() { // a blade's path laid at your feet on every beat; on the fourth, two of them crossed
-      const beat = 0.55;
+      const beat = Math.max(0.4, 0.5 - lvl() * 0.007);
       let k = 0;
       for (let bar = 0; bar < 4; bar++) for (let i = 0; i < 4; i++, k++) {
         const angs = i === 3 ? [Math.PI / 4, -Math.PI / 4] : [[0, Math.PI / 2, Math.PI / 4][i]];
@@ -1889,40 +1926,41 @@ sdk.initializeAsync()
       }
       return 16 * beat + 1.4;
     },
-    mirror() { // fans of stars that come back off the walls, twice
-      for (let k = 0; k < 3; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.7, delay: k * 1.2,
+    mirror() { // fans of stars that come back off the walls, twice (three times, late on)
+      const volleys = 4 + Math.floor(lvl() / 5), bounces = lvl() >= 11 ? 3 : 2;
+      for (let k = 0; k < volleys; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.6, delay: k * 0.9,
         place(w) { w.x = G.boss.x; w.y = G.boss.y; w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
-        fire(w) { for (let i = -2; i <= 2; i++) shoot("star", w.x, w.y, w.ang + i * 0.32, S * 0.7, { spin: 16, r: S * 0.015, bounces: 2 }); sfx.whoosh(); } });
-      return 3 * 1.2 + 3.6;
+        fire(w) { for (let i = -2; i <= 2; i++) shoot("star", w.x, w.y, w.ang + i * 0.3, S * 0.75, { spin: 16, r: S * 0.015, bounces }); sfx.whoosh(); } });
+      return volleys * 0.9 + 3.2;
     },
     eclipse() { // the light goes out but for a ring round you; the aim lines still burn, the stars come out of the dark
       G.eclipse = { at: performance.now(), dur: 7 };
       controller(7, function (dt) {
         this.next = (this.next ?? 0.6) - dt;
         if (this.next > 0) return;
-        this.next = 0.6;
+        this.next = Math.max(0.3, 0.45 - lvl() * 0.01);
         const [x, y] = edgePoint();
-        aimedLine(x, y);
+        aimedLine(x, y, S * 0.95);
       });
       return 7.8;
     },
     swords() { // a row of swords hung across the sky, falling one after another, there and back
-      const n = 18, gap = W / n;
+      const n = 26, gap = W / n; // close enough that there's no standing between them: only where they've already fallen
       for (let pass = 0; pass < 2; pass++) later(pass * 2.8, () => {
         for (let i = 0; i < n; i++) {
           const col = pass === 0 ? i : n - 1 - i;
-          shoot("sword", (col + 0.5) * gap, H * 0.1, Math.PI / 2, 0, { len: S * 0.13, r: S * 0.011, hold: 1.0 + i * 0.1, go: S * 1.7 });
+          shoot("sword", (col + 0.5) * gap, H * 0.1, Math.PI / 2, 0, { len: S * 0.13, r: S * 0.013, hold: 0.9 + i * Math.max(0.045, 0.07 - lvl() * 0.002), go: S * (1.8 + lvl() * 0.03) });
         }
         sfx.warn();
       });
-      return 2.8 + 1.0 + n * 0.1 + 1.4;
+      return 2.8 + 1.0 + n * 0.07 + 1.4;
     },
     time() { // slow, then fast, over and over; your finger keeps its own time
       const h = controller(8.5, function (dt) {
         const k = this.real() % 3 < 1.6 ? 0.35 : 1.75;
         if (k !== G.timeK) { G.timeK = k; if (k < 1) { sfx.issen(); flash("236,224,196", 0.25); } else sfx.whoosh(); }
         this.next = (this.next ?? 0.2) - dt;
-        if (this.next <= 0) { this.next = 0.45; spawnLine(); }
+        if (this.next <= 0) { this.next = Math.max(0.28, 0.4 - lvl() * 0.008); spawnLine(); }
       }, drawTime);
       h.end = () => { G.timeK = 1; };
       return 9;
@@ -1930,15 +1968,15 @@ sdk.initializeAsync()
     gravity() { // a black point that drags you in, stars spinning out round it
       const ox = W / 2, oy = H * 0.55, R = S * 0.05;
       const h = controller(8, function (dt) {
-        const dx = ox - P.x, dy = oy - P.y, d = Math.hypot(dx, dy) || 1, pull = S * (0.14 + 0.2 * Math.min(1, this.real() / 2));
+        const dx = ox - P.x, dy = oy - P.y, d = Math.hypot(dx, dy) || 1, pull = S * (0.16 + lvl() * 0.006 + 0.22 * Math.min(1, this.real() / 2));
         P.x += (dx / d) * pull * dt; P.y += (dy / d) * pull * dt;
       }, drawOrb);
       Object.assign(h, { ox, oy, R, dist() { return Math.max(0, Math.hypot(P.x - ox, P.y - oy) - R); } });
-      later(0.7, () => spiralAt(ox, oy)); later(4.3, () => spiralAt(ox, oy));
+      later(0.7, () => spiralAt(ox, oy)); later(3.2, () => spiralAt(ox, oy)); later(5.7, () => spiralAt(ox, oy));
       return 8.4;
     },
-    shadow() { // you, 1.4 s ago, walking your own path; stand still and it catches you
-      const lag = 1.4;
+    shadow() { // you, a moment ago, walking your own path; stand still and it catches you
+      const lag = Math.max(1.0, 1.4 - lvl() * 0.025);
       const h = controller(9, function () {
         const now = this.real();
         this.path.push([now, P.x, P.y]);
@@ -1946,12 +1984,14 @@ sdk.initializeAsync()
         if (now >= lag) { this.on = true; this.gx = this.path[0][1]; this.gy = this.path[0][2]; }
       }, drawShadow);
       Object.assign(h, { path: [], on: false, gx: P.x, gy: P.y, dist() { return this.on ? Math.max(0, Math.hypot(P.x - this.gx, P.y - this.gy) - S * 0.03) : Infinity; } });
-      for (let k = 0; k < 5; k++) later(1.8 + k * 1.4, () => { const [x, y] = edgePoint(); aimedLine(x, y); });
+      for (let k = 0; k < 8; k++) later(1.5 + k * 0.95, () => { const [x, y] = edgePoint(); aimedLine(x, y, S * 0.95); });
       return 9.4;
     },
-    final() { // 추혼's shadow at your back, and 흑월역's black quarters coming down
+    final() { // all of it: 추혼's shadow at your back, 흑월역's quarters coming down, fans of stars, and time itself bending
       SIGS.shadow();
-      for (let k = 0; k < 2; k++) later(1.6 + k * 3.6, blackQuarter);
+      for (let k = 0; k < 3; k++) later(1.2 + k * 2.6, () => blackQuarter(0.85));
+      for (let k = 0; k < 6; k++) later(2.0 + k * 1.3, () => G.boss && actFan());
+      later(4.5, () => { const h = controller(3.5, function () { G.timeK = this.real() % 1.75 < 1 ? 0.45 : 1.6; }, drawTime); h.end = () => { G.timeK = 1; }; });
       return 9.6;
     },
   };
@@ -2040,12 +2080,12 @@ sdk.initializeAsync()
   function startDevBoss(i) {
     const d = BOSS_SET[i], def = bossDefOf(d);
     begin();
-    G.story = true; G.stageRun = false; G.dev = { i, sigT: 1.2, n: 0, wait: 0 }; G.devInv = $("devInv").checked; G.ch = 0;
+    G.story = true; G.stageRun = false; G.dev = { i }; G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; G.devInv = $("devInv").checked; G.ch = 0;
     reset(); G.mode = "play";
     setTheme(d.theme, true);
     $("dev").hidden = true; $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("devExit").hidden = false;
     $("stage").textContent = `${d.stage} · ${d.name}`;
-    G.boss = { def, x: W / 2, y: -S * 0.3, tx: W / 2, ty: H * 0.24, wT: 1.5, hp: 1, actT: Infinity, last: "", hurtT: 0, castT: 0, downT: 0, mid: false, landed: false };
+    G.boss = { def, x: W / 2, y: -S * 0.3, tx: W / 2, ty: H * 0.24, wT: 1.5, hp: 1, actT: 1.4, last: "", hurtT: 0, castT: 0, downT: 0, mid: false, landed: false };
     G.phase = "bossIntro"; G.card = { boss: def, at: performance.now() }; G.dark = 1;
     sfx.taiko(); setTimeout(() => sfx.taiko(), 220);
     say(def.intro(), () => { G.phase = "boss"; });
@@ -2053,20 +2093,37 @@ sdk.initializeAsync()
   function devStep(dt, realDt) {
     stepLines(realDt);
     if (!G.dev) return; // its last words just ended: back at the list already
-    const d = BOSS_SET[G.dev.i], v = G.dev;
-    if (G.phase === "boss") {
-      G.st += dt; G.t = 40; // a middling difficulty for the shared attacks a 비기 borrows
-      G.boss.hp = Math.max(0.02, 1 - v.n / 3); // a third gone with each 비기 shown
-      if (v.wait > 0) { // it said its line: now the technique
-        v.wait -= dt;
-        if (v.wait <= 0) { callout(...d.sigName); G.dark = 1; G.boss.castT = 0.6; v.sigT = SIGS[d.sig]() + 1.8; v.n++; }
-      } else if ((v.sigT -= dt) <= 0) {
-        if (v.n >= 3) bossDown();
-        else { say([{ who: d.name, text: withName(d.sigLine) }], null); v.wait = 1.1; }
-      }
-    }
+    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], G.dev.i, 32); }
     if (G.boss) moveBoss(realDt);
     G.safe = (G.phase !== "boss") || G.devInv;
+  }
+  // A boss fight: the 장's own attacks (bamboo and its steady ones) all the way through, and the boss's one 비기
+  // over and over with barely a breath between, its line only the first time. Nothing else of the boss's: one
+  // technique, learned and dodged. lv (0 for 1-5 … 14 for 15-5) shortens the breaths; it lasts `seconds`.
+  function bossFight(dt, d, lv, seconds) {
+    const b = G.boss, f = G.fight;
+    f.lv = lv;
+    G.t = 26 + lv * 7; // how hard the shared attacks are
+    b.hp -= dt / seconds;
+    if (b.hp <= 0) return bossDown();
+    if (f.wait > 0) { // it has said its line: now the technique
+      f.wait -= dt;
+      if (f.wait <= 0) f.sigT = 0;
+    } else if ((f.sigT -= dt) <= 0 && b.hp > 0.06) fixed("sig", () => {
+      if (f.n === 0 && !f.said) { f.said = true; say([{ who: d.name, text: withName(d.sigLine) }], null); f.wait = 1.0; f.sigT = Infinity; return; }
+      callout(...d.sigName); G.dark = 1; b.castT = 0.6; f.n++;
+      f.sigT = SIGS[d.sig]() + Math.max(0.3, 0.9 - lv * 0.04); // the next one comes almost at once
+    });
+    // the 장's own, all through the fight
+    G.timers.bamboo = (G.timers.bamboo ?? 0.8) - dt;
+    if (G.timers.bamboo <= 0) fixed("bamboo", () => { spawnBamboo(); G.timers.bamboo = 0.7 * pace(); });
+    for (const k of d.pats) {
+      G.timers[k] = (G.timers[k] ?? PATTERNS[k].first + 1) - dt;
+      if (G.timers[k] <= 0) fixed(k, () => { PATTERNS[k].spawn(); G.timers[k] = PATTERNS[k].every() * 1.3; });
+    }
+    // its body is a blade too
+    const u = bossUnit(b.def);
+    if (P.inv <= 0 && !G.safe) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u) return die(P.x, P.y);
   }
   function devBack() {
     clearField(); G.boss = null; G.lines = []; G.onLines = null; G.card = null; G.dev = null; G.story = false; G.mode = "menu";
@@ -2729,7 +2786,7 @@ sdk.initializeAsync()
     if (G.mode === "dying") drawStamp(G.dieT);
     ctx.restore();
     if (G.flash > 0.01) { ctx.fillStyle = `rgba(${G.flashC},${G.flash})`; ctx.fillRect(0, 0, W, H); }
-    if (G.story) { drawBossBar(); drawCine(time); drawCard(); }
+    if (G.story) { drawBossBar(); drawStageBar(); drawCine(time); drawCard(); }
     drawMsg();
   }
 
