@@ -2,7 +2,6 @@
 <html lang="ko">
 <head>
 <meta charset="utf-8">
-<script>window.JUKLIM_API_BASE = null;</script>
 <style>
   #osBoot { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; background: var(--paper, #efe6d2); }
   #osBoot div { width: 160px; height: 4px; border-radius: 2px; background: color-mix(in srgb, var(--ink, #1d1a16) 12%, transparent); overflow: hidden; }
@@ -3446,8 +3445,10 @@ sdk.initializeAsync()
   for (const t of document.querySelectorAll(".rank__tabs button")) t.addEventListener("click", () => { shown = t.dataset.mode; store.set("board", shown); renderRank(); refresh(shown); });
   // 앱인토스 번들은 토스 도메인에서 뜨므로 명부 서버를 절대 주소로 가리켜야 한다.
   // 비워두면 지금처럼 같은 서버를 쓴다. 예: "https://juklim.내주소.com"
-  // A wrapper can set window.JUKLIM_API_BASE before this script runs; null means no 명부 at all (the box stays hidden).
-  const API_BASE = window.JUKLIM_API_BASE === undefined ? "" : window.JUKLIM_API_BASE;
+  // The 명부 lives on Cloudflare (juklim/worker), one ranking for every copy of the game: the PC link, the GitHub Pages
+  // page, the 토스 bundle. A wrapper can still set window.JUKLIM_API_BASE before this script runs; null means no 명부.
+  const SCORES_URL = "https://bamboo-dodge-scores.gswx31.workers.dev";
+  const API_BASE = window.JUKLIM_API_BASE === undefined ? SCORES_URL : window.JUKLIM_API_BASE;
   if (API_BASE === null) $("nick").hidden = true; // the name is only for the 명부: with none, don't ask for it
   async function api(mode, body) {
     const r = await fetch(API_BASE + "/api/scores" + (mode === "normal" ? "" : "?mode=" + mode), body
