@@ -1717,10 +1717,10 @@ sdk.initializeAsync()
   // X-4 throws everything thicker, and X-5 is its boss. After the tenth 장 the road goes on, harder each time.
   // A stage throws the same things in the same order on every try, so it can be learned (fixed()).
   const WORLDS = [
-    { name: "죽림", theme: "grove", boss: 0, fresh: "line", pats: ["line"], big: ["spikes"], diff: [8, 22] },
-    { name: "월하 계곡", theme: "gorge", boss: 1, fresh: "draw", pats: ["line", "draw"], big: ["spikes", "palm"], diff: [6, 26] },
-    { name: "적염사", theme: "temple", boss: 2, fresh: "clones", pats: ["line", "draw"], big: ["clones", "palm", "spiral"], diff: [14, 36] },
-    { name: "백설령", theme: "snow", boss: 3, fresh: "homing", pats: ["line", "draw", "homing"], big: ["spiral", "ring", "flick"], diff: [22, 46] },
+    { name: "죽림", theme: "grove", boss: 0, fresh: "line", pats: ["line", "draw"], big: ["spikes", "clones"], diff: [8, 22] },
+    { name: "월하 계곡", theme: "gorge", boss: 1, fresh: "draw", pats: ["line", "draw", "homing"], big: ["spikes", "palm", "clones"], diff: [6, 26] },
+    { name: "적염사", theme: "temple", boss: 2, fresh: "clones", pats: ["line", "draw", "cross"], big: ["clones", "palm", "spiral"], diff: [14, 36] },
+    { name: "백설령", theme: "snow", boss: 3, fresh: "homing", pats: ["line", "draw", "homing", "cross"], big: ["spiral", "ring", "flick"], diff: [22, 46] },
     { name: "흑월봉", theme: "moon", boss: 4, fresh: "rain", pats: ["line", "draw", "homing"], big: ["rain", "ring", "roar", "triple"], diff: [30, 56] },
     // past 흑월봉, the same places again with new masters in them, everything mixed and quicker
     { name: "불탄 죽림", theme: "grove", boss: 5, fresh: "cross", pats: ["line", "draw", "homing", "cross"], big: ["triple", "rain", "silk", "spikes"], diff: [40, 66] },
@@ -1803,10 +1803,11 @@ sdk.initializeAsync()
   //   bamboo its gap, and how far it may close up late on; gap: every stage's attacks closer together (× STEPS' gap)
   //   boss   how fast a boss fight runs; lv: how much stronger every boss's 비기 is; last: how much fiercer its 종전;
   //   layer  how often its other moves come on top in its 종전; breath: the least and the most it rests between 비기
-  // (11-06 later: the stages between bosses harder at both, "보스 아닐 때가 너무 쉬운듯해": base 12→22 and 20→34, gap)
+  // (11-06 later: the stages between bosses harder at both, "보스 아닐 때가 너무 쉬운듯해", and again "보스 이전에
+  //스테이지들이 너무 쉬운 느낌": base 12→40 and 20→56, the gaps, the bamboo; the first 장s mix in more besides)
   const STAGE_LEVELS = {
-    normal: { name: "보통", pace: 1.0, base: 22, slope: 0.36, crowd: 0.06, bamboo: 0.58, floor: 0.6, gap: 1, boss: 0.95, lv: 2.5, last: 4, layer: 1.6, breath: [1.0, 1.55], top: "stageTop" },
-    master: { name: "고수", pace: 1.1, base: 34, slope: 0.42, crowd: 0.03, bamboo: 0.52, floor: 0.52, gap: 0.85, boss: 1.05, lv: 4, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTopH" },
+    normal: { name: "보통", pace: 1.06, base: 40, slope: 0.4, crowd: 0.04, bamboo: 0.5, floor: 0.5, gap: 0.9, boss: 0.95, lv: 2.5, last: 4, layer: 1.6, breath: [1.0, 1.55], top: "stageTop" },
+    master: { name: "고수", pace: 1.16, base: 56, slope: 0.46, crowd: 0.02, bamboo: 0.45, floor: 0.44, gap: 0.78, boss: 1.05, lv: 4, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTopH" },
   };
   // (a new key: "stageLevel" may still say 고수 from when that meant what is 일반 now)
   let stageLevel = STAGE_LEVELS[store.get("stageLv", "normal")] ? store.get("stageLv", "normal") : "normal";
