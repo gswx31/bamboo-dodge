@@ -114,6 +114,11 @@
   .btn--ghost { background: transparent; color: var(--ink); }
   .keys { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; font-size: 14px; color: var(--ink-soft); }
   .keys b { color: var(--ink); font-weight: 400; font-family: var(--font-mark); }
+  .who { margin: 0; display: flex; align-items: baseline; gap: 8px; font-size: 14px; color: var(--ink-soft); }
+  .who b { font-family: var(--font-mark); font-weight: 900; font-size: 18px; letter-spacing: .04em; color: var(--ink); }
+  .who .link { margin-left: auto; }
+  #nickScreen .nick { width: 100%; flex: none; }
+  .nick-err { margin: 0; font-size: 13px; color: var(--seal); }
   .modes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .mode {
     font: inherit; text-align: center; display: grid; place-content: center; gap: 2px; min-height: 64px; cursor: pointer; border-radius: 0;
@@ -238,11 +243,7 @@
     <section class="slip" data-seal="竹">
       <h1 class="title">대나무 피하기<small>竹林飛劍</small></h1>
       <p class="lead">청죽문이 불탄 어느 밤, 살아남은 제자는 너 하나</p>
-      <ul class="keys">
-        <li><b>이동</b> 화면 아무 데나 대고 끌기. 키보드는 방향키나 WASD</li>
-        <li><b>간발</b> 아슬아슬하게 피하면 시간이 는다</li>
-      </ul>
-      <input class="nick" id="nick" maxlength="10" placeholder="검객 이름" autocomplete="off">
+      <p class="who"><span>검객</span><b id="whoName"></b><button type="button" class="link" id="nickEdit">이름 바꾸기</button></p>
       <div class="modes">
         <button class="mode mode--story" id="story" hidden><b>스토리모드</b><small id="storySub" hidden></small></button>
         <button class="mode mode--main" id="goStage"><b>스테이지모드</b><small id="stageSub" hidden></small></button>
@@ -296,6 +297,15 @@
       <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
       <button class="btn btn--ghost" id="devClose">돌아가기</button>
+    </section>
+  </div>
+  <div class="screen" id="nickScreen" hidden>
+    <section class="slip" data-seal="名">
+      <h2 class="shop-title">검객 이름</h2>
+      <p class="shop-note">강호에서 불릴 이름을 정해 주세요. 열 글자까지 되고, 나중에 바꿀 수 있어요.</p>
+      <input class="nick" id="nick" maxlength="10" placeholder="검객 이름" autocomplete="off" enterkeyhint="done">
+      <p class="nick-err" id="nickErr" hidden></p>
+      <button type="button" class="btn" id="nickOk">이 이름으로 하기</button>
     </section>
   </div>
   <div class="screen" id="boss" hidden>
@@ -2948,7 +2958,7 @@ sdk.initializeAsync()
   // 죽이는 연출"; there is no second phase).
   function bossFight(dt, d, lv, seconds) {
     const b = G.boss, f = G.fight;
-    f.lv = lv;
+    f.lv = lv; f.secs = seconds; // (a 간발 takes its share of that off the boss's life: clockCut)
     const bp = G.stageRun ? SL().boss * easeK() : G.dev ? SL().boss : BOSS_PACE;
     G.bossK = bp; // the whole fight a little slower than life (cleared with the field when it ends)
     G.t = 20 + lv * 6; // how hard the shared attacks are
@@ -3576,7 +3586,7 @@ sdk.initializeAsync()
   const keys = new Set();
   let drag = null;
   addEventListener("keydown", (e) => {
-    if (e.target === $("nick")) { if (e.key === "Enter") startEndless(); return; }
+    if (e.target === $("nick")) { if (e.key === "Enter") $("nickOk").click(); return; }
     const k = e.key.toLowerCase();
     if (["arrowup", "arrowdown", "arrowleft", "arrowright", "w", "a", "s", "d", " ", "shift"].includes(k)) e.preventDefault();
     if ((k === " " || k === "enter") && G.mode === "play" && G.lines.length) { nextLine(); return; }
@@ -3819,11 +3829,19 @@ sdk.initializeAsync()
   }
   const distToLine = (px, py, x, y, ang) => Math.abs((px - x) * Math.sin(ang) - (py - y) * Math.cos(ang));
 
+  function clockCut(add) {
+    if (G.stageRun && G.phase === "fight") { const sd = stageDef(G.sg); G.ct = Math.min(sd.dur, G.ct + add); return true; }
+    // a boss fight: the cut itself is nearMiss's hurtBoss (its floor keeps the 종전 for the clock to bring on)
+    return !!((G.stageRun || (G.dev && G.dev.play)) && G.phase === "boss" && G.boss && G.fight && G.fight.secs);
+  }
   function nearMiss(fx, fy, s) { // (fx, fy): where the thing that just missed was, if known; s: the blade itself, if it was one
     G.combo++; G.comboT = 1.4; G.near++; G.maxCombo = Math.max(G.maxCombo || 0, G.combo);
     const add = 0.2 + Math.min(0.3, G.combo * 0.05);
-    G.bonus += add;
-    G.texts.push({ text: G.combo > 1 ? `간발 ×${G.combo}` : "간발!", x: P.x, y: P.y - S * 0.06, t: 0, add });
+    // 11-06 "스테이지모드에서는 시간 늘면 손해, 간발로 피하면 시간 깎여야지": where the clock is what you have to get
+    // through (a stage, a boss's life), a 간발 takes that much off it; in the endless modes it adds to your time as ever
+    const cut = clockCut(add);
+    if (!cut) G.bonus += add;
+    G.texts.push({ text: G.combo > 1 ? `간발 ×${G.combo}` : "간발!", x: P.x, y: P.y - S * 0.06, t: 0, add, cut });
     sfx.ting(); buzz(8);
     if (!reduced) {
       // only the blade that grazed you stops, for a blink, shivering (it can't cut while it hangs: it is already past you),
@@ -3840,7 +3858,7 @@ sdk.initializeAsync()
       if (!reduced && spaced("graze", 150)) G.parts.push({ kind: "stroke", x: P.x, y: P.y, x1: b.x, y1: b.y + bossUnit(b.def) * 0.6, vx: 0, vy: 0, w: G.combo >= 5 ? 4 : 2, color: G.combo >= 5 ? fightTint(b.def) : "#1d1a17", life: 0.16, t: 0 });
       b.reel = { t: 0, ang: Math.atan2(b.y - P.y, b.x - P.x) };
     }
-    hurtBoss(0.025);
+    hurtBoss(G.fight && G.fight.secs ? add / G.fight.secs : 0.025); // as many seconds off its life as the 간발 is worth
   }
 
   function die(x, y, cause) { // cause: { shot } | { hazard } | { cut } | { boss } — shown as you fall, so you see what it was
@@ -3981,7 +3999,7 @@ sdk.initializeAsync()
       ctx.textAlign = "center"; ctx.fillStyle = "#1d1a17"; // (ink: red is for what cuts)
       ctx.fillText(x.text, x.x, x.y - x.t * S * 0.08);
       ctx.font = `700 ${Math.round(S * 0.026)}px "Noto Serif KR", serif`;
-      ctx.fillText(`+${x.add.toFixed(2)}초`, x.x, x.y - x.t * S * 0.08 + S * 0.034);
+      ctx.fillText(`${x.cut ? "−" : "+"}${x.add.toFixed(2)}초`, x.x, x.y - x.t * S * 0.08 + S * 0.034);
       ctx.globalAlpha = 1;
     }
     drawMood(time);
@@ -5768,6 +5786,7 @@ sdk.initializeAsync()
       if (!$("shop").hidden) { $("shopClose").click(); return true; }
       if (!$("dev").hidden) { $("devClose").click(); return true; }
       if (!$("boss").hidden) { $("bossClose").click(); return true; }
+      if (!$("nickScreen").hidden && !$("nickScreen").dataset.first) { $("nick").value = store.get("nick", ""); $("nickScreen").hidden = true; $("start").hidden = false; return true; } // changing it: back leaves it as it was
       return false;
     },
     save() { /* every change is stored the moment it happens: nothing is left to write */ },
@@ -5775,6 +5794,24 @@ sdk.initializeAsync()
   };
   $("mute").textContent = muted ? "×" : "♪";
   $("nick").value = store.get("nick", "");
+  // ---- the swordsman's name (11-06: "처음 들어오면 닉네임 설정"): asked once on the first visit, a name already in
+  // the box to take with one tap; after that shown on the start screen with a way to change it
+  const nickShow = () => { $("whoName").textContent = me(); };
+  function nickOpen(first) {
+    $("nickScreen").dataset.first = first ? "1" : "";
+    if (!$("nick").value.trim()) $("nick").value = `무명 검객 ${Math.floor(rnd(100, 1000))}`;
+    $("nickErr").hidden = true; $("start").hidden = true; $("nickScreen").hidden = false;
+  }
+  function nickDone() {
+    const v = $("nick").value.replace(/\s+/g, " ").trim().slice(0, 10);
+    if (!v) { $("nickErr").textContent = "이름을 한 글자 이상 적어 주세요."; $("nickErr").hidden = false; return; }
+    $("nick").value = v; store.set("nick", v); nickShow();
+    $("nick").blur(); $("nickScreen").hidden = true; $("start").hidden = false;
+  }
+  $("nickOk").addEventListener("click", nickDone);
+  $("nickEdit").addEventListener("click", () => nickOpen(false));
+  nickShow();
+  if (!store.get("nick", "")) nickOpen(true);
 
   // ------------------------------------------------------------------ ads and the shop, through the platform
   // The game never touches an ad or a payment itself. It asks window.JUKLIM_PLATFORM, which toss/platform.js sets
@@ -6110,7 +6147,7 @@ sdk.initializeAsync()
   // page, the 토스 bundle. A wrapper can still set window.JUKLIM_API_BASE before this script runs; null means no 명부.
   const SCORES_URL = "https://bamboo-dodge-scores.gswx31.workers.dev";
   const API_BASE = window.JUKLIM_API_BASE === undefined ? SCORES_URL : window.JUKLIM_API_BASE;
-  if (API_BASE === null) $("nick").hidden = true; // the name is only for the 명부: with none, don't ask for it
+  // (with no 명부 the name is still asked: the bosses call you by it)
   async function api(mode, body) {
     const r = await fetch(API_BASE + "/api/scores" + (mode === "normal" ? "" : "?mode=" + mode), body
       ? { method: "POST", headers: { "content-type": "application/json", "x-key": key }, body: JSON.stringify(body) }
