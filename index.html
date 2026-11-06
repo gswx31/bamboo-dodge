@@ -167,6 +167,14 @@
   .skin.is-on { background: color-mix(in srgb, var(--ink) 8%, transparent); }
   .skin canvas { width: 72px; height: 72px; }
   .dev-inv { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .purse .shop-open + .shop-open { margin-left: 8px; margin-right: auto; }
+  .boss-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
+  .boss-list li { border: 1.5px solid var(--ink); padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px; row-gap: 2px; }
+  .boss-list b { font-family: var(--font-mark); font-weight: 900; font-size: 16px; letter-spacing: .04em; }
+  .boss-list small { grid-column: 1; font-size: 12px; color: var(--ink-soft); }
+  .boss-list button { grid-column: 2; grid-row: 1 / span 2; font: inherit; font-size: 13px; min-width: 64px; padding: 8px 10px; cursor: pointer; border-radius: 0; border: 1.5px solid var(--ink); background: var(--ink); color: var(--slip); }
+  .boss-list li.is-locked { border-style: dashed; color: var(--ink-soft); }
+  .boss-list li.is-locked b { color: var(--ink-soft); }
   .dev-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; }
   .dev-list li { border: 1.5px solid var(--ink); padding: 10px 12px; display: grid; gap: 6px; }
   .dev-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
@@ -182,6 +190,9 @@
   .skin--wide small { grid-column: 1; font-size: 12px; color: var(--ink-soft); }
   .skin--wide button { grid-column: 2; grid-row: 1 / span 2; }
   .skin b { font-family: var(--font-mark); font-weight: 900; font-size: 16px; letter-spacing: .06em; }
+  .skin b .skin__tier { display: block; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-align: center; margin-bottom: 1px; }
+  .skin__tier--rare { color: #3f6fae; } .skin__tier--epic { color: #6a3fae; } .skin__tier--myth { color: #9a7420; }
+  .skin--epic { border-color: #6a3fae; } .skin--myth { border-color: #b8902e; box-shadow: inset 0 0 0 1px #e8c66a; }
   .skin button { font: inherit; font-size: 13px; width: 100%; padding: 6px 4px; cursor: pointer; border-radius: 0; border: 1.5px solid var(--ink); background: var(--ink); color: var(--slip); }
   .skin button:disabled { background: transparent; color: var(--ink-soft); border-color: var(--ink-soft); cursor: default; }
   .shop-note { margin: 0; font-size: 13px; color: var(--ink-soft); }
@@ -241,12 +252,13 @@
       </div>
       <button class="link" id="storyNew" hidden>스토리모드 처음부터</button>
       <div class="lvl" id="stageLvl" role="group" aria-label="스테이지 난이도">
-        <span>스테이지 난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
+        <span>스테이지 난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
       <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
       <button class="link" id="devOpen" hidden>개발자 모드: 보스 비기 보기</button>
       <div class="purse">
         <button class="shop-open" id="shopOpen">상점</button>
+        <button class="shop-open" id="bossOpen">보스전</button>
         <span class="coins" aria-label="가진 엽전"><i class="coin" aria-hidden="true"></i><span id="coins">0</span></span>
       </div>
       <div class="drill">
@@ -278,11 +290,22 @@
       <h2 class="shop-title">보스 비기</h2>
       <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓴다. 체력이 다하면 종전으로 더 센 비기에 종전 고유기와 섞는 공격까지 겹쳐 쓰고, 그걸 버티면 벤다 (32초).</p>
       <div class="lvl" id="devLvl" role="group" aria-label="보스 난이도">
-        <span>난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
+        <span>난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
       <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
       <button class="btn btn--ghost" id="devClose">돌아가기</button>
+    </section>
+  </div>
+  <div class="screen" id="boss" hidden>
+    <section class="slip" data-seal="戰">
+      <h2 class="shop-title">보스전</h2>
+      <p class="shop-note" id="bossNote">스테이지에서 만난 보스와 다시 겨룬다.</p>
+      <div class="lvl" id="bossLvl" role="group" aria-label="보스전 난이도">
+        <span>난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
+      </div>
+      <ol class="boss-list" id="bossList"></ol>
+      <button class="btn btn--ghost" id="bossClose">돌아가기</button>
     </section>
   </div>
   <button class="dev-exit" id="devExit" hidden>그만 보기</button>
@@ -1552,6 +1575,7 @@ sdk.initializeAsync()
     G.stopT = 0.16; G.slow = 0.35; G.slowT = 0.8; G.shake = reduced ? 0 : 22; G.zoom = 0.08; flash("255,250,235", 0.9);
     G.bonus += 3; // a boss felled is worth three seconds
     sfx.issen(); buzz([40, 30, 90]);
+    if (G.dev) G.dev.won = true;
     say(b.def.down(), G.dev ? devBack : G.stageRun ? stageClear : nextChapter);
   }
   function nextChapter() {
@@ -1819,9 +1843,12 @@ sdk.initializeAsync()
   //   layer  how often its other moves come on top in its 종전; breath: the least and the most it rests between 비기
   // (11-06 later: the stages between bosses harder at both, "보스 아닐 때가 너무 쉬운듯해", and again "보스 이전에
   // 스테이지들이 너무 쉬운 느낌": base 12→40 and 20→56, the gaps, the bamboo; the first 장s mix in more besides)
+  // (11-06 again: "쉬움 모드를 추가하자, 쉬움 보통 어려움, 쉬움은 보통에서 40퍼정도 쉽게": a 쉬움 under 보통, its difficulty
+  // clock and every boss's 비기 about 40% lower, everything slower with more room; 고수 is called 어려움 now, its key unchanged)
   const STAGE_LEVELS = {
+    easy: { name: "쉬움", pace: 0.82, base: 13, slope: 0.24, crowd: 0.15, bamboo: 0.7, floor: 0.7, gap: 1.25, boss: 0.76, lv: 0, last: 2, layer: 2.6, breath: [1.6, 2.3], top: "stageTopE" },
     normal: { name: "보통", pace: 1.06, base: 40, slope: 0.4, crowd: 0.04, bamboo: 0.5, floor: 0.5, gap: 0.9, boss: 0.95, lv: 2.5, last: 4, layer: 1.6, breath: [1.0, 1.55], top: "stageTop" },
-    master: { name: "고수", pace: 1.16, base: 56, slope: 0.46, crowd: 0.02, bamboo: 0.45, floor: 0.44, gap: 0.78, boss: 1.05, lv: 4, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTopH" },
+    master: { name: "어려움", pace: 1.16, base: 56, slope: 0.46, crowd: 0.02, bamboo: 0.45, floor: 0.44, gap: 0.78, boss: 1.05, lv: 4, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTopH" },
   };
   // (a new key: "stageLevel" may still say 고수 from when that meant what is 일반 now)
   let stageLevel = STAGE_LEVELS[store.get("stageLv", "normal")] ? store.get("stageLv", "normal") : "normal";
@@ -1892,7 +1919,7 @@ sdk.initializeAsync()
   function enterStage() { // its card, a breath with nothing in the air
     const sd = stageDef(G.sg);
     G.phase = "title"; G.pt = 0; G.seedN = {}; G.boss = null; G.titleLen = 1.7; G.next = null;
-    $("stage").textContent = `${sd.label} · ${sd.world.name}${stageLevel === "master" ? " · 고수" : ""}`;
+    $("stage").textContent = `${sd.label} · ${sd.world.name}${stageLevel !== "normal" ? " · " + STAGE_LEVELS[stageLevel].name : ""}`;
     if (sd.boss) { enterStageFight(); return enterBoss(); } // the boss straight away, its own card for the stage's (11-06: "처음에 바로")
     G.card = { ch: { num: sd.label, name: sd.world.name, sub: sd.sub }, at: performance.now(), life: 1.7 };
     sfx.stage();
@@ -1900,7 +1927,7 @@ sdk.initializeAsync()
   // 보통 only, and never shown: a stage that keeps beating you gives a little. After the third fall in a row there, each
   // further fall slows that stage (and its boss) 6% more, three steps at most; moving on starts afresh. 고수 is as it is.
   const assist = { sg: -1, n: 0 }, bossSeen = new Set();
-  const easeK = () => (G.stageRun && stageLevel === "normal" && assist.sg === G.sg ? 1 / (1 + 0.06 * clamp(assist.n - 2, 0, 3)) : 1);
+  const easeK = () => (G.stageRun && stageLevel !== "master" && assist.sg === G.sg ? 1 / (1 + 0.06 * clamp(assist.n - 2, 0, 3)) : 1);
   function enterStageFight() {
     const sd = stageDef(G.sg);
     G.phase = "fight"; G.ct = 0; G.timers = { bamboo: 0.6, foe: 3.5 }; G.lastBig = "";
@@ -1985,7 +2012,7 @@ sdk.initializeAsync()
     ctx.restore();
   }
   function overStage() {
-    if (stageLevel === "normal") { if (assist.sg === G.sg) assist.n++; else { assist.sg = G.sg; assist.n = 1; } }
+    if (stageLevel !== "master") { if (assist.sg === G.sg) assist.n++; else { assist.sg = G.sg; assist.n = 1; } }
     const sd = stageDef(G.sg), time = Math.round((G.st + G.bonus) * 100) / 100, top = stageTop();
     $("overSlip").dataset.seal = "敗"; $("overLabel").textContent = "쓰러진 곳";
     $("score").textContent = sd.label; $("scoreUnit").hidden = true;
@@ -2881,19 +2908,22 @@ sdk.initializeAsync()
   }
   // ---- 개발자 모드: pick a boss, watch its 비기 three times, hear its three lines
   const DEV = /[?&]dev\b/.test(location.search);
-  let devLevel = STAGE_LEVELS[store.get("devLv", "normal")] ? store.get("devLv", "normal") : "normal"; // 보통 or 고수, as in 스테이지 모드
+  let devLevel = STAGE_LEVELS[store.get("devLv", "normal")] ? store.get("devLv", "normal") : "normal"; // 쉬움, 보통 or 어려움, as in 스테이지 모드
   function bossDefOf(d) {
     return { name: d.name, title: d.title, look: d.look, accent: d.accent, sig: d.sig, stage: d.stage, hp: 30, acts: [],
       intro: () => [{ who: d.name, text: withName(d.intro) }], down: () => [{ who: d.name, text: withName(d.down) }] };
   }
-  function startDevBoss(i) {
-    const d = BOSS_SET[i], def = bossDefOf(d);
+  // `play`: a 보스전 picked by a player (a boss already met in 스테이지 모드), not one watched in 개발자 모드: never invulnerable,
+  // its own difficulty, and it ends back at the 보스전 list with how it went
+  function startDevBoss(i, play = false) {
+    const d = BOSS_SET[i], def = bossDefOf(d), lvl = play ? bossLevel : devLevel;
     begin();
-    G.story = true; G.stageRun = false; G.dev = { i, lvl: devLevel }; G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; G.devInv = $("devInv").checked; G.ch = 0;
+    G.story = true; G.stageRun = false; G.dev = { i, lvl, play }; G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; G.devInv = !play && $("devInv").checked; G.ch = 0;
     reset(); G.mode = "play";
     setTheme(d.theme, true);
-    $("dev").hidden = true; $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("devExit").hidden = false;
-    $("stage").textContent = `${d.stage} · ${d.name} · ${STAGE_LEVELS[devLevel].name}`;
+    $("dev").hidden = true; $("boss").hidden = true; $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("devExit").hidden = false;
+    $("devExit").textContent = play ? "그만하기" : "그만 보기";
+    $("stage").textContent = `${d.stage} · ${d.name} · ${STAGE_LEVELS[lvl].name}`;
     G.boss = { def, x: W / 2, y: -S * 0.3, tx: W / 2, ty: H * 0.24, wT: 1.5, hp: 1, actT: 1.4, last: "", hurtT: 0, castT: 0, downT: 0, mid: false, landed: false };
     G.phase = "bossIntro"; G.card = { boss: def, at: performance.now() }; G.dark = 1;
     sfx.taiko(); setTimeout(() => sfx.taiko(), 220);
@@ -3233,9 +3263,11 @@ sdk.initializeAsync()
     }
   }
   function devBack() {
+    const dv = G.dev, lasted = G.st || 0;
     clearField(); G.boss = null; G.lines = []; G.onLines = null; G.card = null; G.dev = null; G.story = false; G.mode = "menu";
     setTheme("grove", true);
-    $("hud").hidden = true; $("over").hidden = true; $("devExit").hidden = true; $("dev").hidden = false;
+    $("hud").hidden = true; $("over").hidden = true; $("devExit").hidden = true;
+    if (dv && dv.play) { $("boss").hidden = false; bossDone(dv, lasted); } else $("dev").hidden = false;
     P.x = W / 2; P.y = H * 0.58;
   }
   function renderDev() {
@@ -5246,6 +5278,22 @@ sdk.initializeAsync()
     heuk: { name: "흑의", sku: "juklim_skin_heuk", hat: "#211e1a", hatLine: "#b08d4a", robe: "#14120f", band: "#8c949a", eye: "#dfe8ec", ghost: "14,12,10", ghostLife: 0.46, mote: null },
     mae: { name: "매화", sku: "juklim_skin_mae", hat: "#c4a56a", hatLine: "#6e5631", robe: "#4a2530", band: "#e2a1b1", eye: "#fbeef1", ghost: "74,37,48", ghostLife: 0.26, mote: "petal" },
     seol: { name: "설산", earn: "하드모드 60초", hat: "#dcdfdb", hatLine: "#5f7180", robe: "#334a5c", band: "#9fcde3", eye: "#e6f5fb", ghost: "51,74,92", ghostLife: 0.3, mote: "snow" },
+    // 11-06 "간지나는 거 엄청 비싸게": the dearer, the more each one shows. `aura` a glow round the body (`flicker` like a
+    // spark), `eyeGlow` the eyes lit, `moteColor` the colour of what trails it (glow, gold, star, spark, ember), `hue` its
+    // afterimages turning through that range, sheath/grip/guard its sword. No red anywhere: red is kept for the warnings.
+    mukjuk: { name: "묵죽", coin: 3000, hat: "#2b2724", hatLine: "#8a8178", robe: "#0f0e0d", band: "#e8e2d4", eye: "#f7f0de", ghost: "15,14,13", ghostLife: 0.4, mote: "ink" },
+    bichwi: { name: "비취", coin: 5000, hat: "#c9b27a", hatLine: "#5e7a5a", robe: "#1f5a4c", band: "#d9c27a", eye: "#eafff4", ghost: "31,90,76", ghostLife: 0.3, mote: "glow", moteColor: "120,220,180" },
+    wolbaek: { name: "월백", coin: 8000, tier: "희귀", hat: "#e9e6dc", hatLine: "#8d9bb0", robe: "#d8dde6", band: "#7fa3c9", eye: "#d6ecff", eyeGlow: "160,200,255", ghost: "170,190,225", ghostLife: 0.36, mote: "star", moteColor: "235,242,255", aura: "190,215,255", auraK: 0.32 },
+    jaun: { name: "자운", coin: 12000, tier: "희귀", hat: "#3b2f4a", hatLine: "#b89be0", robe: "#4b2f6e", band: "#d8c3ff", eye: "#f3e9ff", eyeGlow: "200,160,255", ghost: "110,70,160", ghostLife: 0.4, mote: "glow", moteColor: "190,150,255", aura: "160,110,240", auraK: 0.38 },
+    geumui: { name: "금의", coin: 20000, tier: "희귀", hat: "#d9b45a", hatLine: "#7a5a1e", robe: "#1c2340", band: "#e8c66a", eye: "#fff3cf", eyeGlow: "255,215,120", ghost: "200,160,70", ghostLife: 0.34, mote: "gold", moteColor: "255,215,110", aura: "255,205,110", auraK: 0.3, guard: "#f0cd6a", grip: "#1c2340" },
+    noejeon: { name: "뇌전", coin: 30000, tier: "전설", hat: "#2c333d", hatLine: "#7fe7ff", robe: "#1a2230", band: "#5fd8ff", eye: "#e8fcff", eyeGlow: "110,230,255", ghost: "70,200,255", ghostLife: 0.32, mote: "spark", moteColor: "150,240,255", aura: "90,210,255", auraK: 0.45, flicker: true, guard: "#7fe7ff" },
+    hwaryong: { name: "화룡", coin: 40000, tier: "전설", hat: "#3a2a1c", hatLine: "#ffb347", robe: "#2a1d14", band: "#ffb347", eye: "#fff0c8", eyeGlow: "255,170,60", ghost: "255,150,50", ghostLife: 0.34, mote: "ember", moteColor: "255,180,70", aura: "255,150,50", auraK: 0.4, guard: "#ffb347" },
+    cheongryong: { name: "청룡", coin: 50000, tier: "전설", hat: "#21414a", hatLine: "#7fffd4", robe: "#0f3b45", band: "#7fffd4", eye: "#e6fff8", eyeGlow: "90,255,210", ghost: "40,200,170", ghostLife: 0.42, mote: "glow", moteColor: "110,255,215", aura: "60,230,190", auraK: 0.45, guard: "#7fffd4", grip: "#0f3b45" },
+    baekho: { name: "백호", coin: 60000, tier: "전설", hat: "#f2f2ee", hatLine: "#2b2b2b", robe: "#f4f4f0", band: "#1d1d1d", eye: "#bfe6ff", eyeGlow: "150,215,255", ghost: "200,210,225", ghostLife: 0.42, mote: "snow", aura: "220,235,255", auraK: 0.35, sheath: "#f2f2ee", guard: "#1d1d1d" },
+    heukryong: { name: "흑룡", coin: 80000, tier: "신화", hat: "#0b0b10", hatLine: "#9b7bff", robe: "#07070a", band: "#6f4bff", eye: "#e9e2ff", eyeGlow: "150,110,255", ghost: "40,25,80", ghostLife: 0.5, mote: "glow", moteColor: "130,95,255", aura: "90,60,200", auraK: 0.55, sheath: "#07070a", guard: "#9b7bff" },
+    eunha: { name: "은하", coin: 100000, tier: "신화", hat: "#1b1f3a", hatLine: "#c8d4ff", robe: "#0d1230", band: "#9fb4ff", eye: "#ffffff", eyeGlow: "200,215,255", ghost: "90,110,220", ghostLife: 0.45, hue: [190, 300], mote: "star", moteColor: "255,255,255", aura: "120,140,255", auraK: 0.45, guard: "#c8d4ff" },
+    cheonma: { name: "천마", coin: 150000, tier: "신화", hat: "#151012", hatLine: "#e8c66a", robe: "#120d10", band: "#7b4bb8", eye: "#fff3cf", eyeGlow: "255,200,90", ghost: "60,30,70", ghostLife: 0.55, mote: "gold", moteColor: "255,205,100", aura: "110,60,170", auraK: 0.5, sheath: "#120d10", grip: "#7b4bb8", guard: "#e8c66a" },
+    geomseong: { name: "검성", coin: 300000, tier: "신화", hat: "#fbf6e6", hatLine: "#d9b45a", robe: "#fbf8ef", band: "#e8c66a", eye: "#fff8e0", eyeGlow: "255,230,150", ghost: "230,200,120", ghostLife: 0.5, hue: [40, 290], mote: "star", moteColor: "255,230,150", aura: "255,225,140", auraK: 0.55, sheath: "#fbf8ef", grip: "#d9b45a", guard: "#e8c66a" },
   };
   const owned = new Set(["cheong", ...String(store.get("skins", "")).split(",").filter((k) => HERO_SKINS[k])]);
   let SKIN = HERO_SKINS[owned.has(store.get("skin", "cheong")) ? store.get("skin", "cheong") : "cheong"];
@@ -5261,7 +5309,7 @@ sdk.initializeAsync()
   function heroMote() {
     if (HERO.motes.length > 80) return;
     const r = heroR();
-    HERO.motes.push({ kind: SKIN.mote, x: P.x + rnd(-r * 0.6, r * 0.6), y: P.y + rnd(-r * 0.2, r), vx: -HERO.vx * 0.06 + rnd(-r, r) * 2, vy: -HERO.vy * 0.06 + rnd(-r, r * 1.5), rot: rnd(0, 6.28), vr: rnd(-6, 6), t: 0, life: 0.9, size: rnd(0.7, 1.25) });
+    HERO.motes.push({ kind: SKIN.mote, col: SKIN.moteColor, x: P.x + rnd(-r * 0.6, r * 0.6), y: P.y + rnd(-r * 0.2, r), vx: -HERO.vx * 0.06 + rnd(-r, r) * 2, vy: SKIN.mote === "ember" ? -S * rnd(0.12, 0.3) : -HERO.vy * 0.06 + rnd(-r, r * 1.5), rot: rnd(0, 6.28), vr: rnd(-6, 6), t: 0, life: 0.9, size: rnd(0.7, 1.25) }); // (embers rise)
   }
   function heroKick() { // a sharp turn throws ink off the feet
     const r = heroR();
@@ -5306,7 +5354,11 @@ sdk.initializeAsync()
     const po = { x, y, rot, sx, sy }; h.pose = po;
     // 경공: afterimages and leaves while moving fast
     h.ghostT -= dt;
-    if (play && sp > 1.3 && h.ghostT <= 0) { h.ghosts.push(heroSnap(SKIN.ghostLife, 0.3)); h.ghostT = 0.032; }
+    if (play && sp > 1.3 && h.ghostT <= 0) {
+      const g = heroSnap(SKIN.ghostLife, 0.3);
+      if (SKIN.hue) g.hue = SKIN.hue[0] + (SKIN.hue[1] - SKIN.hue[0]) * (0.5 + 0.5 * Math.sin(time * 2.6)); // its colour, as it turns
+      h.ghosts.push(g); h.ghostT = 0.032;
+    }
     if (play && SKIN.mote && sp > 0.5) { h.moteT -= dt * Math.min(4, sp); if (h.moteT <= 0) { heroMote(); h.moteT = 0.09; } }
     if (play && sp > 1 && ohx * h.hx + ohy * h.hy < -0.2) heroKick();
     for (let i = h.ghosts.length - 1; i >= 0; i--) { h.ghosts[i].t += dt; if (h.ghosts[i].t >= h.ghosts[i].life) h.ghosts.splice(i, 1); }
@@ -5360,33 +5412,35 @@ sdk.initializeAsync()
   function heroGhost(g, r, a) {
     if (a <= 0.005) return;
     ctx.save(); ctx.translate(g.x, g.y); ctx.rotate(g.rot); ctx.scale(g.sx, g.sy);
-    ctx.fillStyle = `rgba(${SKIN.ghost},${a})`; heroHat(r); ctx.fill(); heroBody(r, 0); ctx.fill();
+    ctx.fillStyle = g.hue != null ? `hsla(${g.hue.toFixed(0)},85%,66%,${a})` : `rgba(${SKIN.ghost},${a})`; heroHat(r); ctx.fill(); heroBody(r, 0); ctx.fill();
     ctx.restore();
   }
-  function heroSword(r, s, c = ctx) { // slung across the back: the grip over one shoulder, the scabbard's tip out under the other side
+  function heroSword(r, s, c = ctx, sk = SKIN) { // slung across the back: the grip over one shoulder, the scabbard's tip out under the other side
     c.lineCap = "round";
-    c.strokeStyle = "#2a2521"; c.lineWidth = r * 0.19;
+    c.strokeStyle = sk.sheath || "#2a2521"; c.lineWidth = r * 0.19;
     c.beginPath(); c.moveTo(s * r * 0.82, -r * 0.92); c.lineTo(-s * r * 1.05, r * 1.22); c.stroke();
-    c.strokeStyle = "#4a3b2c"; c.lineWidth = r * 0.2; // leather-wrapped, so the only colour that flutters is the headband
+    if (sk.sheath) { c.strokeStyle = "#1d1a17"; c.lineWidth = Math.max(0.8, r * 0.04); c.stroke(); } // a pale scabbard keeps its edge
+    c.strokeStyle = sk.grip || "#4a3b2c"; c.lineWidth = r * 0.2; // leather-wrapped, so the only colour that flutters is the headband
     c.beginPath(); c.moveTo(s * r * 0.84, -r * 0.95); c.lineTo(s * r * 1.16, -r * 1.42); c.stroke();
     const gx = s * r * 0.82, gy = -r * 0.92, px = 0.83, py = s * 0.56;
-    c.strokeStyle = "#b08d4a"; c.lineWidth = r * 0.09;
+    c.strokeStyle = sk.guard || "#b08d4a"; c.lineWidth = r * 0.09;
     c.beginPath(); c.moveTo(gx - px * r * 0.22, gy - py * r * 0.22); c.lineTo(gx + px * r * 0.22, gy + py * r * 0.22); c.stroke();
-    c.fillStyle = "#b08d4a"; c.beginPath(); c.arc(s * r * 1.2, -r * 1.48, r * 0.1, 0, Math.PI * 2); c.fill();
+    c.fillStyle = sk.guard || "#b08d4a"; c.beginPath(); c.arc(s * r * 1.2, -r * 1.48, r * 0.1, 0, Math.PI * 2); c.fill();
   }
   // the figure itself, standing at the origin of `c`: drawn in the fight, and again small for the shop
   // `back`: seen from behind, facing away up the screen (a boss above it): no face, the sword across the back in view
   function heroFigure(c, r, sk, faceS, dx, dy, blink, wv, back = false) {
-    if (!back) heroSword(r, -faceS, c);
+    if (!back) heroSword(r, -faceS, c, sk);
     heroBody(r, wv, c); c.fillStyle = sk.robe; c.fill(); c.lineWidth = Math.max(1, r * 0.08); c.strokeStyle = "#1d1a17"; c.stroke();
     c.strokeStyle = sk.band; c.lineWidth = r * 0.14; c.beginPath();
     if (back) { c.moveTo(r * 0.5, -r * 0.2); c.lineTo(-r * 0.56, r * 0.5); } else { c.moveTo(-r * 0.5, -r * 0.2); c.lineTo(r * 0.56, r * 0.5); }
     c.stroke();
     c.fillStyle = "#14120f"; c.beginPath(); c.ellipse(0, -r * 0.27, r * 0.48, r * 0.17, 0, 0, Math.PI * 2); c.fill(); // the face (or the back of the head), in the hat's shadow
-    if (back) heroSword(r, faceS, c); // over the shoulder that's now on the other side, lying on the back
+    if (back) heroSword(r, faceS, c, sk); // over the shoulder that's now on the other side, lying on the back
     else {
       const ex = dx * r * 0.12, ey = -r * 0.25 + dy * r * 0.04;
-      for (const [w, ht, col] of [[0.22, 0.12, "rgba(247,240,222,0.2)"], [0.14, 0.06, sk.eye]]) { // a faint glow, then the glint
+      const glow = sk.eyeGlow ? [0.3, 0.16, `rgba(${sk.eyeGlow},0.5)`] : [0.22, 0.12, "rgba(247,240,222,0.2)"];
+      for (const [w, ht, col] of [glow, [0.14, 0.06, sk.eye]]) { // a faint glow (or a burning one), then the glint
         c.fillStyle = col; c.beginPath();
         c.ellipse(ex - r * 0.21, ey, r * w, r * ht * blink, 0, 0, Math.PI * 2);
         c.ellipse(ex + r * 0.21, ey, r * w, r * ht * blink, 0, 0, Math.PI * 2); c.fill();
@@ -5402,6 +5456,13 @@ sdk.initializeAsync()
     c.beginPath(); c.ellipse(0, r * BRIM_Y, r * BRIM_RX, r * BRIM_RY, 0, 0.15, Math.PI - 0.15); c.stroke();
     c.fillStyle = sk.hatLine; c.beginPath(); c.arc(0, r * PEAK_Y, r * 0.07, 0, Math.PI * 2); c.fill();
   }
+  // the dearer clothes burn with a light of their own, breathing (or crackling, for 뇌전); only a look, it touches nothing
+  function heroAura(c, x, y, r, sk, time) {
+    const k = sk.auraK * (sk.flicker ? 0.7 + 0.3 * Math.random() : 0.82 + 0.18 * Math.sin(time * 3.6)), R = r * 3.1;
+    const gr = c.createRadialGradient(x, y, r * 0.2, x, y, R);
+    gr.addColorStop(0, `rgba(${sk.aura},${k})`); gr.addColorStop(0.45, `rgba(${sk.aura},${k * 0.45})`); gr.addColorStop(1, `rgba(${sk.aura},0)`);
+    c.fillStyle = gr; c.beginPath(); c.arc(x, y, R, 0, Math.PI * 2); c.fill();
+  }
   function drawPlayer(time) {
     if (G.mode === "dying" && G.dieT > 0.15) return;
     const r = heroR(), po = heroStep(time), sk = SKIN, run = Math.min(1, Math.hypot(HERO.vx, HERO.vy) / S / 1.6);
@@ -5412,6 +5473,28 @@ sdk.initializeAsync()
       if (m.kind === "leaf") { ctx.fillStyle = `rgba(47,106,98,${a * 0.7})`; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.3 * s, r * 0.075 * s, 0, 0, Math.PI * 2); ctx.fill(); }
       else if (m.kind === "petal") { ctx.fillStyle = `rgba(232,166,182,${a * 0.9})`; ctx.beginPath(); ctx.ellipse(0, 0, r * 0.17 * s, r * 0.11 * s, 0, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = `rgba(255,238,242,${a})`; ctx.beginPath(); ctx.arc(-r * 0.04, 0, r * 0.04 * s, 0, Math.PI * 2); ctx.fill(); }
       else if (m.kind === "snow") { ctx.fillStyle = `rgba(160,200,222,${a * 0.3})`; ctx.beginPath(); ctx.arc(0, 0, r * 0.18 * s, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = `rgba(255,255,255,${a * 0.95})`; ctx.beginPath(); ctx.arc(0, 0, r * 0.09 * s, 0, Math.PI * 2); ctx.fill(); }
+      else if (m.kind === "glow" || m.kind === "ember") { // a lit mote: a soft halo, a bright core (embers smaller, rising)
+        const e = m.kind === "ember" ? 0.7 : 1;
+        ctx.fillStyle = `rgba(${m.col},${a * 0.28})`; ctx.beginPath(); ctx.arc(0, 0, r * 0.26 * s * e, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = `rgba(${m.col},${a * 0.95})`; ctx.beginPath(); ctx.arc(0, 0, r * 0.085 * s * e, 0, Math.PI * 2); ctx.fill();
+      }
+      else if (m.kind === "gold") { // a fleck of gold leaf, catching the light as it turns
+        const w = r * 0.12 * s, f = 0.35 + 0.65 * Math.abs(Math.sin(m.rot * 2));
+        ctx.fillStyle = `rgba(${m.col},${a * 0.95})`; ctx.beginPath(); ctx.moveTo(0, -w); ctx.lineTo(w * 0.6 * f, 0); ctx.lineTo(0, w); ctx.lineTo(-w * 0.6 * f, 0); ctx.closePath(); ctx.fill();
+      }
+      else if (m.kind === "star") { // a four-pointed glint
+        const w = r * 0.2 * s;
+        ctx.fillStyle = `rgba(${m.col},${a})`;
+        ctx.beginPath(); ctx.ellipse(0, 0, w, w * 0.16, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.ellipse(0, 0, w * 0.16, w, 0, 0, Math.PI * 2); ctx.fill();
+      }
+      else if (m.kind === "spark") { // a crackle: a short bent line that flickers
+        if (Math.random() < 0.8) {
+          const w = r * 0.32 * s;
+          ctx.strokeStyle = `rgba(${m.col},${a})`; ctx.lineWidth = Math.max(1, r * 0.06); ctx.lineCap = "round";
+          ctx.beginPath(); ctx.moveTo(-w, 0); ctx.lineTo(-w * 0.2, w * 0.35); ctx.lineTo(w * 0.2, -w * 0.3); ctx.lineTo(w, 0); ctx.stroke();
+        }
+      }
       else { ctx.fillStyle = `rgba(29,26,23,${a * 0.6})`; ctx.beginPath(); ctx.arc(0, 0, r * 0.12 * s, 0, Math.PI * 2); ctx.fill(); }
       ctx.restore();
     }
@@ -5419,6 +5502,7 @@ sdk.initializeAsync()
     if (P.inv > 0 && Math.floor(time * 20) % 2) ctx.globalAlpha = 0.45;
     const hop = clamp((P.y - po.y) / r, 0, 1);
     ctx.fillStyle = "rgba(29,26,23,0.16)"; ctx.beginPath(); ctx.ellipse(P.x, P.y + r * 1.15, r * 0.95 * (1 - hop * 0.3), r * 0.22, 0, 0, Math.PI * 2); ctx.fill();
+    if (sk.aura) heroAura(ctx, po.x, po.y, r, sk, time);
     ctx.lineCap = "round"; ctx.strokeStyle = sk.band;
     for (const ch of HERO.chains) for (let i = 1; i < ch.length; i++) { ctx.lineWidth = r * (0.2 - i * 0.025); ctx.beginPath(); ctx.moveTo(ch[i - 1].x, ch[i - 1].y); ctx.lineTo(ch[i].x, ch[i].y); ctx.stroke(); }
     // turning round: narrowing to the edge-on middle of the turn, then widening again the other way round
@@ -5571,7 +5655,52 @@ sdk.initializeAsync()
   for (const b of document.querySelectorAll("#devLvl button")) b.addEventListener("click", () => { devLevel = b.dataset.lvl; store.set("devLv", devLevel); devLabels(); });
   devLabels();
   $("devClose").addEventListener("click", () => { $("dev").hidden = true; $("start").hidden = false; });
-  $("devExit").addEventListener("click", () => { if (G.dev) devBack(); });
+  $("devExit").addEventListener("click", () => { if (G.dev) { G.dev.quit = true; devBack(); } });
+  // ---- 보스전 (11-06: "지난 보스 잡기 느낌으로"): every boss already met in 스테이지 모드, at any of its difficulties,
+  // fought again one at a time at the difficulty picked here. A win pays 엽전 (more at 어려움); which were beaten at which
+  // difficulty is kept. Only the next boss not yet met shows, locked; the rest stay a surprise.
+  let bossLevel = STAGE_LEVELS[store.get("bossLv", "normal")] ? store.get("bossLv", "normal") : "normal";
+  const BOSS_PAY = { easy: 0.5, normal: 1, master: 1.5 }, BOSS_NOTE = $("bossNote").textContent;
+  const bossWins = (() => { try { return JSON.parse(store.get("bossWins", "{}")) || {}; } catch { return {}; } })();
+  const furthest = () => Math.max(0, ...Object.values(STAGE_LEVELS).map((l) => Number(store.get(l.top, "0")) || 0));
+  const bossMet = (i) => furthest() >= i * 5 + 4; // its X-5 reached
+  function renderBoss() {
+    const list = $("bossList"); list.replaceChildren();
+    const met = BOSS_SET.filter((d, i) => bossMet(i)).length;
+    BOSS_SET.forEach((d, i) => {
+      if (i > met) return;
+      const li = document.createElement("li"), name = document.createElement("b"), sub = document.createElement("small");
+      if (!bossMet(i)) {
+        li.className = "is-locked"; name.textContent = `${d.stage} ???`; sub.textContent = `스테이지 ${d.stage}에서 만나면 열린다`;
+        li.append(name, sub); list.append(li); return;
+      }
+      const won = Object.entries(STAGE_LEVELS).filter(([k]) => (bossWins[k] || []).includes(i)).map(([, l]) => l.name);
+      name.textContent = `${d.stage} ${d.name}`;
+      sub.textContent = d.sigName[1] + (won.length ? ` (${won.join(", ")} 깸)` : "");
+      const go = document.createElement("button"); go.type = "button"; go.textContent = "도전";
+      go.addEventListener("click", () => startDevBoss(i, true));
+      li.append(name, sub, go); list.append(li);
+    });
+  }
+  function bossDone(dv, lasted) { // back at the list: how it went
+    const d = BOSS_SET[dv.i];
+    renderBoss();
+    if (dv.won) {
+      const pay = Math.round(ECON.chapter * BOSS_PAY[dv.lvl]);
+      addCoins(pay); sfx.coin();
+      const w = bossWins[dv.lvl] || (bossWins[dv.lvl] = []);
+      if (!w.includes(dv.i)) { w.push(dv.i); store.set("bossWins", JSON.stringify(bossWins)); renderBoss(); }
+      $("bossNote").textContent = `${d.name}${josa(d.name, "을", "를")} 베었다. 엽전 +${pay}`;
+    } else $("bossNote").textContent = dv.quit ? BOSS_NOTE : `${d.name}에게 베였다. ${lasted.toFixed(1)}초 버텼다.`;
+  }
+  const bossLabels = () => { for (const b of document.querySelectorAll("#bossLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === bossLevel)); };
+  for (const b of document.querySelectorAll("#bossLvl button")) b.addEventListener("click", () => { bossLevel = b.dataset.lvl; store.set("bossLv", bossLevel); bossLabels(); });
+  bossLabels();
+  $("bossOpen").addEventListener("click", () => {
+    $("bossNote").textContent = bossMet(0) ? BOSS_NOTE : "스테이지 1-5에서 첫 보스를 만나면 여기서 다시 겨룰 수 있다.";
+    renderBoss(); $("start").hidden = true; $("boss").hidden = false;
+  });
+  $("bossClose").addEventListener("click", () => { $("boss").hidden = true; $("start").hidden = false; });
   $("again").addEventListener("click", () => adBreak(() => {
     if (G.stageRun) { begin(); return startStage(G.sg); } // the stage you fell in, from its start
     if (!G.story) return startEndless(G.kind);
@@ -5601,6 +5730,7 @@ sdk.initializeAsync()
     back() { // the shop (or the 비기 list) closes; anything else is the app's to answer
       if (!$("shop").hidden) { $("shopClose").click(); return true; }
       if (!$("dev").hidden) { $("devClose").click(); return true; }
+      if (!$("boss").hidden) { $("bossClose").click(); return true; }
       return false;
     },
     save() { /* every change is stored the moment it happens: nothing is left to write */ },
@@ -5699,6 +5829,7 @@ sdk.initializeAsync()
     const dpr = Math.min(2, window.devicePixelRatio || 1), size = 72, r = size * 0.21;
     pv.width = size * dpr; pv.height = size * dpr;
     const c = pv.getContext("2d"); c.setTransform(dpr, 0, 0, dpr, 0, 0); c.translate(size / 2, size * 0.56);
+    if (sk.aura) heroAura(c, 0, 0, r * 0.95, { ...sk, flicker: false }, 0);
     c.lineCap = "round"; c.strokeStyle = sk.band; c.lineWidth = r * 0.16; // the headband's tails, hanging still
     for (const [x1, y1, x2, y2] of [[-0.24, -0.34, -0.95, 0.55], [-0.38, -0.34, -1.12, 0.32]]) { c.beginPath(); c.moveTo(x1 * r, y1 * r); c.quadraticCurveTo((x1 - 0.5) * r, 0, x2 * r, y2 * r); c.stroke(); }
     heroFigure(c, r, sk, 1, 0, 0.3, 1, 0);
@@ -5720,6 +5851,7 @@ sdk.initializeAsync()
       const card = document.createElement("div"); card.className = "skin" + (SKIN === sk ? " is-on" : "");
       const pv = document.createElement("canvas"); drawSkinPreview(pv, sk);
       const name = document.createElement("b"); name.textContent = sk.name;
+      if (sk.tier) { const t = document.createElement("small"); t.className = "skin__tier skin__tier--" + ({ 희귀: "rare", 전설: "epic", 신화: "myth" }[sk.tier] || "rare"); t.textContent = sk.tier; card.classList.add("skin--" + t.className.split("--")[1]); name.prepend(t); }
       const b = document.createElement("button"); b.type = "button";
       if (SKIN === sk) { b.textContent = "입는 중"; b.disabled = true; }
       else if (owned.has(id)) { b.textContent = "입기"; b.addEventListener("click", () => { wear(id); renderShop(); }); }
