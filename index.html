@@ -130,7 +130,7 @@
   .rank__tabs button.is-on { border-color: var(--ink); background: var(--ink); color: var(--slip); }
   .mode--ghost { background: transparent; color: var(--ink); }
   .mode:active { transform: translate(2px, 2px); }
-  /* 스테이지 난이도: two stamps side by side, the chosen one inked red */
+  /* 난이도: two stamps side by side, the chosen one inked red */
   .lvl { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 13px; color: var(--ink-soft); }
   .lvl span { margin-right: 4px; }
   .lvl button { font: inherit; font-family: var(--font-mark); font-weight: 900; font-size: 14px; letter-spacing: .08em; min-width: 64px; min-height: 36px; padding: 4px 12px;
@@ -241,7 +241,7 @@
       </div>
       <button class="link" id="storyNew" hidden>스토리모드 처음부터</button>
       <div class="lvl" id="stageLvl" role="group" aria-label="스테이지 난이도">
-        <span>스테이지 난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
+        <span>스테이지 난이도</span><button type="button" data-lvl="normal" aria-pressed="true">일반</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
       </div>
       <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
       <button class="link" id="devOpen" hidden>개발자 모드: 보스 비기 보기</button>
@@ -276,9 +276,9 @@
   <div class="screen" id="dev" hidden>
     <section class="slip" data-seal="試">
       <h2 class="shop-title">보스 비기</h2>
-      <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓰고, 체력이 다하면 마지막으로 종전을 쓴다. 종전을 버티면 벤다 (32초).</p>
+      <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓴다. 체력이 다하면 종전으로 더 센 비기에 종전 고유기와 섞는 공격까지 겹쳐 쓰고, 그걸 버티면 벤다 (32초).</p>
       <div class="lvl" id="devLvl" role="group" aria-label="보스 난이도">
-        <span>난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
+        <span>난이도</span><button type="button" data-lvl="normal" aria-pressed="true">일반</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
       </div>
       <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
@@ -1768,7 +1768,7 @@ sdk.initializeAsync()
     ["“조준선이 번쩍이면 이미 늦다. 미리 움직여라”", "골짜기에 들어간 사람이 하루 만에 백발이 되어 나왔다", "그 안에선 해가 빨리 졌다가 늦게 뜬다고 한다", "광음, 시간을 손에 쥔 노인", "물방울이 공중에서 멈췄다"],
     ["“사자후는 틈이 하나다. 그 틈으로 빠져나가라”", "맑은 날에도 봉우리 위로 천둥이 운다", "번개는 사람이 선 자리를 노린다고 한다", "벽력, 하늘을 부리는 도사", "발밑에 그을린 자국이 번진다"],
     ["“세 번 벤다. 세 번 다 자리를 옮겨라”", "이 길을 걸으면 발소리가 하나 더 들린다", "돌아본 자는 모두 제 그림자에 베였다", "추혼, 지나온 길을 칼로 바꾸는 자", "뒤에서 누가 따라온다"],
-    ["“여럿이 따라오면 크게 돌며 끌고 다녀라”", "골짜기의 꽃이 한철 내내 지지 않는다", "나비를 쫓아간 아이들이 돌아오지 않았다", "호접, 나비 떼를 부리는 여인", "보랏빛 가루가 날린다"],
+    ["“둘러싼 것이 겨누면 그 줄에서만 비켜라”","골짜기의 꽃이 한철 내내 지지 않는다", "나비를 쫓아간 아이들이 돌아오지 않았다", "호접, 나비 떼를 부리는 여인", "보랏빛 가루가 날린다"],
     ["“불길은 금방 꺼진다. 꺼진 자리로 건너라”", "들판에 바퀴 자국 모양으로 풀이 탔다", "밤마다 불덩이가 들판을 굴러다닌다고 한다", "화륜, 불바퀴를 타고 달리는 소년", "멀리서 바퀴 구르는 소리가 난다"],
     ["“흔들리는 것은 끝에서 잠깐 멈춘다”", "광산 마을에서 쇠 부딪는 소리가 끊이지 않는다", "한 손에 만 근을 든다는 장사가 있다고 한다", "철추, 쇠공 둘을 매달고 다니는 장사", "머리 위에서 쇠사슬이 운다"],
     ["“한자리에 오래 서지 마라. 땅도 지친다”", "마을 어귀의 장승이 하룻밤 새 자리를 옮겼다", "장승 앞을 지난 자는 땅이 꺼져 사라졌다고 한다", "장승, 천 년을 선 채로 마을을 지킨 수호신", "발밑에 금이 간다"],
@@ -1795,22 +1795,27 @@ sdk.initializeAsync()
   // Then all of it a third easier again (same day: "전체적으로 30퍼"): the clock tops out at 70, bosses at 6.5,
   // and every boss fight runs at BOSS_PACE. Then, measured against a person's quarter-second thumb (11-05), the
   // middle and the end flattened once more: the clock tops out at 56.
-  // 스테이지 모드 has two difficulties, chosen on the start screen, each with its own furthest stage (11-05: "이제는
-  // 너무 쉽네" — 보통 is tuned for a quarter-second thumb, 고수 for those who found that too easy):
+  // 스테이지 모드's two difficulties, picked on the start screen, each with its own furthest stage. 11-06: what was 고수
+  // became 일반 ("하드를 일반으로 해주고"), and a new 고수 harder again; 개발자 모드 shows the bosses at either.
   //   pace   how fast an ordinary stage runs (everything slower, every warning longer, below 1)
   //   base, slope  where the difficulty clock starts in 1-1, and its climb from 장 to 장 (squash)
   //   crowd  how much each kind of attack waits longer when several are mixed
   //   bamboo its gap, and how far it may close up late on
-  //   boss   how fast a boss fight runs; lv: how much stronger every boss's 비기 is
+  //   boss   how fast a boss fight runs; lv: how much stronger every boss's 비기 is; last: how much fiercer its 종전;
+  //   layer  how often its other moves come on top in its 종전; breath: the least and the most it rests between 비기
   const STAGE_LEVELS = {
-    normal: { name: "보통", pace: 0.92, base: 6, slope: 0.27, crowd: 0.13, bamboo: 0.64, floor: 0.7, boss: 0.83, lv: 0.5, top: "stageTop" }, // (11-06: "지금 기준에서 20퍼 정도 더 어렵게": the stages; its bosses' fights got their own harder, with the attacks between and 종전)
-    master: { name: "고수", pace: 1.0, base: 12, slope: 0.33, crowd: 0.06, bamboo: 0.6, floor: 0.62, boss: 0.95, lv: 2.5, top: "stageTopM" }, // (base: 1-1 already bites)
+    normal: { name: "일반", pace: 1.0, base: 12, slope: 0.33, crowd: 0.06, bamboo: 0.6, floor: 0.62, boss: 0.95, lv: 2.5, last: 4, layer: 1.6, breath: [1.0, 1.55], top: "stageTop" },
+    master: { name: "고수", pace: 1.1, base: 20, slope: 0.38, crowd: 0.03, bamboo: 0.55, floor: 0.55, boss: 1.05, lv: 4, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTopH" },
   };
-  let stageLevel = STAGE_LEVELS[store.get("stageLevel", "normal")] ? store.get("stageLevel", "normal") : "normal";
-  const SL = () => STAGE_LEVELS[stageLevel];
-  // the level a boss fight runs at: the stage's, or the one picked in 개발자 모드 (which shows the stages' bosses as they are)
-  const fightLevel = () => (G.stageRun ? stageLevel : G.dev ? G.dev.lvl : "");
-  const stageTop =() => Number(store.get(SL().top, "0")) || 0;
+  // (a new key: "stageLevel" may still say 고수 from when that meant what is 일반 now)
+  let stageLevel = STAGE_LEVELS[store.get("stageLv", "normal")] ? store.get("stageLv", "normal") : "normal";
+  { // the furthest stage reached at 일반: the old 고수 record carries over to it (they were the same difficulty)
+    const m = Number(store.get("stageTopM", "0")) || 0;
+    if (m > (Number(store.get("stageTop", "0")) || 0)) store.set("stageTop", m);
+  }
+  // the level in play: the stage's, or the one picked in 개발자 모드
+  const SL = () => STAGE_LEVELS[G.dev ? G.dev.lvl : stageLevel];
+  const stageTop = () => Number(store.get(STAGE_LEVELS[stageLevel].top, "0")) || 0;
   const squash = (t) => 28 + SL().base + (t - 8) * SL().slope;
   const bossLv = (w) => 0.7 * (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
   const BOSS_PACE = 0.8; // (스토리 모드; 스테이지 모드 and 개발자 모드 take their level's)
@@ -1907,7 +1912,7 @@ sdk.initializeAsync()
   }
   // the furthest stage ever reached: where a new run starts
   function reachStage(i) {
-    if (i > stageTop()) store.set(SL().top, i);
+    if (i > stageTop()) store.set(STAGE_LEVELS[stageLevel].top, i);
   }
   function stageStep(dt, realDt) {
     const sd = stageDef(G.sg);
@@ -1990,11 +1995,11 @@ sdk.initializeAsync()
     { stage: "4-5", name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", theme: "snow", sig: "frost", sigName: ["雪寒停", "설한정"],
       what: "날아오던 표창이 허공에서 1.6초 동안 얼어붙는다. 녹는 순간 두 배 가까운 속도로 다시 날아온다. 얼어 있는 동안 자리를 잡아야 한다.",
       intro: "이 고개를 넘은 자는 없다.", sigLine: "눈이 내리는 동안은 칼도 멈춘다. 녹을 때까지만.", down: "녹는구나… 백 년 만에." },
-    { stage: "5-5", name: "흑월교주", title: "黑月 · 흑월교주", look: "lord", accent: "#8b1a12", theme: "moon", sig: "void", sigName: ["黑月域", "흑월역"],
-      what: "화면 네 칸 중 내가 서 있는 칸이 검게 물든다. 1.3초 안에 빠져나가야 하고, 검은 칸에 있으면 죽는다. 그 사이 부채꼴 표창. 세 번.",
-      intro: "{me}. 네 사부도 그 검으로는 나를 막지 못했다.", sigLine: "이 땅의 넷 중 하나는 이미 달이 삼켰다.", down: "결국… 그 늙은이의 검이었나." },
+    { stage: "5-5", name: "흑월교주", title: "黑月 · 흑월교주", look: "lord", accent: "#8b1a12", theme: "moon", sig: "void", sigName: ["黑月墜", "흑월추"],
+      what: "내가 선 자리에 검은 달의 그림자가 드리우고, 1초 뒤 달이 내려앉는다. 달은 잠시 땅에 박혀 있다가 표창으로 깨진다. 달은 쉬지 않고 나를 따라 떨어져 설 곳이 점점 줄고, 그 사이 부채꼴 표창이 날아온다.",
+      intro: "{me}. 네 사부도 그 검으로는 나를 막지 못했다.", sigLine: "달이 떨어진다. 네가 선 곳으로.", down: "결국… 그 늙은이의 검이었나." },
     { stage: "6-5", name: "맹호", title: "猛虎 · 대숲을 뚫는 사내", look: "tiger", accent: "#c7782a", theme: "grove", sig: "charge", sigName: ["猛虎衝", "맹호충"],
-      what: "보스가 나를 향해 붉은 길을 깔고, 0.9초 뒤 그 길로 몸째 돌진한다. 벽에 닿으면 돌아서서 다시 노린다. 다섯 번.",
+      what: "세 가지를 섞어 쓴다. 붉은 길을 깔고 몸째 돌진하고, 내가 선 자리를 덮쳐 땅을 깨뜨리고, 발톱으로 나란한 세 줄을 긋는다.",
       intro: "대숲에 길이 없다고? 내가 지나가면 길이다.", sigLine: "피해 봐라. 범은 같은 길로 두 번 오지 않는다.", down: "범도… 넘어질 때가 있군." },
     { stage: "7-5", name: "무영", title: "無影 · 그림자 없는 자", look: "veil", accent: "#55525c", theme: "gorge", sig: "veil", sigName: ["無影劍", "무영검"],
       what: "경고 없이 보이지 않는 쿠나이가 사방에서 날아온다. 내 몸 가까이 와야만 보인다.",
@@ -2021,7 +2026,7 @@ sdk.initializeAsync()
       what: "1.4초 전의 내가 그림자가 되어, 내가 지나온 길을 그대로 따라온다. 멈춰 서면 따라잡히고, 닿으면 죽는다.",
       intro: "네가 지나온 길이 너를 벤다.", sigLine: "뒤를 돌아보지 마라. 그건 너다.", down: "과거를 이긴 자는 처음이다." },
     { stage: "15-5", name: "호접", title: "胡蝶 · 독나비의 여인", look: "butterfly", accent: "#7b4a9e", theme: "field", sig: "swarm", sigName: ["胡蝶陣", "호접진"],
-      what: "나비 떼가 나를 천천히 따라온다. 나보다 느리지만 흩어졌다 모이고, 반쯤 지나면 두 떼로 갈라져 양쪽에서 조여 온다.",
+      what: "나비 떼가 나를 멀찍이 둘러싸고 따라 돈다. 한 마리씩 나를 겨누면 붉은 선이 그어지고, 곧 그 선을 따라 쏜살같이 날아든다. 맴도는 나비는 닿아도 괜찮다.",
       intro: "예쁘지? 닿으면 꿈에서 깨지 못해.", sigLine: "날갯짓 하나하나가 독이야.", down: "나비는… 하룻밤이면 족하지." },
     { stage: "16-5", name: "화륜", title: "火輪 · 불바퀴를 탄 소년", look: "wheel", accent: "#e0531f", theme: "moon", sig: "wheel", sigName: ["風火輪", "풍화륜"],
       what: "불바퀴 둘이 벽에 튕기며 굴러다니고, 지나간 자리에 불길이 2초 남짓 남는다. 불길 사이로 길을 찾아야 한다.",
@@ -2071,8 +2076,6 @@ sdk.initializeAsync()
   }
   const withName = (text) => text.replace("{me}", me());
   const later = (sec, fn) => G.warns.push({ kind: "none", t: 0, dur: 0, delay: sec, fire: () => fn() });
-  const QUADS = () => [[0, 0, W / 2, H / 2], [W / 2, 0, W, H / 2], [0, H / 2, W / 2, H], [W / 2, H / 2, W, H]];
-  const inRect = (x, y, r) => x >= r[0] && x <= r[2] && y >= r[1] && y <= r[3];
   // a hazard that only steers things for a while (by the wall clock, so bending time can't stretch it); cuts nothing
   function controller(life, step, draw) {
     const h = { kind: "ctl", t: 0, dur: Infinity, life, at: performance.now(), best: Infinity, near: true, end: null,
@@ -2090,22 +2093,21 @@ sdk.initializeAsync()
   const drumBeat = () => Math.max(0.52, 0.62 - lvl() * 0.007); // 뇌음's beat: its 비기 and its music keep the same time
   // how far into the game this boss is (0 for 1-5 … 14 for 15-5, more on the endless road): its 비기 grow with it
   // and within one fight, each time it comes again it comes a little harder
-  // (종전, its last 비기 when its life is gone, comes fiercer: 2.5 levels, 4 at 고수)
-  const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 0.5 + (G.fight.last ? (fightLevel() === "master" ? 4 : 2.5) : 0) : 0);
-  // `active`: how long it stays black. Whoever calls it must lift it before the next one is chosen, or two rows
-  // could go black together and leave nowhere to stand.
-  function blackQuarter(warn = 1.3, other = false, active = 2.6) { // 흑월역's one quarter: the one you stand in (or, `other`, one beside it)
-    G.hazards.push({ kind: "void", t: 0, dur: warn + active, warn, q: null, best: Infinity, near: true,
+  // (종전, its last 비기 when its life is gone, comes fiercer: SL().last levels)
+  const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 0.5 + (G.fight.last ? SL().last : 0) : 0);
+  // 흑월: a black moon coming down on (x, y). Its shadow first (`warn`), then it lies there `stay` seconds, a blade to
+  // touch, and as it goes it breaks into kunai, their lines drawn first (11-06: the four quarters it used to darken
+  // were "1,2,3,4 분기 나눠져 있어서 지루": now it follows you wherever you are, and leaves less room each time)
+  function blackMoon(x, y, R, warn = 1.0, stay = 2.2) {
+    G.hazards.push({ kind: "moon", x, y, R, warn, t: 0, dur: warn + stay, best: Infinity, near: true,
       step() {
-        if (!this.q) {
-          const qs = QUADS(), mine = qs.findIndex((r) => inRect(P.x, P.y, r));
-          this.q = qs[other ? [1, 0, 3, 2][Math.max(0, mine)] : Math.max(0, mine)]; // `other`: the one beside yours, so the whole row goes
-          sfx.warn();
-        }
-        if (!this.rang && this.t >= this.warn) { this.rang = true; sfx.taiko(); G.shake = Math.max(G.shake, 8); }
+        if (!this.rang && this.t >= this.warn) { this.rang = true; sfx.taiko(); impact(this.x, this.y, 0.8, "#0e0c0b"); }
+        if (!this.broke && this.t >= this.dur - 0.6) { this.broke = true; burstAt(this.x, this.y, 8, rnd(0, Math.PI), 0.6, true); }
       },
-      dist() { return this.q && this.t >= this.warn && this.t < this.dur - 0.3 && inRect(P.x, P.y, this.q) ? 0 : Infinity; },
-      draw: drawVoid });
+      dist() { return this.t >= this.warn && this.t < this.dur - 0.25 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - this.R) : Infinity; },
+      warnAt(x, y, pad) { return this.t < this.dur - 0.25 && Math.hypot(x - this.x, y - this.y) < this.R + pad; },
+      draw: drawMoon });
+    sfx.warn();
   }
   // each returns how many seconds it takes
   const SIGS = {
@@ -2168,24 +2170,30 @@ sdk.initializeAsync()
       }, () => { if (G.freezeT > 0) { ctx.fillStyle = `rgba(214,232,245,${0.3 * Math.min(1, G.freezeT * 2)})`; ctx.fillRect(0, 0, W, H); } });
       return 4.6;
     },
-    void() { // black quarters, each where you stand (two at once after the first), fans of stars into what's left
-      // each one lifts 0.3 s before the next is chosen, so there's always a whole row (two quarters) to stand in
-      const gap = Math.max(2.8, 3.2 - lvl() * 0.04), warn = Math.max(1.1, 1.35 - lvl() * 0.02), active = gap - warn - 0.3;
-      for (let k = 0; k < 3; k++) {
-        later(k * gap, () => { blackQuarter(warn, false, active); if (k > 0 && lvl() >= 7) blackQuarter(warn, true, active); }); // a whole row only late on
-        later(k * gap + warn + 0.3, () => G.boss && actFan());
-      }
-      return 3 * gap + 0.8;
+    void() { // black moons, one after another, each coming down where you stand; they lie a while, then break into kunai
+      const n = 6 + Math.floor(lvl() / 3), gap = Math.max(0.7, 0.95 - lvl() * 0.02), warn = Math.max(0.85, 1.05 - lvl() * 0.015), stay = 2.2;
+      const R = S * (0.15 + Math.min(0.04, lvl() * 0.004));
+      for (let k = 0; k < n; k++) later(k * gap, () => blackMoon(clamp(P.x, R * 0.6, W - R * 0.6), clamp(P.y, H * 0.16, H - R * 0.6), R, warn, stay));
+      for (let k = 0; k < 3; k++) later(1.2 + k * 2.0, () => G.boss && actFan());
+      return (n - 1) * gap + warn + stay + 0.4;
     },
-    charge() { // the tiger lays a red road from itself through you, then runs it bodily; at the wall it turns and comes again
-      // (each run is over before the next road is laid: the longest run takes about 1.1s)
-      const n = 5 + Math.floor(lvl() / 4), warn = Math.max(0.75, 0.95 - lvl() * 0.015), each = warn + 1.25;
-      G.boss.wT = n * each + 1; G.boss.tx = G.boss.x; G.boss.ty = G.boss.y; // it holds still between runs: the runs are its only steps
+    charge() { // the tiger, never the same twice running (11-06: one road over and over was "단조롭다 지루해"): it runs a red
+      // road through you bodily, it pounces where you stand, it rakes three claws across you
+      const n = 6 + Math.floor(lvl() / 4), warn = Math.max(0.75, 0.95 - lvl() * 0.015), each = warn + 1.15;
+      const order = ["run", "pounce", "claw", "run", "claw", "pounce", "run", "pounce", "claw"], from = (G.fight ? G.fight.n : 0) * 2;
+      G.boss.wT = n * each + 1; G.boss.tx = G.boss.x; G.boss.ty = G.boss.y; // it holds still between moves: they are its only steps
       for (let k = 0; k < n; k++) later(k * each, () => {
         const b = G.boss; if (!b) return;
-        const u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x);
-        G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: u * 2.3, t: 0, dur: warn, delay: 0, fire(w) { runAt(ang, w.x, w.y - u * 0.8); } });
-        sfx.warn(); b.castT = 0.4;
+        const u = bossUnit(b.def), cy = b.y + u * 0.8, kind = order[(from + k) % order.length];
+        b.castT = 0.4; sfx.warn();
+        if (kind === "run") {
+          const ang = Math.atan2(P.y - cy, P.x - b.x);
+          G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: u * 2.3, t: 0, dur: warn, delay: 0, fire(w) { runAt(ang, w.x, w.y - u * 0.8); } });
+        } else if (kind === "pounce") pounce(warn + 0.1);
+        else { // three rakes across you, side by side, a beat apart
+          const ang = Math.atan2(P.y - cy, P.x - b.x) + Math.PI / 2 + rnd(-0.4, 0.4), nx = Math.cos(ang + Math.PI / 2), ny = Math.sin(ang + Math.PI / 2), gap = S * 0.13;
+          for (const o of [-1, 0, 1]) G.warns.push({ kind: "band", x: P.x + nx * gap * o, y: P.y + ny * gap * o, ang, w: S * 0.055, t: 0, dur: warn * 0.9, delay: (o + 1) * 0.08, fire(w) { landCut(w); } });
+        }
       });
       later(n * each - 0.2, () => { if (G.boss && !G.boss.dash) { G.boss.home = 1.0; G.boss.wT = 0; } }); // one great leap home, over your head
       return n * each + 0.6;
@@ -2283,28 +2291,38 @@ sdk.initializeAsync()
       });
       return n * gap + 1.0;
     },
-    swarm() { // butterflies out of her sleeves, drifting after you, slower than you; halfway they part and close from both sides
-      const b = G.boss, n = 10 + Math.round(lvl() * 0.7), life = 7.5, flies = [];
-      for (let i = 0; i < n; i++) flies.push({ x: b.x + rnd(-S * 0.1, S * 0.1), y: b.y + rnd(-S * 0.04, S * 0.1), vx: rnd(-1, 1) * S * 0.3, vy: rnd(0.3, 1) * S * 0.3, g: i % 2, ph: rnd(0, 6) });
-      G.hazards.push({ kind: "swarm", flies, t: 0, dur: life, best: Infinity, near: true, r: S * 0.02,
+    swarm() { // butterflies ring you at a distance, circling, following wherever you go (harmless as they circle); one after
+      // another each fixes on you, its red line drawn, and darts down it (11-06: a cloud drifting after you, slower than
+      // you, was easy "아무리 많아도": now they come at you from all round, fast, and you see each one coming)
+      const b = G.boss, n = 12 + Math.round(lvl() * 0.4), life = 7.8, ring = S * 0.42, flies = [];
+      const every = Math.max(0.28, 0.42 - lvl() * 0.01), aim = 0.6, speed = S * 1.5;
+      for (let i = 0; i < n; i++) flies.push({ x: b.x + rnd(-S * 0.1, S * 0.1), y: b.y + rnd(0, S * 0.1), vx: 0, vy: 0, ph: rnd(0, 6), a: (i / n) * Math.PI * 2, mode: "drift" });
+      G.hazards.push({ kind: "swarm", flies, t: 0, dur: life, best: Infinity, near: true, r: S * 0.02, next: 1.2, spin: 0,
         step(dt) {
-          const sp = S * (0.2 + 0.12 * (this.t / life) + lvl() * 0.004), split = this.t > life * 0.45, leaving = this.t > life - 0.8;
-          const c = [[0, 0, 0], [0, 0, 0]]; // each flock's middle, to keep it together
-          for (const f of flies) { const g = split ? f.g : 0; c[g][0] += f.x; c[g][1] += f.y; c[g][2]++; }
+          this.spin += dt * 0.5;
+          const leaving = this.t > life - 0.9;
           for (const f of flies) {
-            const g = split ? f.g : 0, cx = c[g][0] / c[g][2], cy = c[g][1] / c[g][2];
-            let tx = P.x, ty = P.y; // you; once they part, each half from its own side; at the end, away up into the sky
-            if (split) tx = P.x + (f.g ? 1 : -1) * S * 0.28 * (1 - Math.min(1, (this.t - life * 0.45) / 2));
-            if (leaving) { tx = f.x * 2 - P.x; ty = -S; }
-            let ax = tx - f.x, ay = ty - f.y; const d = Math.hypot(ax, ay) || 1; ax /= d; ay /= d;
-            ax += (cx - f.x) / (S * 1.2); ay += (cy - f.y) / (S * 1.2);
-            for (const o of flies) { const dx = f.x - o.x, dy = f.y - o.y, dd = dx * dx + dy * dy; if (o !== f && dd < (S * 0.075) ** 2) { const k = 1 / (Math.sqrt(dd) + S * 0.01); ax += dx * k * 0.9; ay += dy * k * 0.9; } } // a loose cloud, not a clump
-            f.ph += dt * 9; ax += Math.sin(f.ph) * 0.5; ay += Math.cos(f.ph * 0.7) * 0.5; // a butterfly never flies straight
-            f.vx += (ax * sp - f.vx) * Math.min(1, dt * 2.2); f.vy += (ay * sp - f.vy) * Math.min(1, dt * 2.2);
+            f.ph += dt * 9;
+            if (f.mode === "drift") { // round you, loosely, a little behind
+              const tx = leaving ? f.x : P.x + Math.cos(f.a + this.spin) * ring, ty = leaving ? -S : P.y + Math.sin(f.a + this.spin) * ring;
+              f.vx += ((tx - f.x) * 4 - f.vx * 2.5) * dt + Math.sin(f.ph) * S * 0.6 * dt; f.vy += ((ty - f.y) * 4 - f.vy * 2.5) * dt + Math.cos(f.ph * 0.7) * S * 0.6 * dt;
+            } else if (f.mode === "aim") { f.vx *= 0.8; f.vy *= 0.8; } // it hangs, wings shivering, its line drawn
             f.x += f.vx * dt; f.y += f.vy * dt;
+            if (f.mode === "dart" && (f.x < -S * 0.2 || f.x > W + S * 0.2 || f.y < -S * 0.2 || f.y > H + S * 0.2)) f.mode = "gone";
+          }
+          if ((this.next -= dt) <= 0 && !leaving && this.t < life - 1.3) { // the next one (two at once, late on, from either side of you)
+            this.next = every;
+            const ready = flies.filter((f) => f.mode === "drift" && f.x > 0 && f.x < W && f.y > 0 && f.y < H && Math.hypot(P.x - f.x, P.y - f.y) > S * 0.25);
+            const picks = ready.sort(() => Math.random() - 0.5).slice(0, lvl() >= 7 ? 2 : 1);
+            for (const f of picks) {
+              f.mode = "aim";
+              G.warns.push({ kind: "line", x: f.x, y: f.y, ang: Math.atan2(P.y - f.y, P.x - f.x), t: 0, dur: aim, delay: 0,
+                fire(w) { f.mode = "dart"; f.vx = Math.cos(w.ang) * speed; f.vy = Math.sin(w.ang) * speed; sfx.whoosh(); } });
+            }
+            if (picks.length) sfx.warn();
           }
         },
-        dist() { if (this.t > life - 0.6) return Infinity; let m = Infinity; for (const f of flies) m = Math.min(m, Math.hypot(P.x - f.x, P.y - f.y)); return Math.max(0, m - this.r); },
+        dist() { let m = Infinity; for (const f of flies) if (f.mode === "dart") m = Math.min(m, Math.hypot(P.x - f.x, P.y - f.y)); return Math.max(0, m - this.r); },
         draw: drawSwarm });
       sfx.whoosh(); flash("214,190,232", 0.18);
       return life + 0.3;
@@ -2487,9 +2505,9 @@ sdk.initializeAsync()
       for (let k = 0; k < 7; k++) later(1.6 + k * 1.05, () => { const [x, y] = edgePoint(); aimedLine(x, y, S * 0.8); });
       return 9.4;
     },
-    final() { // all of it: 추혼's shadow at your back, 흑월역's quarters coming down, fans of stars, and time itself bending
+    final() { // all of it: 추혼's shadow at your back, 흑월's moons coming down, fans of stars, and time itself bending
       SIGS.shadow();
-      for (let k = 0; k < 3; k++) later(1.2 + k * 2.8, () => blackQuarter(1.1, false, 1.4)); // each lifted before the next
+      for (let k = 0; k < 3; k++) later(1.2 + k * 2.8, () => blackMoon(clamp(P.x, S * 0.1, W - S * 0.1), clamp(P.y, H * 0.16, H - S * 0.1), S * 0.16, 1.0, 1.6));
       for (let k = 0; k < 3; k++) later(2.0 + k * 2.6, () => G.boss && actFan());
       later(4.5, () => { const h = controller(3.5, function () { G.timeK = this.real() % 1.75 < 1 ? 0.5 : 1.25; }, drawTime); h.end = () => { G.timeK = 1; }; });
       return 9.6;
@@ -2518,24 +2536,19 @@ sdk.initializeAsync()
     }
     ctx.restore();
   }
-  function drawVoid(h, time) {
-    if (!h.q) return;
-    const [x0, y0, x1, y1] = h.q, w = x1 - x0, hh = y1 - y0;
+  function drawMoon(h, time) { // 흑월: its shadow spreading inside a red ring; then a black moon sunk in the ground, a pale crescent on it
     ctx.save();
-    if (h.t < h.warn) { // the moon's shadow creeping over the quarter: hatching thickening, a red edge
+    if (h.t < h.warn) {
       const k = h.t / h.warn, pulse = 0.5 + 0.5 * Math.sin(time * 18);
-      ctx.fillStyle = `rgba(29,26,23,${0.08 + k * 0.3})`; ctx.fillRect(x0, y0, w, hh);
-      ctx.strokeStyle = `rgba(200,50,31,${0.5 + pulse * 0.4})`; ctx.lineWidth = 3; ctx.strokeRect(x0 + 2, y0 + 2, w - 4, hh - 4);
-      ctx.beginPath(); ctx.rect(x0, y0, w, hh); ctx.clip();
-      ctx.strokeStyle = `rgba(29,26,23,${0.15 + k * 0.4})`; ctx.lineWidth = 2;
-      for (let d = -hh; d < w; d += S * 0.05) { ctx.beginPath(); ctx.moveTo(x0 + d, y0); ctx.lineTo(x0 + d + hh, y1); ctx.stroke(); }
-    } else { // swallowed: black, a pale crescent in it, the edge burning red
-      ctx.globalAlpha = Math.max(0, Math.min(1, (h.dur - h.t) / 0.3));
-      ctx.fillStyle = "#0e0c0b"; ctx.fillRect(x0, y0, w, hh);
-      const cx = x0 + w / 2, cy = y0 + hh / 2, R = Math.min(w, hh) * 0.2;
-      ctx.fillStyle = "rgba(239,230,210,0.85)"; ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#0e0c0b"; ctx.beginPath(); ctx.arc(cx + R * 0.38, cy - R * 0.16, R * 0.92, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = "rgba(200,50,31,0.85)"; ctx.lineWidth = 2; ctx.strokeRect(x0 + 1, y0 + 1, w - 2, hh - 2);
+      ctx.fillStyle = `rgba(29,26,23,${0.1 + k * 0.3})`; ctx.beginPath(); ctx.arc(h.x, h.y, h.R * (0.3 + 0.7 * k), 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = `rgba(200,50,31,${0.5 + pulse * 0.4})`; ctx.lineWidth = 2.5; ctx.setLineDash([8, 6]);
+      ctx.beginPath(); ctx.arc(h.x, h.y, h.R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
+    } else {
+      ctx.globalAlpha = clamp((h.dur - h.t) / 0.25, 0, 1);
+      ctx.fillStyle = "#0e0c0b"; ctx.beginPath(); ctx.arc(h.x, h.y, h.R, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "rgba(239,230,210,0.8)"; ctx.beginPath(); ctx.arc(h.x - h.R * 0.22, h.y - h.R * 0.1, h.R * 0.5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = "#0e0c0b"; ctx.beginPath(); ctx.arc(h.x - h.R * 0.05, h.y - h.R * 0.2, h.R * 0.47, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = "rgba(200,50,31,0.85)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(h.x, h.y, h.R, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.restore();
   }
@@ -2593,8 +2606,10 @@ sdk.initializeAsync()
   function drawSwarm(h, time) { // 호접진: wings beating, a dust of violet after them
     const fade = Math.min(1, h.t / 0.4, Math.max(0, (h.dur - h.t) / 0.6)), acc = (G.boss && G.boss.def.accent) || "#7b4a9e";
     for (const f of h.flies) {
-      const flap = 0.35 + 0.65 * Math.abs(Math.sin(f.ph * 1.6)), r = h.r * 1.5;
-      ctx.save(); ctx.globalAlpha = fade; ctx.translate(f.x, f.y); ctx.rotate(Math.atan2(f.vy, f.vx) + Math.PI / 2);
+      if (f.mode === "gone") continue;
+      const flap = 0.35 + 0.65 * Math.abs(Math.sin(f.ph * (f.mode === "aim" ? 4 : 1.6))), r = h.r * 1.5;
+      // circling, it is harmless and drawn faint; fixed on you, or darting, it is the blade
+      ctx.save(); ctx.globalAlpha = fade * (f.mode === "drift" ? 0.45 : 1); ctx.translate(f.x, f.y); ctx.rotate(Math.atan2(f.vy, f.vx) + Math.PI / 2);
       ctx.fillStyle = hexA(acc, 0.25); ctx.beginPath(); ctx.arc(0, r * 0.4, r * 1.4, 0, Math.PI * 2); ctx.fill();
       for (const s of [-1, 1]) {
         ctx.fillStyle = acc; ctx.beginPath(); ctx.ellipse(s * r * 0.55 * flap, -r * 0.2, r * 0.6 * flap, r * 0.75, s * 0.5, 0, Math.PI * 2); ctx.fill();
@@ -2761,7 +2776,7 @@ sdk.initializeAsync()
   }
   // ---- 개발자 모드: pick a boss, watch its 비기 three times, hear its three lines
   const DEV = /[?&]dev\b/.test(location.search);
-  let devLevel = STAGE_LEVELS[store.get("devLevel", "normal")] ? store.get("devLevel", "normal") : "normal"; // 보통 or 고수, as in 스테이지 모드
+  let devLevel = STAGE_LEVELS[store.get("devLv", "normal")] ? store.get("devLv", "normal") : "normal"; // 일반 or 고수, as in 스테이지 모드
   function bossDefOf(d) {
     return { name: d.name, title: d.title, look: d.look, accent: d.accent, sig: d.sig, stage: d.stage, hp: 30, acts: [],
       intro: () => [{ who: d.name, text: withName(d.intro) }], down: () => [{ who: d.name, text: withName(d.down) }] };
@@ -2782,7 +2797,7 @@ sdk.initializeAsync()
   function devStep(dt, realDt) {
     stepLines(realDt);
     if (!G.dev) return; // its last words just ended: back at the list already
-    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], bossLv(G.dev.i) + STAGE_LEVELS[G.dev.lvl].lv, 32); }
+    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], bossLv(G.dev.i) + SL().lv, 32); }
     if (G.boss) moveBoss(realDt);
     G.safe = (G.phase !== "boss") || G.devInv;
   }
@@ -2794,7 +2809,7 @@ sdk.initializeAsync()
   function bossFight(dt, d, lv, seconds) {
     const b = G.boss, f = G.fight;
     f.lv = lv;
-    const bp = G.stageRun ? SL().boss * easeK() : G.dev ? STAGE_LEVELS[G.dev.lvl].boss : BOSS_PACE;
+    const bp = G.stageRun ? SL().boss * easeK() : G.dev ? SL().boss : BOSS_PACE;
     G.bossK = bp; // the whole fight a little slower than life (cleared with the field when it ends)
     G.t = 20 + lv * 6; // how hard the shared attacks are
     if (f.kill) return killStep(dt, b, f); // the last stroke: nothing else moves
@@ -2806,7 +2821,7 @@ sdk.initializeAsync()
     if (f.busy > 0 && (f.busy -= dt) <= 0) { sigSpent(b, f); if (f.last) return startKill(b, f); f.mix = { t: 0, k: 0 }; }
     if (f.wind) { f.wind.t += dt; b.wind = Math.min(1, f.wind.t / (f.wind.len || wl)); G.dark = Math.max(G.dark, 0.7 * b.wind); }
     if (f.mix && !talking) mixStep(dt, f, d);
-    if (f.last && f.busy > 0 && (f.layer -= dt) <= 0) { f.layer = fightLevel() === "master" ? 1.6 : 2.6; fixed("mix", () => mixAttack(f, d)); } // 종전: its other attacks on top
+    if (f.last && f.busy > 0 && (f.layer -= dt) <= 0) { f.layer = SL().layer; fixed("mix", () => (f.alt = !f.alt) ? subAttack(d) : mixAttack(f, d)); } // 종전: its other moves on top, by turns
     if (b.hp <= 0 && !f.last && f.said && !(f.busy > 0) && !talking) startLast(b, f, wl);
     else if (f.wait > 0) { // it has said its line: now the technique, a moment after the box has gone
       if (!talking) f.wait -= dt;
@@ -2837,13 +2852,112 @@ sdk.initializeAsync()
     const u = bossUnit(b.def);
     if (P.inv <= 0 && !G.safe && !(b.home > 0)) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u) return die(P.x, P.y, { boss: true });
   }
-  // after each 비기 (fight seconds into the breath), one of its other attacks, then another
-  const MIX_AT = [0.2, 1.2];
+  // after each 비기 (fight seconds into the breath), two of the ordinary attacks that suit it. Its second move of its own
+  // (SUBS) is kept for its 종전 (11-06: "고유한 하나의 패턴 + 어울리는 공용패턴으로 하다가 종전에는 고유한 두개의 패턴 + 공용")
+  const MIX_AT = [0.2, 1.3];
   function mixStep(dt, f, d) {
     const m = f.mix; m.t += dt;
     while (m.k < MIX_AT.length && m.t >= MIX_AT[m.k]) { m.k++; fixed("mix", () => mixAttack(f, d)); }
     if (m.k >= MIX_AT.length) f.mix = null;
   }
+  const subAttack = (d) => SUBS[d.sig].run();
+  const bossAt = () => (G.boss ? [G.boss.x, G.boss.y] : [W / 2, H * 0.24]);
+  // 맹호's pounce: a ring on the ground where you stand; it bounds there (its shadow left where it was) and the ground breaks under it
+  function pounce(warn) {
+    const b = G.boss; if (!b) return;
+    const u = bossUnit(b.def), R = u * 1.9, x = clamp(P.x, R, W - R), y = clamp(P.y, H * 0.22, H - R);
+    G.warns.push({ kind: "spike", x, y, r: R, seed: rnd(0, 6), t: 0, dur: warn, delay: 0, fire(w) {
+      const b = G.boss; if (!b) return;
+      if (!reduced) b.ghosts = [...(b.ghosts || []), { x: b.x, y: b.y, t: 0 }];
+      b.dash = null; b.next = null; b.x = b.tx = w.x; b.y = b.ty = w.y - u * 0.8; b.pop = 0.1; // (its body is a blade: it lands in the ring's middle, the ring wider than it)
+      spikeErupt(w.x, w.y, w.r, "bamboo"); impact(w.x, w.y, 1.4, "#c7782a"); sfx.slash();
+    } });
+  }
+  // a row of warnings from the boss out through you, going off one after another (a fire walking, lightning walking)
+  function marchAt(fire, R, step = 0.09, n = 7) {
+    const [bx, by] = bossAt(), ang = Math.atan2(P.y - by, P.x - bx);
+    for (let k = 1; k <= n; k++) {
+      const x = bx + Math.cos(ang) * k * R * 1.7, y = by + Math.sin(ang) * k * R * 1.7;
+      if (x < -R || x > W + R || y < -R || y > H + R) break;
+      G.warns.push({ kind: "spike", x, y, r: R, seed: rnd(0, 6), t: 0, dur: 0.75, delay: k * step, fire });
+    }
+    sfx.warn();
+  }
+  // Each boss's second move of its own, kept for its 종전, where it comes by turns with the ordinary ones on top of the
+  // 비기: quick, warned, in its own manner (11-06: "각각 어울리는 다른 고유한거 더 섞어서 액션감")
+  const SUBS = {
+    twin: { name: "교차 그림자", run() { // the two of them from either wall at once, their roads crossing where you stand
+      for (const x of [S * 0.05, W - S * 0.05]) G.warns.push({ kind: "clone", x, y: H * 0.2, ang: Math.atan2(P.y - H * 0.2, P.x - x), t: 0, dur: 0.8, delay: 0, fire(w) { cloneDash(w.x, w.y, w.ang); } });
+      sfx.warn();
+    } },
+    lotus: { name: "물결", run() { // three ripples bursting round you, one after another
+      for (let k = 0; k < 3; k++) later(k * 0.4, () => { const a = rnd(0, Math.PI * 2), d = S * rnd(0.15, 0.28); burstAt(clamp(P.x + Math.cos(a) * d, S * 0.08, W - S * 0.08), clamp(P.y + Math.sin(a) * d, S * 0.15, H - S * 0.08), 10, rnd(0, Math.PI), 0.9, true, "water"); sfx.warn(); });
+    } },
+    fire: { name: "불길 행진", run() { marchAt((w) => spikeErupt(w.x, w.y, w.r, "fire"), S * 0.075); } },
+    frost: { name: "고드름", run() { // five icicles let go, lanes round you lit first
+      for (let k = 0; k < 5; k++) G.warns.push({ kind: "drop", side: 0, p: clamp(P.x + (k - 2) * S * 0.13 + rnd(-S * 0.03, S * 0.03), S * 0.03, W - S * 0.03), t: 0, dur: 0.6, delay: k * 0.12, fire(w) { fireDrop(w); } });
+      sfx.warn();
+    } },
+    void: { name: "월륜", run() { // two crescents of stars, the second turned half a step
+      for (let k = 0; k < 2; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.7, delay: k * 0.5,
+        place(w) { [w.x, w.y] = bossAt(); w.ang = Math.atan2(P.y - w.y, P.x - w.x) + k * 0.085; sfx.warn(); },
+        fire(w) { for (let i = -5; i <= 5; i++) shoot("star", w.x, w.y, w.ang + i * 0.17, S * 0.55, { spin: 14, r: S * 0.014 }); sfx.whoosh(); } });
+    } },
+    charge: { name: "덮치기", run() { pounce(0.9); } },
+    veil: { name: "그림자 습격", run() { // three shadows step out round you, each running through where you are
+      for (let k = 0; k < 3; k++) G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur: 0.75, delay: k * 0.35,
+        place(w) { const a = rnd(0, Math.PI * 2), d = S * 0.4; w.x = clamp(P.x + Math.cos(a) * d, S * 0.04, W - S * 0.04); w.y = clamp(P.y + Math.sin(a) * d, S * 0.04, H - S * 0.04); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
+        fire(w) { cloneDash(w.x, w.y, w.ang); } });
+    } },
+    drum: { name: "북소리", run() { const [x, y] = bossAt(); roarAt(x, y); } },
+    mirror: { name: "빙벽", run() { spawnWall([1, 2, 3][Math.floor(Math.random() * 3)], "sword"); } },
+    rain: { name: "우산 돌리기", run() { const [x, y] = bossAt(); spiralAt(x, y, "water"); } },
+    swords: { name: "비검", run() { // three swords off the boss's shoulders, straight at you, one after another
+      for (let k = 0; k < 3; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.6, delay: k * 0.3,
+        place(w) { const [bx, by] = bossAt(); w.x = clamp(bx + (k - 1) * S * 0.3, S * 0.05, W - S * 0.05); w.y = by; w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
+        fire(w) { shoot("sword", w.x, w.y, w.ang, S * 1.4, { len: S * 0.12, r: S * 0.008 }); sfx.shing(); } });
+    } },
+    time: { name: "되감기", run() { // a ring of stars out through you, and back again along the same lines
+      const n = 12;
+      G.warns.push({ kind: "ring", x: 0, y: 0, n, off: 0, t: 0, dur: 0.8, delay: 0,
+        place(w) { [w.x, w.y] = bossAt(); w.off = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
+        fire(w) { const sp = S * 0.6, ret = clamp(Math.hypot(P.x - w.x, P.y - w.y) / sp + 0.4, 0.6, 2.2); for (let i = 0; i < n; i++) shoot("star", w.x, w.y, w.off + (i / n) * Math.PI * 2, sp, { spin: 16, r: S * 0.014, ret }); sfx.burst(); } });
+    } },
+    thunder: { name: "연쇄 낙뢰", run() { marchAt(strike, S * 0.065, 0.1); } },
+    shadow: { name: "도깨비불", run() { // three goblin fires from the edges, bending after you
+      for (let k = 0; k < 3; k++) later(k * 0.3, () => {
+        const [x, y] = edgePoint();
+        G.warns.push({ kind: "spot", x: clamp(x, 8, W - 8), y: clamp(y, 8, H - 8), t: 0, dur: 0.6, delay: 0, fire: () => { shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * 0.5, { home: 1.4, r: S * 0.012, skin: "wisp" }); sfx.whoosh(); } });
+        sfx.warn();
+      });
+    } },
+    swarm: { name: "독 날개", run() { // two clouds of scales bursting beside you
+      for (let k = 0; k < 2; k++) later(k * 0.45, () => { const a = rnd(0, Math.PI * 2), d = S * rnd(0.12, 0.22); burstAt(clamp(P.x + Math.cos(a) * d, S * 0.08, W - S * 0.08), clamp(P.y + Math.sin(a) * d, S * 0.15, H - S * 0.08), 12, rnd(0, Math.PI), 0.85, true); sfx.warn(); });
+    } },
+    wheel: { name: "불바퀴 질주", run() { // it runs a road through you on its wheels, then leaps home
+      const b = G.boss; if (!b) return;
+      const u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x);
+      G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: u * 2.3, t: 0, dur: 0.85, delay: 0, fire(w) { runAt(ang, w.x, w.y - u * 0.8); later(1.3, () => { if (G.boss && !G.boss.dash) G.boss.home = 1.0; }); } });
+      sfx.warn();
+    } },
+    pendulum: { name: "유성추", run() { // an iron ball flung down its lit lane at you, and hauled back up it on its chain
+      const [x, y] = bossAt(), ang = Math.atan2(P.y - y, P.x - x), sp = S * 0.9, ret = clamp(Math.hypot(P.x - x, P.y - y) / sp + 0.35, 0.5, 1.6);
+      G.warns.push({ kind: "band", x, y, ang, w: S * 0.08, t: 0, dur: 0.8, delay: 0, fire(w) { shoot("pellet", w.x, w.y, w.ang, sp, { r: S * 0.032, ret }); sfx.clang(); } });
+      sfx.warn();
+    } },
+    crumble: { name: "발 구르기", run() { // the ground bursting under your feet, three times, following you
+      const R = S * 0.08;
+      for (let i = 0; i < 3; i++) G.warns.push({ kind: "spike", x: 0, y: 0, r: R, seed: rnd(0, 6), t: 0, dur: 0.7, delay: i * 0.38,
+        place(w) { w.x = clamp(P.x, R, W - R); w.y = clamp(P.y, R, H - R); sfx.warn(); }, fire(w) { spikeErupt(w.x, w.y, w.r); G.shake = Math.max(G.shake, 8); } });
+      if (G.boss) G.boss.castT = 0.4;
+    } },
+    glare: { name: "눈빛", run() { // three glances from the eye on its brow, quick as light
+      for (let k = 0; k < 3; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.55, delay: k * 0.28,
+        place(w) { const [x, y] = bossAt(); w.x = x; w.y = y - (G.boss ? bossUnit(G.boss.def) * 1.2 : 0); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
+        fire(w) { shoot("pellet", w.x, w.y, w.ang, S * 1.6, { r: S * 0.012 }); sfx.tick(); } });
+    } },
+    final: { name: "삼연참", run() { bigTriple(); } },
+  };
   function mixAttack(f, d) { // never the same one twice running
     const pool = d.mix.length > 1 ? d.mix.filter((k) => k !== f.lastMix) : d.mix, k = pool[Math.floor(Math.random() * pool.length)];
     f.lastMix = k;
@@ -2852,7 +2966,7 @@ sdk.initializeAsync()
   const BOSS_WIND = 0.5; // seconds a boss gathers itself before each 비기 (cut from the end of its breath, so no slower for it)
   // the breath between 비기 (fight time). The wind-up and 破 made each one easier to read, so the breaths are shorter than
   // they were: more 비기 to a fight, not shorter warnings. 고수 breathes least, but never under a second.
-  const breathOf = (lv) => (fightLevel() === "master" ?Math.max(1.0, 1.55 - lv * 0.05) : Math.max(1.2, 1.65 - lv * 0.05));
+  const breathOf = (lv) => Math.max(SL().breath[0], SL().breath[1] - lv * 0.05);
   function windUp(b, d) { // it plants its feet and sinks, its colour drawn into it, and the 비기's name goes up over nothing yet
     G.fight.wind = { t: 0 };
     callout(...d.sigName); G.callout.wind = true;
@@ -2935,7 +3049,7 @@ sdk.initializeAsync()
       head.append(who, sig);
       const what = document.createElement("p"); what.textContent = d.what;
       const lines = document.createElement("dl");
-      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["등장", d.intro], ["비기", d.sigLine], ["쓰러질 때", d.down]]) {
+      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["종전 고유기", SUBS[d.sig].name], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["등장", d.intro], ["비기", d.sigLine], ["쓰러질 때", d.down]]) {
         const dt = document.createElement("dt"); dt.textContent = k;
         const dd = document.createElement("dd"); dd.textContent = withName(t);
         lines.append(dt, dd);
@@ -5222,15 +5336,15 @@ sdk.initializeAsync()
   $("goMon").addEventListener("click", () => startEndless("mon"));
   $("story").addEventListener("click", () => { begin(); startStory(Number(store.get("storyCh", "0")) || 0); });
   $("storyNew").addEventListener("click", () => { begin(); store.set("storyCh", 0); startStory(0); });
-  function stageLabels() { // the stage button says which stage a run starts from, once it's past 1-1, and the chosen difficulty is lit
+  function stageLabels() { // the stage button says the difficulty and which stage a run starts from; the chosen difficulty is lit
     const from = stageTop();
-    $("stageSub").textContent = from > 0 ? `${SL().name} ${stageDef(from).label}부터` : SL().name;
+    $("stageSub").textContent = from > 0 ? `${STAGE_LEVELS[stageLevel].name} ${stageDef(from).label}부터` : STAGE_LEVELS[stageLevel].name;
     $("stageSub").hidden = false;
     $("stageNew").hidden = from === 0;
     for (const b of document.querySelectorAll("#stageLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === stageLevel));
   }
   for (const b of document.querySelectorAll("#stageLvl button")) b.addEventListener("click", () => {
-    stageLevel = b.dataset.lvl; store.set("stageLevel", stageLevel); stageMemo.clear(); stageLabels();
+    stageLevel = b.dataset.lvl; store.set("stageLv", stageLevel); stageMemo.clear(); stageLabels();
   });
   $("goStage").addEventListener("click", () => { begin(); startStage(stageTop()); });
   $("stageNew").addEventListener("click", () => { begin(); startStage(0); });
@@ -5239,7 +5353,7 @@ sdk.initializeAsync()
   $("devOpen").hidden = !DEV;
   $("devOpen").addEventListener("click", () => { renderDev(); $("start").hidden = true; $("dev").hidden = false; });
   const devLabels = () => { for (const b of document.querySelectorAll("#devLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === devLevel)); };
-  for (const b of document.querySelectorAll("#devLvl button")) b.addEventListener("click", () => { devLevel = b.dataset.lvl; store.set("devLevel", devLevel); devLabels(); });
+  for (const b of document.querySelectorAll("#devLvl button")) b.addEventListener("click", () => { devLevel = b.dataset.lvl; store.set("devLv", devLevel); devLabels(); });
   devLabels();
   $("devClose").addEventListener("click", () => { $("dev").hidden = true; $("start").hidden = false; });
   $("devExit").addEventListener("click", () => { if (G.dev) devBack(); });
