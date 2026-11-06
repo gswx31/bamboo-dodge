@@ -2015,8 +2015,8 @@ sdk.initializeAsync()
       what: "보스의 우산 그림자 하나만 비가 피해 간다. 그림자가 옮겨 갈 자리가 먼저 보이고, 소나기가 쏟아질 때 그 밖에 있으면 죽는다. 다섯 번.",
       intro: "비가 오면 칼을 뽑지 않는다. 비가 대신 벤다.", sigLine: "내 우산 밑이 아니면 하늘 아래 전부가 칼이다.", down: "비가… 그쳤군." },
     { stage: "11-5", name: "검총주", title: "劍塚主 · 칼 무덤의 주인", look: "swords", accent: "#7a7f86", theme: "field", sig: "swords", sigName: ["萬劍歸宗", "만검귀종"],
-      what: "화면 위에 칼이 한 줄로 걸렸다가 왼쪽부터 차례로 떨어지고, 이어서 오른쪽부터 떨어진다.",
-      intro: "여기 묻힌 칼이 만 자루다. 오늘 모두 깨운다.", sigLine: "칼이 주인을 찾아 떨어진다.", down: "칼들이… 너를 주인으로 아는구나." },
+      what: "칼무덤에서 칼이 솟아 땅에 박힌다. 박힌 칼마다 보스를 향한 붉은 선이 그어지고, 곧 모든 칼이 그 선을 따라 보스에게 한꺼번에 날아간다. 선과 선 사이나 칼 뒤쪽에 서야 한다. 칼을 거둔 보스는 사방으로 다시 터뜨린다. 두 번.",
+      intro: "여기 묻힌 칼이 만 자루다. 오늘 모두 깨운다.", sigLine: "칼은 결국 주인에게 돌아온다.", down: "칼들이… 너를 주인으로 아는구나." },
     { stage: "12-5", name: "광음", title: "光陰 · 시간을 쥔 노인", look: "time", accent: "#b08d4a", theme: "gorge", sig: "time", sigName: ["光陰", "광음"],
       what: "세상이 느려졌다 빨라졌다를 되풀이한다. 내 몸만 제 속도라서, 느릴 때 자리를 잡아 두어야 빠를 때 산다.",
       intro: "느린 것도 빠른 것도 내 손 안에 있다.", sigLine: "한 숨은 길고, 한 숨은 짧다.", down: "시간이… 너의 편이었군." },
@@ -2247,28 +2247,37 @@ sdk.initializeAsync()
       });
       return n * gap + 1.2;
     },
-    swords() { // a row of swords hung across the sky, falling one after another, there and back; a few are missing each time
-      // The swords stand too close to stand between: the way through is the gap in the row, never where you stand,
-      // so you see it while they hang and walk under it. They hang high enough to leave no strip above them.
-      const n = 26, gap = W / n, hole = lvl() >= 6 ? 3 : 4;
-      const step = Math.max(0.06, 0.075 - lvl() * 0.001), go = S * (1.3 + lvl() * 0.015), pass = 0.85 + n * step + 0.9;
-      // left to right, right to left, then from both walls in to the middle (and, late on, from the middle out)
-      const orders = [(i) => i, (i) => n - 1 - i, (i) => Math.min(i, n - 1 - i), (i) => Math.abs(i - (n - 1) / 2)].slice(0, lvl() >= 9 ? 4 : 3);
-      orders.forEach((order, k) => later(k * pass, () => {
-        const mine = P.x / gap, far = [], all = [];
-        for (let f = 1; f + hole < n; f++) { all.push(f); const d = Math.abs(f + hole / 2 - mine); if (d >= n * 0.18 && d <= n * 0.55) far.push(f); }
-        const pick = far.length ? far : all, from = pick[Math.floor(Math.random() * pick.length)];
-        for (let col = 0; col < n; col++) if (col < from || col >= from + hole)
-          shoot("sword", (col + 0.5) * gap, S * 0.17, Math.PI / 2, 0, { len: S * 0.13, r: S * 0.013, hold: 0.85 + order(col) * step, go });
-        // the way through, top to bottom, as a faint dashed door (the gap itself can sit up under the bars)
-        const x0 = from * gap, x1 = (from + hole) * gap;
-        G.hazards.push({ kind: "door", t: 0, dur: 0.85 + n * step + 0.4, best: Infinity, near: true, dist: () => Infinity, draw(h) {
-          ctx.save(); ctx.strokeStyle = `rgba(29,26,23,${0.2 * clamp(Math.min(h.t / 0.2, (h.dur - h.t) / 0.3), 0, 1)})`; ctx.lineWidth = 1.5;
-          ctx.setLineDash([6, 8]); ctx.strokeRect(x0 + 2, -4, x1 - x0 - 4, H + 8); ctx.restore();
-        } });
-        sfx.warn();
-      }));
-      return (orders.length - 1) * pass + 0.85 + n * step + 1.2;
+    swords() { // 萬劍歸宗, as its name says (11-06: the row of swords falling in turn over a gap to stand under was "초딩같다"):
+      // the sword tomb wakes, swords bursting up out of the ground round you (a glint where each will come) and standing
+      // there, point to their master; each one's red line comes up, and all of them fly home at once down those lines,
+      // which meet in it. Stand between the lines, or behind a sword. Then from its hands they go out again every way.
+      // Twice, more swords the second time.
+      const standBy = Math.max(1.6, 1.9 - lvl() * 0.02), go = S * (1.5 + lvl() * 0.02), round = standBy + 2.3;
+      for (let r = 0; r < 2; r++) later(r * round, () => {
+        const b = G.boss; if (!b) return;
+        const n = 9 + Math.floor(lvl() * 0.6) + r * 3, pts = [];
+        for (let i = 0; i < n * 8 && pts.length < n; i++) { // in the lower field, never on you, never on each other
+          const x = rnd(S * 0.06, W - S * 0.06), y = rnd(H * 0.32, H - S * 0.06);
+          if (Math.hypot(x - P.x, y - P.y) < S * 0.14 || pts.some(([px, py]) => Math.hypot(px - x, py - y) < S * 0.1)) continue;
+          pts.push([x, y]);
+        }
+        pts.forEach(([x, y], i) => {
+          const rise = (i / pts.length) * 0.7, ang = Math.atan2(b.y - y, b.x - x);
+          G.warns.push({ kind: "spike", x, y, r: S * 0.035, seed: rnd(0, 6), t: 0, dur: 0.5, delay: rise, fire(w) {
+            shoot("sword", w.x, w.y, ang, 0, { len: S * 0.12, r: S * 0.009, hold: standBy - rise - 0.5, go }); // standing, trembling, then home
+            stain(w.x, w.y, S * 0.02); if (i % 3 === 0) sfx.shing();
+          } });
+          G.warns.push({ kind: "line", x, y, ang, t: 0, dur: 0.85, delay: standBy - 0.85, fire() {} }); // the way it will fly
+        });
+        later(standBy, () => { sfx.whoosh(); G.shake = Math.max(G.shake, 8); });
+        later(standBy + 0.9, () => { // gathered in its hands, and out again every way (one of them at you)
+          const nb = 14 + Math.floor(lvl() / 3);
+          G.warns.push({ kind: "ring", x: 0, y: 0, n: nb, off: 0, t: 0, dur: 0.8, delay: 0,
+            place(w) { [w.x, w.y] = bossAt(); w.off = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); if (G.boss) G.boss.castT = 0.5; },
+            fire(w) { for (let i = 0; i < nb; i++) shoot("sword", w.x, w.y, w.off + (i / nb) * Math.PI * 2, S * 0.85, { len: S * 0.11, r: S * 0.009 }); sfx.burst(); flash("255,250,235", 0.15); } });
+        });
+      });
+      return round + standBy + 2.0;
     },
     time() { // slow, then fast, over and over; your finger keeps its own time
       const h = controller(8.5, function (dt) {
