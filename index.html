@@ -827,6 +827,10 @@ sdk.initializeAsync()
     hiss: () => noise(0.9, 3200, 1400, 0.07, "highpass"),
     combo: () => { tone(660, 0.18, 0.07, "triangle", 990); setTimeout(() => tone(990, 0.22, 0.07, "triangle", 1480), 70); noise(0.25, 5000, 800, 0.2, "highpass"); },
     coin: sound((t) => { pluck(t, 1318.5, 0.16, sfxBus, 0.8); pluck(t + 0.07, 1760, 0.14, sfxBus, 0.9); }), // 엽전, two bright strings
+    gather: sound(() => { noise(0.42, 300, 2400, 0.1); tone(110, 0.42, 0.045, "sine", 220); }), // a boss drawing breath before its 비기
+    release: sound((t) => gong(t, 0.06, sfxBus, 560, 1.0)), // a 비기 outlasted (破)
+    lock: sound((t) => { if (!spaced("lock", 90)) return; tone(2600, 0.06, 0.02, "triangle", 2400); woodblock(t, 0.03, sfxBus, 2100); }), // a blade's way set: it goes now
+    sheath: sound((t) => { woodblock(t, 0.08, sfxBus, 1400); tone(3400, 0.05, 0.03, "triangle", 3300); }), // the sword back in its scabbard: click
   };
 
   // ------------------------------------------------------------------ music: 羽調 (A C D E G)
@@ -855,7 +859,10 @@ sdk.initializeAsync()
   const M = { lvl: -1, step: 0, next: 0, mel: null, up: false, song: null };
   function musicLevel() {
     if (G.mode !== "play") return -1;
-    if (G.stageRun) return Math.min(3, Math.floor(stageDef(G.sg).w / 3) + (G.boss ? 1 : 0));
+    if (G.stageRun) { // drums from the first 장 on, a step up for each 장's harder half and for a stage's last six seconds
+      const sd = stageDef(G.sg), end = !sd.boss && G.phase === "fight" && sd.dur - G.ct < 6 ? 1 : 0;
+      return Math.min(3, Math.min(2, Math.floor(sd.w / 4) + 1) + (sd.s >= 2 ? 1 : 0) + end);
+    }
     if (G.story) return Math.min(2, Math.floor(G.ch / 2) + (G.boss ? 1 : 0));
     const l = G.stage < 3 ? 0 : G.stage < 7 ? 1 : G.t < FRENZY ? 2 : 3;
     return G.kind === "hard" ? Math.min(3, l + 1) : l;
@@ -934,7 +941,8 @@ sdk.initializeAsync()
     final: { bpm: 138, scale: "dark", ost: [5, 3, 5, 6, 5, 3, 5, 7, 5, 3, 5, 6, 4, 3, 2, 1], harm: [0, 0, -1, 1], boom: [0, 3, 6, 8, 11, 14], wood: [4, 10, 12], shk: 2, gongEvery: 1, canon: 4, low: true },
   };
   const bossSong = () => (G.mode === "play" && G.boss && G.phase !== "bossDown" && BOSS_MUSIC[G.boss.def.sig]) || null;
-  const songBpm = (m) => (m.drumSync ? 60 / drumBeat() : m.timed ? m.bpm * (G.timeK || 1) : m.bpm);
+  // (뇌음's beat is in the fight's time, which runs slower than the wall clock the music keeps)
+  const songBpm = (m) => (m.drumSync ? (60 * (G.bossK || 1)) / drumBeat() : m.timed ? m.bpm * (G.timeK || 1) : m.bpm);
   function bossBeat(step, t, m, sp) {
     if (m.freeze && G.freezeT > 0) return; // the music holds its breath with everything else
     const s = step % 16, bar = Math.floor(step / 16), sc = SCALES[m.scale], root = m.harm[bar % m.harm.length];
@@ -1021,7 +1029,7 @@ sdk.initializeAsync()
       t: 0, rt: 0, bonus: 0, near: 0, combo: 0, comboT: 0, stage: 0, slow: 1, slowT: 0, shake: 0,
       shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], decals: [], snaps: [], timers: {}, dieT: 0,
       flash: 0, zoom: 0, stopT: 0, dark: 0, bigT: 0, lastBig: "",
-      bigSeen: new Set(), callout: null, stamp: null,
+      bigSeen: new Set(), callout: null, stamp: null, killer: null, killedBy: "", killerY: null, finalCut: null,
       phase: "", pt: 0, ct: 0, st: 0, boss: null, lines: [], lineI: 0, lineT: 0, onLines: null, card: null, safe: false, cleared: false, banner: null,
       timeK: 1, bossK: 1, freezeT: 0,
       mons: [], seen: new Set(), monT: 1, msg: null,
@@ -1068,6 +1076,7 @@ sdk.initializeAsync()
     { from: 84, key: "mist", run: bigMist, name: ["毒霧", "독무"] },
   ];
   function runBig(b) { G.lastBig = b.key; G.bigSeen.add(b.key); b.run(); G.dark = 1; sfx.taiko(); if (b.name) callout(...b.name); }
+  const mistGap = (t) => (G.lastBig === "mist" ? Math.max(t, 7.3) : t); // the next big move waits till 독무 has cleared
   // a technique's name, called out as it is used: great hanja, its reading beneath
   function callout(h, k) { G.callout = { h, k, at: performance.now() }; }
 
@@ -1091,17 +1100,23 @@ sdk.initializeAsync()
   }
   function shoot(kind, x, y, ang, speed, extra = {}) {
     const f = 1 + Math.min(1.2, endless() * 0.07); // the endless 段 throw harder
-    const s = Object.assign({ kind, x, y, vx: Math.cos(ang) * speed * f, vy: Math.sin(ang) * speed * f, rot: ang, spin: 0, len: 0, r: S * 0.012, best: Infinity, near: false, age: 0, bounces: 0, home: 0, hold: 0, go: 0 }, extra);
+    const s = Object.assign({ kind, x, y, ox: x, oy: y, vx: Math.cos(ang) * speed * f, vy: Math.sin(ang) * speed * f, rot: ang, spin: 0, len: 0, r: S * 0.012, best: Infinity, near: false, age: 0, bounces: 0, home: 0, hold: 0, go: 0 }, extra);
     s.go *= f;
+    if (G.phase === "boss" && G.fight && G.fight.busy > 0) s.sig = G.fight.n; // thrown by this 비기 (broken up when it's spent)
     G.shots.push(s);
     return s;
   }
 
+  // a throw with no warning must still be seeable: from a wall close by it comes slower, never sooner than `sec` (real time)
+  function reachable(x, y, speed, sec) {
+    const k = (1 + Math.min(1.2, endless() * 0.07)) * (G.bossK || 1) * Math.max(1, G.timeK || 1); // (as shoot() and the clock will have it)
+    return Math.min(speed, Math.hypot(P.x - x, P.y - y) / (sec * k));
+  }
   // 죽림 수련's bamboo spears: no warning, that is the old game — read them as they come
   function spawnBamboo() {
     const [x, y] = edgePoint();
     const aim = Math.atan2(P.y - y, P.x - x) + rnd(-0.45, 0.45) * (Math.random() < 0.6 ? 1 : 2.2);
-    shoot("bamboo", x, y, aim, S * rnd(0.42, 0.62) * (1 + G.t / 160), { len: S * rnd(0.08, 0.12), r: S * 0.006 });
+    shoot("bamboo", x, y, aim, reachable(x, y, S * rnd(0.42, 0.62) * (1 + G.t / 160), 0.55), { len: S * rnd(0.08, 0.12), r: S * 0.006 });
     if (Math.random() < 0.25) sfx.whoosh();
   }
   function spawnLine() {
@@ -1109,12 +1124,22 @@ sdk.initializeAsync()
     for (let i = 0; i < n; i++) {
       const [x, y] = edgePoint(), [tx, ty] = aimPoint();
       const ang = Math.atan2(ty - y + rnd(-S * 0.12, S * 0.12) * i, tx - x + rnd(-S * 0.12, S * 0.12) * i);
-      G.warns.push({ kind: "line", x, y, ang, t: 0, dur: 0.85 - Math.min(0.25, G.t / 400), delay: i * 0.18, fire() {
+      const dur = 0.85 - Math.min(0.25, G.t / 400);
+      G.warns.push({ kind: "line", x, y, ang, t: 0, dur, delay: i * 0.18, fire() {
         for (let k = 0; k < 3; k++) setTimeout(() => G.mode === "play" && shoot("star", x, y, ang, S * 1.55, { spin: 18, r: S * 0.016 }), k * 70);
         sfx.whoosh();
       } });
+      thrower(x, y, ang, i * 0.18, dur);
     }
     sfx.warn();
+  }
+  // whoever throws it: a figure in ink at the edge it comes from, there while it aims, gone in a puff once it has thrown
+  // (beside the line, never on it; out on the stage only — a boss's 비기 is the boss's)
+  function thrower(x, y, ang, delay, dur) {
+    if (G.boss || reduced || y < H * 0.16 || G.parts.filter((p) => p.kind === "thrower").length >= 4) return; // (none up under the bars)
+    const r = S * 0.03, side = Math.random() < 0.5 ? 1 : -1;
+    const px = clamp(x, r * 1.4, W - r * 1.4) - Math.sin(ang) * r * 1.6 * side, py = clamp(y, r * 1.4, H - r * 1.4) + Math.cos(ang) * r * 1.6 * side;
+    G.parts.push({ kind: "thrower", x: clamp(px, r, W - r), y: clamp(py, r, H - r), ang, r, vx: 0, vy: 0, t: -delay, life: dur + 0.3, at: dur, puffed: false });
   }
   function spawnSlash(cross) {
     const angs = cross ? [Math.PI / 4, -Math.PI / 4] : [[0, Math.PI / 2, Math.PI / 4, -Math.PI / 4][Math.floor(Math.random() * 4)]];
@@ -1132,9 +1157,9 @@ sdk.initializeAsync()
   function burstAt(x, y, n, off, dur, follow, skin) {
     G.warns.push({ kind: "ring", x, y, n, off, follow, t: 0, dur, delay: 0, fire: () => {
       for (let i = 0; i < n; i++) shoot("kunai", x, y, off + (i / n) * Math.PI * 2, S * 0.5, { r: S * 0.01, skin });
-      sfx.burst(); G.shake = Math.max(G.shake, 8); burstInk(x, y, 14); stain(x, y, S * 0.05); flash("200,50,31", 0.12);
+      sfx.burst(); G.shake = Math.max(G.shake, 8); burstInk(x, y, 14); stain(x, y, S * 0.05); flash("29,26,23", 0.05);
       // 아수라's follow-up: a second burst at once, turned half a step, into the gaps you were standing in
-      if (hard() && !follow && Math.random() < HARD.follow) { burstAt(x, y, n, off + Math.PI / n, 0.45, true); sfx.warn(); }
+      if (hard() && !follow && Math.random() < HARD.follow) { burstAt(x, y, n, off + Math.PI / n, 0.7, true); sfx.warn(); }
     } });
   }
   function spawnHoming() {
@@ -1143,6 +1168,7 @@ sdk.initializeAsync()
       shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * 0.58, { home: 1.6, r: S * 0.011, red: true });
       sfx.whoosh();
     } });
+    thrower(x, y, Math.atan2(P.y - y, P.x - x), 0, 0.55);
   }
   // a wall of bamboo (or a wave of water blades) with one gap
   function spawnWall(forceSide, kind = "bamboo") {
@@ -1325,7 +1351,7 @@ sdk.initializeAsync()
           const dx = P.x - this.ox, dy = P.y - this.oy, al = dx * Math.cos(this.ang) + dy * Math.sin(this.ang), ac = -dx * Math.sin(this.ang) + dy * Math.cos(this.ang);
           if (Math.abs(al - this.pos) < S * 0.17 && Math.abs(ac) < this.hw) { // caught: thrown the way it goes
             this.hit = true;
-            P.push = { vx: Math.cos(this.ang) * S * 1.8, vy: Math.sin(this.ang) * S * 1.8, t: 0.32 };
+            P.push = { vx: Math.cos(this.ang) * S * 1.4, vy: Math.sin(this.ang) * S * 1.4, t: 0.25 };
             G.shake = Math.max(G.shake, 10); burstInk(P.x, P.y, 12); sfx.thud(); buzz(30);
           }
         },
@@ -1339,7 +1365,7 @@ sdk.initializeAsync()
   // ---- 탄지신통: qi flicked from a fingertip — small and very fast, the aim line only a blink ahead
   function bigFlick() {
     const n = 5 + Math.min(4, Math.floor(G.t / 40));
-    for (let i = 0; i < n; i++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.38, delay: i * 0.2,
+    for (let i = 0; i < n; i++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.38, delay: i * 0.2, quick: true,
       place(w) { const [x, y] = edgePoint(); w.x = x; w.y = y; w.ang = Math.atan2(P.y - y, P.x - x); },
       fire(w) { shoot("pellet", w.x, w.y, w.ang, S * 2.3, { r: S * 0.009 }); sfx.tick(); } });
   }
@@ -1347,7 +1373,10 @@ sdk.initializeAsync()
   // ---- 사자후: a roar that shakes the ground — three rings of force spread out, each with one gap to slip through
   function bigRoar() { const [x, y] = awayPoint(S * 0.2); roarAt(x, y); }
   function roarAt(x, y) {
-    const rings = [0, 0.5, 1.0].map((delay) => ({ delay, gapA: rnd(0, Math.PI * 2), gapW: 0.95 }));
+    // the gaps follow on from one another: the first opens on your side, each next one a little round from the last,
+    // so there is always one way out that runs through all three (left to chance, some throws had none)
+    let g = Math.atan2(P.y - y, P.x - x) + rnd(-1.2, 1.2);
+    const rings = [0, 0.5, 1.0].map((delay, i) => ({ delay, gapA: i ? (g += rnd(-0.95, 0.95)) : g, gapW: 0.95 }));
     G.warns.push({ kind: "roar", x, y, rings, t: 0, dur: 0.8, delay: 0, fire(w) {
       const v = S * 0.75;
       G.hazards.push({ kind: "roar", x: w.x, y: w.y, rings: w.rings, v, th: S * 0.035, t: 0, dur: 1.0 + Math.hypot(W, H) / v, best: Infinity, near: false,
@@ -1363,7 +1392,7 @@ sdk.initializeAsync()
           return m;
         },
         draw: drawRoar });
-      G.shake = Math.max(G.shake, reduced ? 0 : 16); flash("200,50,31", 0.12); sfx.roar(); buzz([40, 20, 40]);
+      G.shake = Math.max(G.shake, reduced ? 0 : 16); flash("29,26,23", 0.05); sfx.roar(); buzz([40, 20, 40]);
     } });
     sfx.warn();
   }
@@ -1497,10 +1526,18 @@ sdk.initializeAsync()
     clearField();
     G.phase = "bossIntro";
     G.boss = { def, x: W / 2, y: -S * 0.3, tx: W / 2, ty: H * 0.24, wT: 1.5, hp: 1, actT: 1.2, last: "", hurtT: 0, castT: 0, downT: 0, mid: false, landed: false };
-    if (sd) G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; // 스테이지 모드: its 비기 on a clock (bossFight)
+    if (sd) G.fight = { wait: 0, sigT: 1.0, n: 0, said: false }; // 스테이지 모드: its 비기 on a clock (bossFight)
     G.card = { boss: def, at: performance.now() };
     sfx.taiko(); setTimeout(() => sfx.taiko(), 220); G.dark = 1;
-    say(def.intro(), () => { G.phase = "boss"; });
+    if (sd && bossSeen.has(G.sg)) { // again: straight into it, its words were heard the first time ("just once more" stays quick)
+      G.fight.said = true; G.card.life = 1.0; G.phase = "boss"; G.timers.drift = 1.6; return;
+    }
+    if (sd) bossSeen.add(G.sg);
+    say(def.intro(), () => {
+      G.phase = "boss";
+      if (G.card && G.card.boss) G.card.at = Math.min(G.card.at, performance.now() - 1800); // (its words tapped through: the card goes too)
+      G.timers.drift = Math.max(G.timers.drift ?? 0, 1.6);
+    });
   }
   function bossDown() {
     const b = G.boss;
@@ -1535,7 +1572,7 @@ sdk.initializeAsync()
   // a scene change: whatever is in the air turns to ink
   function clearField() {
     for (const s of G.shots) { if (!s.dead) { s.dead = true; shatter(s); } }
-    G.warns = []; G.hazards = []; G.cuts = []; G.snaps = [];
+    G.warns = []; G.hazards = []; G.cuts = []; G.snaps = []; G.parts = G.parts.filter((p) => p.kind !== "thrower");
     G.timeK = 1; G.bossK = 1; G.freezeT = 0; // and whatever a 비기 had done to time is undone
   }
   // something heavy lands: the world catches for a blink, the ground shakes, a ring of ink runs out from it
@@ -1565,7 +1602,7 @@ sdk.initializeAsync()
         const pool = ch.big.length > 1 ? ch.big.filter((k) => k !== G.lastBig) : ch.big;
         const key = pool[Math.floor(Math.random() * pool.length)];
         runBig(BIG.find((b) => b.key === key));
-        G.bigT = rnd(ch.bigEvery[0], ch.bigEvery[1]);
+        G.bigT = mistGap(rnd(ch.bigEvery[0], ch.bigEvery[1]));
       }
       if (G.ct >= ch.fight) enterBoss();
     } else if (G.phase === "boss") {
@@ -1594,7 +1631,7 @@ sdk.initializeAsync()
     });
     // its body is a blade too: the robe, from the chest down
     const u = bossUnit(def);
-    if (P.inv <= 0) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u * 1.0) return die(P.x, P.y);
+    if (P.inv <= 0) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u * 1.0) return die(P.x, P.y, { boss: true });
     // the chapter's first attack keeps coming, slower, and the bamboo too
     const k = G.stageRun ? stageDef(G.sg).world.pats[0] : CHAPTERS[G.ch].pats[0];
     G.timers[k] -= dt;
@@ -1607,16 +1644,38 @@ sdk.initializeAsync()
     b.hurtT = Math.max(0, b.hurtT - dt); b.castT = Math.max(0, b.castT - dt);
     if (b.downT > 0) b.downT += dt;
     const u = bossUnit(b.def);
+    const leaping = b.home > 0;
     b.home = Math.max(0, (b.home || 0) - dt);
+    if (leaping && b.home <= 0 && Math.hypot(b.tx - b.x, b.ty - b.y) > S * 0.01) b.home = 0.02; // (out of reach till it is down)
+    b.pop = Math.max(0, (b.pop || 0) - dt);
+    if (b.reel && (b.reel.t += dt) > 0.12) b.reel = null;
+    if (b.hpShow == null || b.hpShow < b.hp) b.hpShow = b.hp;
+    else if ((b.hpHold = (b.hpHold || 0) - dt) <= 0) b.hpShow += (b.hp - b.hpShow) * Math.min(1, dt * 12);
     if (b.dash) { // 맹호충: running its road, by the fight's own clock
       const d = b.dash; d.t += dt * (G.bossK || 1) * (G.timeK || 1);
       const k = Math.min(1, d.t / d.dur);
       b.x = d.x0 + (d.x1 - d.x0) * k; b.y = d.y0 + (d.y1 - d.y0) * k; b.tx = b.x; b.ty = b.y;
       if (Math.random() < dt * 50) { burstInk(b.x + rnd(-u, u), b.y + u * 2, 2); } // the ground thrown up behind it
-      if (k >= 1) { b.dash = null; sfx.thud(); stain(b.x, b.y + u * 2, u * 1.4); impact(b.x, b.y + u, 1.5, b.def.accent); burstInk(b.x, b.y + u, 14); }
+      if (k >= 1) { b.dash = null; sfx.thud(); stain(b.x, b.y + u * 2, u * 1.4); impact(b.x, b.y + u, 1.5, fightTint(b.def)); burstInk(b.x, b.y + u, 14); }
     } else {
-      if (G.phase === "boss") { b.wT -= dt; if (b.wT <= 0) fixed("move", () => { b.wT = rnd(1.8, 3); b.tx = rnd(W * 0.22, W * 0.78); b.ty = rnd(H * 0.2, H * 0.29); }); }
-      const k = Math.min(1, dt * (b.landed ? 5 : 4)); // a quick step, not a drift
+      // Its body cuts, so it never moves unannounced: it stands its ground while a 비기 is gathered or under way, and
+      // between them it shows where it will stand (a shadow on the ground) a moment before it steps there — never
+      // onto you, nor across you.
+      const f = (G.stageRun || G.dev) && G.fight;
+      if (f && !(b.home > 0) && (f.busy > 0 || f.wind || f.final)) { b.tx = b.x; b.ty = b.y; b.next = null; b.wT = Math.max(b.wT, 0.4); }
+      else if (G.phase === "boss") {
+        if (b.next) { if ((b.next.t -= dt) <= 0) { b.tx = b.next.x; b.ty = b.next.y; b.next = null; } }
+        else if ((b.wT -= dt) <= 0) fixed("move", () => {
+          b.wT = rnd(1.8, 3);
+          const spread = b.def.look === "twins" ? S * 0.085 : 0;
+          for (let i = 0; i < 4; i++) {
+            const tx = rnd(W * 0.22, W * 0.78), ty = rnd(H * 0.2, H * 0.29);
+            if (b.home > 0 || segDist(P.x, P.y, b.x, b.y + u * 0.8, tx, ty + u * 0.8) > u * 2.4 + spread) { b.next = { x: tx, y: ty, t: b.home > 0 ? 0 : 0.35 }; return; }
+          }
+          b.wT = 0.5; // (nowhere it could go without crossing you: it waits)
+        });
+      }
+      const k = Math.min(1, dt * (b.home > 0 ? 5 : b.landed ? 3.2 : 4)); // a quick step, not a drift
       b.x += (b.tx - b.x) * k; b.y += (b.ty - b.y) * k;
     }
     // afterimages while it moves fast; its lunge as it calls a 비기
@@ -1629,22 +1688,37 @@ sdk.initializeAsync()
       b.landed = true;
       G.shake = Math.max(G.shake, reduced ? 0 : 14); flash("255,250,235", 0.35); G.zoom = 0.04;
       for (const [x, y] of bossBodies(b)) { burstInk(x, y + u * 2, 22); stain(x, y + u * 2, S * 0.09); }
-      G.parts.push({ kind: "ring", x: b.x, y: b.y + u * 2, vx: 0, vy: 0, r: u, grow: S * 1.4, color: b.def.accent, life: 0.7, t: 0 });
+      G.parts.push({ kind: "ring", x: b.x, y: b.y + u * 2, vx: 0, vy: 0, r: u, grow: S * 1.4, color: fightTint(b.def), life: 0.7, t: 0 });
       sfx.thud(); sfx.burst(); buzz(40);
     }
-    if (b.downT <= 0 && Math.random() < dt * 22) { // motes of its colour rising off it
+    // motes of its colour rising off it: thin just after a 비기 (a breath: rest), thickening as the next one nears
+    const f = (G.stageRun || G.dev) && G.fight, br = f ? breathOf(f.lv || 0) : 0;
+    const c = f && G.phase === "boss" && !(f.busy > 0) && f.sigT < Infinity ? clamp(1 - f.sigT / br, 0, 1) : f ? 0 : 0.47;
+    if (b.downT <= 0 && Math.random() < dt * (6 + 34 * c)) {
       const [x, y] = bossBodies(b)[Math.floor(Math.random() * bossBodies(b).length)];
-      G.parts.push({ kind: "glow", color: MOTE[b.def.look], x: x + rnd(-u * 1.3, u * 1.3), y: y + rnd(-u * 0.5, u * 2), vx: rnd(-12, 12), vy: -rnd(25, 60), r: rnd(1.4, 3), life: rnd(0.5, 1), t: 0 });
+      G.parts.push({ kind: "glow", color: moteOf(b.def), x: x + rnd(-u * 1.3, u * 1.3), y: y + rnd(-u * 0.5, u * 2), vx: rnd(-12, 12), vy: -rnd(25, 60), r: rnd(1.4, 3 + 1.5 * c), life: rnd(0.5, 1), t: 0 });
     }
   }
   const MOTE = { twins: "#c8321f", lotus: "#f2c9d0", monk: "#e8862a", snow: "#dbe9f4", lord: "#b0241a", tiger: "#e2a24a", veil: "#8a8790",
     drum: "#c8321f", mirror: "#cfe6f3", rain: "#9fc6d2", swords: "#c9ccce", time: "#e8cf6a", thunder: "#fff3a8", ghost: "#8fd0c8",
     butterfly: "#d9a6ea", wheel: "#ff9a3a", chain: "#8a8780", totem: "#a07a4a", eye: "#e8cf6a", final: "#f7f0de" };
+  // red on the field means one thing, a blade's way: a boss whose colour is red shows gold in the fight instead
+  function isRed(hex) {
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), c = mx - mn;
+    if (c < 1e-3) return false;
+    let h = mx === r ? ((g - b) / c) % 6 : mx === g ? (b - r) / c + 2 : (r - g) / c + 4; h *= 60; if (h < 0) h += 360;
+    return (h <= 20 || h >= 345) && c / (1 - Math.abs(mx + mn - 1)) >= 0.5;
+  }
+  const GOLD = "#c9a24a";
+  const moteOf = (def) => (isRed(MOTE[def.look] || "#1d1a17") ? GOLD : MOTE[def.look]);
+  const fightTint = (def) => (isRed(def.accent) ? GOLD : def.accent); // its colour as it acts (the card and 斬 keep its own)
   const bossBodies = (b) => (b.def.look === "twins" ? [[b.x - S * 0.085, b.y], [b.x + S * 0.085, b.y]] : [[b.x, b.y]]);
   function hurtBoss(amount) {
     const b = G.boss;
     if (!b || G.phase !== "boss") return;
-    b.hp -= amount; b.hurtT = 0.12;
+    if (b.hpShow == null) b.hpShow = b.hp;
+    b.hp -= amount; b.hurtT = 0.12; b.hpHold = 0.45; // (the bar keeps the bit you cut off a moment, then lets it go)
+    if ((G.stageRun || G.dev) && G.fight) b.hp = Math.max(0.03, b.hp); // (a 비기 fight ends only on its last exchange)
     burstInk(b.x, b.y, 5);
   }
 
@@ -1807,12 +1881,23 @@ sdk.initializeAsync()
     $("stage").textContent = `${sd.label} · ${sd.world.name}${stageLevel === "master" ? " · 고수" : ""}`;
     sfx.stage();
   }
+  // 보통 only, and never shown: a stage that keeps beating you gives a little. After the third fall in a row there, each
+  // further fall slows that stage (and its boss) 6% more, three steps at most; moving on starts afresh. 고수 is as it is.
+  const assist = { sg: -1, n: 0 }, bossSeen = new Set();
+  const easeK = () => (G.stageRun && stageLevel === "normal" && assist.sg === G.sg ? 1 / (1 + 0.06 * clamp(assist.n - 2, 0, 3)) : 1);
   function enterStageFight() {
     const sd = stageDef(G.sg);
     G.phase = "fight"; G.ct = 0; G.timers = { bamboo: 0.6 }; G.lastBig = "";
-    G.bossK = SL().pace; // (cleared with the field when the stage ends)
+    G.bossK = SL().pace * easeK(); // (cleared with the field when the stage ends)
     sd.pats.forEach((k, i) => { G.timers[k] = PATTERNS[k].first + 0.5 + i * 0.9; }); // one after another, not all in the first second
     G.bigT = sd.big.length ? 4 : Infinity;
+  }
+  function stageEnd() { // thirty seconds through: every blade in the air breaks, one stroke of ink at your height, the sword put away
+    clearField();
+    G.phase = "clearing"; G.pt = 0;
+    G.cuts.push({ x: P.x, y: P.y, ang: 0, w: S * 0.05, t: 0, checked: true });
+    if (!reduced) { G.slow = 0.4; G.slowT = 0.3; HERO.spinT = 0.4; }
+    sfx.slash(); sfx.release(); buzz(25);
   }
   function stageClear() {
     const sd = stageDef(G.sg), pay = sd.boss ? ECON.chapter : ECON.stage;
@@ -1853,9 +1938,13 @@ sdk.initializeAsync()
         const pool = sd.big.length > 1 ? sd.big.filter((k) => k !== G.lastBig) : sd.big;
         const key = pool[Math.floor(Math.random() * pool.length)]; // (drawn once: inside find() it was drawn anew for each one)
         runBig(BIG.find((b) => b.key === key));
-        G.bigT = rnd(sd.bigEvery[0], sd.bigEvery[1]);
+        G.bigT = mistGap(rnd(sd.bigEvery[0], sd.bigEvery[1]));
       });
-      if (G.ct >= sd.dur) { if (sd.boss) enterBoss(); else stageClear(); }
+      if (!sd.boss && sd.dur - G.ct < 6) G.dark = Math.max(G.dark, 0.27); // the last six seconds: the edges close in a little
+      if (G.ct >= sd.dur) { if (sd.boss) enterBoss(); else stageEnd(); }
+    } else if (G.phase === "clearing") { // its last blades cut down with one stroke; a breath, then the card
+      G.pt += realDt;
+      if (G.pt >= 0.45) stageClear();
     } else if (G.phase === "boss") {
       G.st += dt;
       bossFight(dt, sd.bossSet, sd.lv, BOSS_SECONDS);
@@ -1869,19 +1958,21 @@ sdk.initializeAsync()
     if (sd.boss) return; // (the boss's own bar does this in its stage)
     const left = Math.max(0, sd.dur - G.ct), x = 16, w = W - 32, y = Math.max(92, H * 0.12);
     ctx.save(); ctx.textBaseline = "alphabetic";
+    if (left < 6) ctx.globalAlpha = 0.6 + 0.4 * Math.sin(performance.now() * 0.012); // the last six seconds: it beats
     ctx.textAlign = "left"; ctx.font = `${Math.round(Math.min(S * 0.055, 24))}px "Nanum Brush Script", cursive`; ctx.fillStyle = "#1d1a17";
     ctx.fillText(sd.world.name, x, y - 6);
     ctx.textAlign = "right"; ctx.font = `700 12px "Noto Serif KR", serif`; ctx.fillStyle = left < 5 ? "#c8321f" : "#5b5248";
     ctx.fillText(`${Math.ceil(left)}초 남음`, x + w, y - 8);
     ctx.fillStyle = "rgba(29,26,23,0.16)"; ctx.fillRect(x, y, w, 6);
-    ctx.fillStyle = "#c8321f"; ctx.fillRect(x, y, w * (left / sd.dur), 6);
+    ctx.fillStyle = "rgba(29,26,23,0.7)"; ctx.fillRect(x, y, w * (left / sd.dur), 6); // (ink: red is for blades)
     ctx.restore();
   }
   function overStage() {
+    if (stageLevel === "normal") { if (assist.sg === G.sg) assist.n++; else { assist.sg = G.sg; assist.n = 1; } }
     const sd = stageDef(G.sg), time = Math.round((G.st + G.bonus) * 100) / 100, top = stageTop();
     $("overSlip").dataset.seal = "敗"; $("overLabel").textContent = "쓰러진 곳";
     $("score").textContent = sd.label; $("scoreUnit").hidden = true;
-    $("meta").textContent = `${SL().name}. ${sd.world.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. ${time.toFixed(2)}초 버텼다. 간발 ${G.near}번`;
+    $("meta").textContent = `${SL().name}. ${sd.world.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. ${time.toFixed(2)}초 버텼다. 간발 ${G.near}번${G.killedBy ? `. ${G.killedBy}에 베였다` : ""}`;
     const title = Number(store.get("stageTitle", "-1")), named = title >= 0 ? `. 별호 ${titleOf(title)}` : "";
     $("best").textContent = (G.sg > G.stageTop0 ? "새 최고 기록" : `최고 기록 ${stageDef(top).label}`) + named;
     $("again").textContent = `${sd.label} 다시`; // the stage you fell in, from its start
@@ -1972,7 +2063,7 @@ sdk.initializeAsync()
       return;
     }
     const [x, y] = edgePoint(), aim = Math.atan2(P.y - y, P.x - x) + rnd(-0.45, 0.45) * (Math.random() < 0.6 ? 1 : 2.2);
-    shoot("kunai", x, y, aim, S * rnd(0.4, 0.58), { r: S * 0.011, skin: kind }); // water, fire, wisp: drawn as their own
+    shoot("kunai", x, y, aim, reachable(x, y, S * rnd(0.4, 0.58), 0.45), { r: S * 0.011, skin: kind }); // water, fire, wisp: drawn as their own
     if (Math.random() < 0.25) sfx.whoosh();
   }
   const withName = (text) => text.replace("{me}", me());
@@ -2083,12 +2174,13 @@ sdk.initializeAsync()
       return 3 * gap + 0.8;
     },
     charge() { // the tiger lays a red road from itself through you, then runs it bodily; at the wall it turns and comes again
-      const n = 5 + Math.floor(lvl() / 4), warn = Math.max(0.75, 0.95 - lvl() * 0.015), each = warn + 1.05;
-      G.boss.wT = n * each + 1; // it holds still between runs: the runs are its only steps
+      // (each run is over before the next road is laid: the longest run takes about 1.1s)
+      const n = 5 + Math.floor(lvl() / 4), warn = Math.max(0.75, 0.95 - lvl() * 0.015), each = warn + 1.25;
+      G.boss.wT = n * each + 1; G.boss.tx = G.boss.x; G.boss.ty = G.boss.y; // it holds still between runs: the runs are its only steps
       for (let k = 0; k < n; k++) later(k * each, () => {
         const b = G.boss; if (!b) return;
         const u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x);
-        G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: u * 2.3, t: 0, dur: warn, delay: 0, fire() { runAt(ang); } });
+        G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: u * 2.3, t: 0, dur: warn, delay: 0, fire(w) { runAt(ang, w.x, w.y - u * 0.8); } });
         sfx.warn(); b.castT = 0.4;
       });
       later(n * each - 0.2, () => { if (G.boss && !G.boss.dash) { G.boss.home = 1.0; G.boss.wT = 0; } }); // one great leap home, over your head
@@ -2098,21 +2190,24 @@ sdk.initializeAsync()
       controller(6.5, function (dt) {
         this.next = (this.next ?? 0.2) - dt;
         if (this.next > 0) return;
-        this.next = Math.max(0.3, 0.42 - lvl() * 0.006);
+        this.next = Math.max(0.4, 0.42 - lvl() * 0.006);
         const [x, y] = edgePoint();
         shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * (0.42 + lvl() * 0.008), { r: S * 0.011, veil: true });
-        if (Math.random() < 0.5) sfx.tick();
+        // unseen, but not unheard nor quite unseen: a small ink ripple at the edge it left from, and its tick every time
+        G.parts.push({ kind: "ring", x: clamp(x, 6, W - 6), y: clamp(y, 6, H - 6), vx: 0, vy: 0, r: 3, grow: S * 0.02, color: "#1d1a17", life: 0.22, t: 0, round: true });
+        sfx.tick();
       }, () => { ctx.fillStyle = "rgba(225,228,230,0.22)"; ctx.fillRect(0, 0, W, H); });
       return 8;
     },
     drum() { // a blade's path laid at your feet on every beat; on the fourth, two of them crossed
       const beat = drumBeat();
+      if (ac) { M.step = 0; M.next = ac.currentTime + 0.03; } // its music's bar starts with its first blade
       let k = 0;
       for (let bar = 0; bar < 4; bar++) for (let i = 0; i < 4; i++, k++) {
         const turn = bar * Math.PI / 8; // each bar the paths come round at a new angle
         const angs = i === 3 ? [turn + Math.PI / 4, turn - Math.PI / 4] : [turn + [0, Math.PI / 2, Math.PI / 4][i]];
         // each lands a beat and a quarter on: never more than two paths waiting at once
-        angs.forEach((ang, j) => G.warns.push({ kind: "band", x: 0, y: 0, ang, w: S * 0.075, t: 0, dur: beat * 1.25, delay: k * beat,
+        angs.forEach((ang, j) => G.warns.push({ kind: "band", x: 0, y: 0, ang, w: S * 0.075, t: 0, dur: beat * 1.25, delay: k * beat, beat: true,
           place(w) { w.x = P.x; w.y = P.y; if (j === 0) sfx.taiko(); }, fire(w) { landCut(w); } }));
       }
       return 16 * beat + 1.4;
@@ -2152,6 +2247,12 @@ sdk.initializeAsync()
         const pick = far.length ? far : all, from = pick[Math.floor(Math.random() * pick.length)];
         for (let col = 0; col < n; col++) if (col < from || col >= from + hole)
           shoot("sword", (col + 0.5) * gap, S * 0.17, Math.PI / 2, 0, { len: S * 0.13, r: S * 0.013, hold: 0.85 + order(col) * step, go });
+        // the way through, top to bottom, as a faint dashed door (the gap itself can sit up under the bars)
+        const x0 = from * gap, x1 = (from + hole) * gap;
+        G.hazards.push({ kind: "door", t: 0, dur: 0.85 + n * step + 0.4, best: Infinity, near: true, dist: () => Infinity, draw(h) {
+          ctx.save(); ctx.strokeStyle = `rgba(29,26,23,${0.2 * clamp(Math.min(h.t / 0.2, (h.dur - h.t) / 0.3), 0, 1)})`; ctx.lineWidth = 1.5;
+          ctx.setLineDash([6, 8]); ctx.strokeRect(x0 + 2, -4, x1 - x0 - 4, H + 8); ctx.restore();
+        } });
         sfx.warn();
       }));
       return (orders.length - 1) * pass + 0.85 + n * step + 1.2;
@@ -2214,10 +2315,13 @@ sdk.initializeAsync()
               let wall = false;
               if ((wh.x < r && wh.vx < 0) || (wh.x > W - r && wh.vx > 0)) { wh.vx *= -1; wall = true; }
               if ((wh.y < r && wh.vy < 0) || (wh.y > H - r && wh.vy > 0)) { wh.vy *= -1; wall = true; }
-              if (wall) { // off the wall it leans a little your way
-                const cur = Math.atan2(wh.vy, wh.vx), sp = Math.hypot(wh.vx, wh.vy);
-                let d = Math.atan2(P.y - wh.y, P.x - wh.x) - cur; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
-                const a = cur + clamp(d, -0.5, 0.5); wh.vx = Math.cos(a) * sp; wh.vy = Math.sin(a) * sp; spark(wh.x, wh.y, 4); sfx.clang();
+              if (wall) { // off the wall it leans a little your way — only from afar: close by, a plain bounce you can read
+                if (Math.hypot(P.x - wh.x, P.y - wh.y) > S * 0.3) {
+                  const cur = Math.atan2(wh.vy, wh.vx), sp = Math.hypot(wh.vx, wh.vy);
+                  let d = Math.atan2(P.y - wh.y, P.x - wh.x) - cur; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+                  const a = cur + clamp(d, -0.25, 0.25); wh.vx = Math.cos(a) * sp; wh.vy = Math.sin(a) * sp;
+                }
+                spark(wh.x, wh.y, 4); sfx.clang();
               }
               const last = wh.trail[wh.trail.length - 1];
               if (Math.hypot(wh.x - last[0], wh.y - last[1]) > S * 0.03) wh.trail.push([wh.x, wh.y, this.t]);
@@ -2250,24 +2354,30 @@ sdk.initializeAsync()
       // so that the next pass runs through where you stand. The way it will go is lit red while it turns.
       const A = 1.0, T = Math.max(2.0, 2.4 - lvl() * 0.02), life = 8.4, r = S * 0.07;
       const piv = [[W * 0.28, -H * 0.06, 0], [W * 0.72, -H * 0.06, Math.PI / 2], [W * 0.5, -H * 0.1, Math.PI / 4]].slice(0, lvl() >= 6.5 ? 3 : 2); // a third one, late on
-      const ps = piv.map(([px, py, ph], i) => ({ px, py, ph, L0: 0, L1: H * (0.55 + i * 0.15), at: 0, sgn: 0 }));
+      const ps = piv.map(([px, py, ph], i) => ({ px, py, ph, L0: 0, L1: H * (0.55 + i * 0.15), at: 0, at0: 0, sgn: 0 }));
       G.hazards.push({ kind: "pend", ps, A, T, r, t: 0, dur: life, best: Infinity, near: true,
         ang(p, t) { return A * Math.sin((Math.PI * 2 * t) / T + p.ph); },
-        len(p, t) { const k = clamp((t - p.at) / 0.35, 0, 1); return p.L0 + (p.L1 - p.L0) * k * k * (3 - 2 * k); }, // (the first time: let down from the sky)
+        len(p, t) { const k = clamp((t - p.at0) / 0.25, 0, 1); return p.L0 + (p.L1 - p.L0) * k * k * (3 - 2 * k); }, // (the first time: let down from the sky)
         ball(p, t) { const a = this.ang(p, t), L = this.len(p, t); return [p.px + Math.sin(a) * L, p.py + Math.cos(a) * L]; },
         step() {
           for (const p of this.ps) {
             const s = Math.sign(Math.cos((Math.PI * 2 * this.t) / T + p.ph));
             if (p.sgn && s !== p.sgn && this.t > 0.6 && this.t < life - 1.2) { // the end of a swing: aim the next pass through you
-              p.L0 = this.len(p, this.t); p.L1 = clamp(Math.hypot(P.x - p.px, P.y - p.py), H * 0.3, H * 0.98); p.at = this.t; sfx.clang();
+              // ...unless you're standing so near the end it hangs at that it would reach you before you could react; then it
+              // comes back along the arc that was lit for the last pass (you've had that whole pass to leave it)
+              const end = Math.sign(this.ang(p, this.t)) || 1, aP = Math.atan2(P.x - p.px, P.y - p.py);
+              const reach = (T / (Math.PI * 2)) * Math.acos(clamp((aP * end) / A, -1, 1)) / (G.bossK || 1);
+              if (reach >= 0.5) { p.L0 = this.len(p, this.t); p.L1 = clamp(Math.hypot(P.x - p.px, P.y - p.py), H * 0.3, H * 0.98); p.at0 = this.t; p.at = this.t; sfx.clang(); }
+              // (a ball not yet aimed stays harmless for another pass: its arc was only ever shown dashed)
             }
             p.sgn = s;
           }
         },
-        dist() { if (this.t < 0.6 || this.t > life - 0.3) return Infinity; let m = Infinity; for (const p of this.ps) { const [x, y] = this.ball(p, this.t); m = Math.min(m, Math.hypot(P.x - x, P.y - y) - r); } return Math.max(0, m); },
+        // a ball bites only once it has been aimed: the first swing (before any red arc) is a harmless showing of how they move
+        dist() { if (this.t > life - 0.3) return Infinity; let m = Infinity; for (const p of this.ps) { if (!p.at) continue; const [x, y] = this.ball(p, this.t); m = Math.min(m, Math.hypot(P.x - x, P.y - y) - r); } return Math.max(0, m); },
         warnAt(x, y, pad) { // on the arc the ball is about to sweep (from where it is to the far end of its swing)
           for (const p of this.ps) {
-            if (Math.abs(Math.hypot(x - p.px, y - p.py) - p.L1) > r + pad) continue;
+            if (!p.at || Math.abs(Math.hypot(x - p.px, y - p.py) - p.L1) > r + pad) continue;
             const a = Math.atan2(x - p.px, y - p.py), now = this.ang(p, this.t), dir = Math.cos((Math.PI * 2 * this.t) / T + p.ph) >= 0 ? 1 : -1;
             if ((a - now) * dir >= -0.05 && Math.abs(a) <= A + 0.1) return true;
           }
@@ -2300,6 +2410,8 @@ sdk.initializeAsync()
             this.stomp = Math.max(2.2, 2.9 - lvl() * 0.04);
             const cx = mine % cols, cy = Math.floor(mine / cols);
             for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) if (cx + dx >= 0 && cx + dx < cols && cy + dy >= 0 && cy + dy < rows) this.crack((cy + dy) * cols + cx + dx);
+            // the way out is the corners: the cracked stones still bear you a moment, step across one to the cell beyond it
+            this.foot = { t: this.t, cells: [[1, 1], [1, -1], [-1, 1], [-1, -1]].filter(([dx, dy]) => cx + dx >= 0 && cx + dx < cols && cy + dy >= 0 && cy + dy < rows).map(([dx, dy]) => (cy + dy) * cols + cx + dx).filter((j) => cells[j].hole < 0 && cells[j].crack < 0) };
             G.shake = Math.max(G.shake, 9); sfx.taiko(); if (G.boss) G.boss.castT = 0.4;
           }
         },
@@ -2408,8 +2520,9 @@ sdk.initializeAsync()
     return Math.hypot(px - (ax + dx * k), py - (ay + dy * k));
   };
   // 맹호충: the body itself down its red road, to the wall (it stops with its whole body still on the screen)
-  function runAt(ang) {
+  function runAt(ang, x0, y0) { // (x0, y0: where its road was laid from — it runs that road, not one beside it)
     const b = G.boss; if (!b) return;
+    if (x0 != null && Math.hypot(b.x - x0, b.y - y0) > 0.5) { if (!reduced) b.ghosts = [...(b.ghosts || []), { x: b.x, y: b.y, t: 0 }]; b.x = x0; b.y = y0; }
     const u = bossUnit(b.def), ux = Math.cos(ang), uy = Math.sin(ang), m = u * 1.2;
     let L = Infinity;
     if (ux > 1e-3) L = Math.min(L, (W - m - b.x) / ux); if (ux < -1e-3) L = Math.min(L, (m - b.x) / ux);
@@ -2495,12 +2608,15 @@ sdk.initializeAsync()
     const fade = Math.min(1, h.t / 0.4, Math.max(0, (h.dur - h.t) / 0.4));
     ctx.save(); ctx.globalAlpha = fade;
     for (const p of h.ps) {
+      ctx.globalAlpha = fade;
       const ang = h.ang(p, h.t), dir = Math.cos((Math.PI * 2 * h.t) / h.T + p.ph) >= 0 ? 1 : -1, end = dir * h.A;
-      if (h.t > 0.6 && h.t < h.dur - 1.0) { // the way it is about to go
-        ctx.strokeStyle = "rgba(200,50,31,0.18)"; ctx.lineWidth = h.r * 2; ctx.lineCap = "round"; ctx.beginPath();
+      if (h.t > 0.3 && h.t < h.dur - 1.0) { // the way it is about to go: red once it bites, a dashed ink line while it is only showing
+        ctx.lineCap = "round"; ctx.beginPath();
         for (let i = 0; i <= 24; i++) { const a = ang + (end - ang) * (i / 24); const x = p.px + Math.sin(a) * p.L1, y = p.py + Math.cos(a) * p.L1; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
-        ctx.stroke(); ctx.strokeStyle = "rgba(200,50,31,0.7)"; ctx.lineWidth = 1.5; ctx.stroke();
+        if (p.at) { ctx.strokeStyle = "rgba(200,50,31,0.18)"; ctx.lineWidth = h.r * 2; ctx.stroke(); ctx.strokeStyle = "rgba(200,50,31,0.7)"; ctx.lineWidth = 1.5; ctx.stroke(); }
+        else { ctx.strokeStyle = "rgba(29,26,23,0.3)"; ctx.lineWidth = 1.5; ctx.setLineDash([S * 0.012, S * 0.012]); ctx.stroke(); ctx.setLineDash([]); }
       }
+      ctx.globalAlpha = fade * (p.at ? 1 : 0.45); // (not yet aimed: faint, harmless)
       const [bx, by] = h.ball(p, h.t);
       ctx.strokeStyle = "rgba(60,58,54,0.85)"; ctx.lineWidth = 2.5; ctx.setLineDash([S * 0.018, S * 0.008]); // the chain, link by link
       ctx.beginPath(); ctx.moveTo(p.px, p.py); ctx.lineTo(bx, by); ctx.stroke(); ctx.setLineDash([]);
@@ -2519,6 +2635,12 @@ sdk.initializeAsync()
     for (let c = 1; c < cols; c++) { ctx.moveTo(c * cw, 0); ctx.lineTo(c * cw, H); }
     for (let r = 1; r < rows; r++) { ctx.moveTo(0, r * ch); ctx.lineTo(W, r * ch); }
     ctx.stroke();
+    if (h.foot && h.t - h.foot.t < h.crackT) { // the safe stones just after a stamp: a faint ring of ink on each
+      const k = (h.t - h.foot.t) / h.crackT;
+      ctx.strokeStyle = `rgba(29,26,23,${0.35 * (1 - k)})`; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+      for (const j of h.foot.cells) { if (h.cells[j].hole >= 0) continue; ctx.beginPath(); ctx.arc((j % cols + 0.5) * cw, (Math.floor(j / cols) + 0.5) * ch, Math.min(cw, ch) * (0.22 + 0.06 * k), 0, Math.PI * 2); ctx.stroke(); }
+      ctx.setLineDash([]);
+    }
     h.cells.forEach((c, i) => {
       const x0 = (i % cols) * cw, y0 = Math.floor(i / cols) * ch, cx = x0 + cw / 2, cy = y0 + ch / 2;
       if (c.crack >= 0) {
@@ -2656,28 +2778,137 @@ sdk.initializeAsync()
   function bossFight(dt, d, lv, seconds) {
     const b = G.boss, f = G.fight;
     f.lv = lv;
-    const bp = G.stageRun ? SL().boss : BOSS_PACE;
+    const bp = G.stageRun ? SL().boss * easeK() : BOSS_PACE;
     G.bossK = bp; // the whole fight a little slower than life (cleared with the field when it ends)
     G.t = 20 + lv * 6; // how hard the shared attacks are
-    b.hp -= dt / (seconds * bp); // (by the wall clock: the fight lasts as long as ever)
+    const talking = G.lines.length > 0; // its line is on screen (a box over the bottom of the field): nothing starts under it
+    // Its life runs down by the wall clock (the fight lasts as long as ever). A 비기 under way finishes before it can run
+    // out, and once it is nearly gone the fight ends on one last exchange, not on the clock.
+    if (!talking && !f.final) b.hp = Math.max(f.busy > 0 || f.wind || f.turn > 0 ? 0.03 : 0, b.hp - dt / (seconds * bp));
     if (b.hp <= 0) return bossDown();
-    if (f.wait > 0) { // it has said its line: now the technique
-      f.wait -= dt;
-      if (f.wait <= 0) f.sigT = 0;
-    } else if ((f.sigT -= dt) <= 0 && b.hp > 0.06) fixed("sig", () => {
-      if (f.n === 0 && !f.said) { f.said = true; say([{ who: d.name, text: withName(d.sigLine) }], null); f.wait = 1.0; f.sigT = Infinity; return; }
-      callout(...d.sigName); G.dark = 1; b.castT = 0.6; f.n++;
-      b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; // it throws itself at you as it calls it
-      f.sigT = SIGS[d.sig]() + Math.max(1.2, 1.8 - lv * 0.05); // a breath, then the next one
-    });
+    if (f.final) { if (finalExchange(dt, b, f)) return; }
+    else {
+    // each 비기 in three beats: it gathers itself (the last of the breath: where it comes from, and when), it strikes,
+    // and when the 비기 is spent what it threw breaks up (破) and there is a breath again
+    const wl = BOSS_WIND * bp; // (half a second by the wall clock)
+    if (f.busy > 0 && (f.busy -= dt) <= 0) sigSpent(b, f);
+    if (f.wind) { f.wind.t += dt; b.wind = Math.min(1, f.wind.t / wl); G.dark = Math.max(G.dark, 0.7 * b.wind); }
+    if (f.turn > 0) f.turn -= dt / bp; // (its second wind: see secondWind)
+    // (its second wind comes first even if one long 비기 carried it past four tenths and down to its last breath)
+    if (!f.act2 && b.hp <= 0.4 && f.said && !(f.busy > 0) && !f.wind && !talking) secondWind(b, f, wl);
+    else if (b.hp <= 0.06 && f.said && !(f.busy > 0) && !f.wind && !talking && !(f.turn > 0)) startFinal(b, f);
+    else if (f.turn > 0) { /* it is getting up */ }
+    else if (f.wait > 0) { // it has said its line: now the technique, a moment after the box has gone
+      if (!talking) f.wait -= dt;
+      if (f.wait <= 0) f.sigT = wl;
+    } else if ((f.sigT -= dt) <= wl && (b.hp > 0.06 || f.wind)) {
+      if (!f.wind && f.said && f.sigT > 0 && b.hp > 0.08) windUp(b, d);
+      if (f.sigT <= 0) fixed("sig", () => {
+        if (f.n === 0 && !f.said) { f.said = true; say([{ who: d.name, text: withName(d.sigLine) }], null); f.wait = 0.5; f.sigT = Infinity; return; }
+        if (!f.wind) callout(...d.sigName); // (no wind-up this time: named as it comes)
+        if (G.callout) { G.callout.castAt = performance.now(); G.callout.side = b.x < W / 2 ? 1 : -1; } // its name off to the corner, away from it
+        f.wind = null; b.wind = 0; b.pop = 0.1;
+        G.dark = Math.max(G.dark, 0.7); b.castT = 0.6; f.n++;
+        b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; // it throws itself at you as it calls it
+        f.busy = Infinity; f.busy = SIGS[d.sig](); // (busy while it is thrown, so that whatever it throws at once is its too)
+        f.sigT = f.busy + breathOf(lv); // a breath, then the next one
+      });
+    }
     // behind it, the boss's own element drifting across (some have none): a backdrop, the 비기 is the fight
-    if (d.bg) {
+    if (d.bg && !talking && !(f.turn > 0)) {
       G.timers.drift = (G.timers.drift ?? 0.8) - dt;
-      if (G.timers.drift <= 0) fixed("drift", () => { spawnDrift(d.bg); G.timers.drift = 1.2 * pace(); });
+      if (G.timers.drift <= 0) fixed("drift", () => {
+        const n0 = G.shots.length; spawnDrift(d.bg); G.timers.drift = 1.2 * pace();
+        for (let i = n0; i < G.shots.length; i++) delete G.shots[i].sig; // (the backdrop is not the 비기's: 破 leaves it be)
+      });
+    }
     }
     // its body is a blade too (not while it leaps back to its place, high over your head)
     const u = bossUnit(b.def);
-    if (P.inv <= 0 && !G.safe && !(b.home > 0)) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u) return die(P.x, P.y);
+    if (P.inv <= 0 && !G.safe && !(b.home > 0)) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u) return die(P.x, P.y, { boss: true });
+  }
+  const BOSS_WIND = 0.5; // seconds a boss gathers itself before each 비기 (cut from the end of its breath, so no slower for it)
+  // the breath between 비기 (fight time). The wind-up and 破 made each one easier to read, so the breaths are shorter than
+  // they were: more 비기 to a fight, not shorter warnings. 고수 breathes least, but never under a second.
+  const breathOf = (lv) => (G.stageRun && stageLevel === "master" ? Math.max(1.0, 1.55 - lv * 0.05) : Math.max(1.2, 1.65 - lv * 0.05));
+  function windUp(b, d) { // it plants its feet and sinks, its colour drawn into it, and the 비기's name goes up over nothing yet
+    G.fight.wind = { t: 0 };
+    callout(...d.sigName); G.callout.wind = true;
+    sfx.gather(); buzz([10, 40, 10]);
+    if (reduced) return;
+    const u = bossUnit(b.def);
+    for (const [x, y] of bossBodies(b)) for (let i = 0; i < 14; i++) {
+      const a = rnd(0, Math.PI * 2), r = u * rnd(3, 4.2), cy = y + u * 0.6;
+      G.parts.push({ kind: "pull", color: moteOf(b.def), x: x + Math.cos(a) * r, y: cy + Math.sin(a) * r, x1: x, y1: cy, vx: 0, vy: 0, r: rnd(1.6, 3.2), life: rnd(0.3, 0.45), t: 0 });
+    }
+  }
+  function sigSpent(b, f) { // 破: the 비기 outlasted. What it threw breaks up (the backdrop flies on) and its name gets a seal
+    let k = 0;
+    G.shots = G.shots.filter((s) => {
+      if (s.sig !== f.n) return true;
+      if (!reduced && k++ < 20) shatter(s); else burstInk(s.x, s.y, 2);
+      return false;
+    });
+    if (G.callout && G.callout.castAt) G.callout.brokeAt = performance.now();
+    sfx.release(); buzz(15);
+  }
+  // ---- its second wind: at four tenths of its life, between 비기, it is driven back a step, staggers, and comes on again
+  // darker. The field is bare for that moment; nothing about how it fights changes (it already grows harder each time).
+  function secondWind(b, f, wl) {
+    f.act2 = true; f.turn = 1.2; f.sigT = Math.max(f.sigT, wl + 0.2 * (G.bossK || 1)); b.wT = Math.max(b.wT, 1.6);
+    for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
+    G.warns = G.warns.filter((w) => w.kind === "none"); // (what a 비기 still has queued stays: there is none between them)
+    b.mid = true; b.reel = { t: 0, ang: -Math.PI / 2 }; b.ty = Math.max(H * 0.18, b.y - S * 0.04); b.tx = b.x;
+    const u = bossUnit(b.def);
+    for (const [x, y] of bossBodies(b)) { burstInk(x, y + u, 24); stain(x, y + u * 2, S * 0.07); }
+    G.parts.push({ kind: "ring", x: b.x, y: b.y + u * 2, vx: 0, vy: 0, r: u, grow: S * 0.9, color: fightTint(b.def), life: 0.6, t: 0 });
+    if (!reduced) { G.stopT = Math.max(G.stopT, 0.08); G.shake = Math.max(G.shake, 12); }
+    sfx.taiko(); setTimeout(() => sfx.taiko(), 180); sfx.release(); buzz([40, 20, 40]);
+  }
+  // ---- 마지막 일합: nearly spent, it gathers all it has left and runs at you bodily down one red road, alone on a bare
+  // field (a long warning, nothing else to read). Step off the road, and as it passes you cut it down: the last blow is yours.
+  function startFinal(b, f) {
+    f.final = { t: 0, step: "gather" };
+    for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
+    G.warns = []; G.hazards = []; b.tx = b.x; b.ty = b.y; b.next = null;
+    callout("一合", "마지막 일합"); Object.assign(G.callout, { wind: true, life: 1.1 });
+    sfx.gather(); setTimeout(() => sfx.gather(), 420); buzz([20, 60, 20]);
+    if (reduced) return;
+    const u = bossUnit(b.def);
+    for (const [x, y] of bossBodies(b)) for (let i = 0; i < 28; i++) {
+      const a = rnd(0, Math.PI * 2), r = u * rnd(3.5, 5.5), cy = y + u * 0.6;
+      G.parts.push({ kind: "pull", color: moteOf(b.def), x: x + Math.cos(a) * r, y: cy + Math.sin(a) * r, x1: x, y1: cy, vx: 0, vy: 0, r: rnd(1.8, 3.6), life: rnd(0.45, 1.0), t: 0 });
+    }
+  }
+  function finalExchange(dt, b, f) { // (returns true once the boss is down)
+    const F = f.final; F.t += dt / (G.bossK || 1); // by the wall clock
+    if (F.step === "gather") {
+      b.wind = Math.min(1, F.t / 1.0); G.dark = Math.max(G.dark, 0.9 * b.wind);
+      if (F.t < 1.0) return false;
+      const u = bossUnit(b.def), spread = b.def.look === "twins" ? S * 0.085 : 0, cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x);
+      G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: (u * 1.2 + spread) * 2, t: 0, dur: G.stageRun && stageLevel === "master" ? 1.0 : 1.1, delay: 0,
+        fire(w) { runAt(ang, w.x, w.y - u * 0.8); F.step = "run"; } });
+      sfx.warn(); b.wind = 0; b.pop = 0.1; b.castT = 0.6; b.lunge = { t: 0, ang };
+      F.step = "aim"; return false;
+    }
+    if (F.step === "run" && !b.dash) { // it has gone by and you are still standing: your turn
+      F.step = "cut"; F.t = 0;
+      const ux = Math.cos(Math.atan2(b.y - P.y, b.x - P.x)), uy = Math.sin(Math.atan2(b.y - P.y, b.x - P.x));
+      G.finalCut = { x0: P.x, y0: P.y, x1: b.x + ux * S * 0.25, y1: b.y + uy * S * 0.25, at: performance.now() };
+      if (!reduced) { G.stopT = 0.16; HERO.spinT = 0.4; }
+      if (ac && bgmBus) { const n = ac.currentTime; bgmBus.gain.cancelScheduledValues(n); bgmBus.gain.setValueAtTime(bgmBus.gain.value, n); bgmBus.gain.setTargetAtTime(0, n, 0.01); } // the music stops dead
+      sfx.slash(); buzz(30);
+      return false;
+    }
+    if (F.step === "cut") {
+      if (!F.sheathed && F.t >= 0.5) { F.sheathed = true; sfx.sheath(); }
+      if (F.t >= 0.55) {
+        G.finalCut = null;
+        if (ac && bgmBus) { const n = ac.currentTime; bgmBus.gain.setTargetAtTime(MUSIC_VOL, n + 0.6, 0.4); }
+        bossDown(); return true;
+      }
+    }
+    return false;
   }
   function devBack() {
     clearField(); G.boss = null; G.lines = []; G.onLines = null; G.card = null; G.dev = null; G.story = false; G.mode = "menu";
@@ -3089,11 +3320,11 @@ sdk.initializeAsync()
         const pool = open.length > 1 ? open.filter((b) => b.key !== G.lastBig) : open;
         const b = fresh || pool[Math.floor(Math.random() * pool.length)];
         runBig(b);
-        if (G.t >= FRENZY && pool.length > 1 && Math.random() < 0.3 + Math.min(0.4, endless() * 0.05)) {
-          const others = pool.filter((x) => x !== b);
+        if (G.t >= FRENZY && pool.length > 1 && b.key !== "mist" && Math.random() < 0.3 + Math.min(0.4, endless() * 0.05)) {
+          const others = pool.filter((x) => x !== b && x.key !== "mist"); // (독무 never doubles up: it slows your feet)
           runBig(others[Math.floor(Math.random() * others.length)]);
         }
-        G.bigT = rnd(6, 8.5) * clamp(pace() * 1.4, 0.6, 1) * rare;
+        G.bigT = mistGap(rnd(6, 8.5) * clamp(pace() * 1.4, 0.6, 1) * rare);
       }
     }
   }
@@ -3106,7 +3337,10 @@ sdk.initializeAsync()
     G.warns = G.warns.filter((w) => {
       if (w.delay > 0) { w.delay -= dt; return true; }
       if (w.place && !w.placed) { w.placed = true; w.place(w); }
-      w.t += dt * (hard() ? HARD.warn : 1); // 아수라 gives you less time to read them
+      w.t += dt * (hard() && !w.quick ? HARD.warn : 1); // 아수라 gives you less time to read them (not those already short)
+      // a moment before a blade's band or a palm's lane goes, a dry click: your eyes are on your finger, your ears are free
+      // (not on 뇌음's beat, which has its own drum)
+      if (!w.locked && (w.kind === "band" || w.kind === "palm") && !w.beat && w.t >= w.dur - 0.1) { w.locked = true; sfx.lock(); }
       if (w.t >= w.dur) { due.push(w); return false; }
       return true;
     });
@@ -3116,6 +3350,7 @@ sdk.initializeAsync()
     if (G.freezeT > 0) G.freezeT -= dt; // 설한정: whatever is in the air hangs there, frozen
     for (const s of G.shots) {
       if (s.dead) continue;
+      if (s.freeze > 0) { s.freeze -= dt / Math.max(0.3, (G.bossK || 1) * (G.timeK || 1)); continue; } // it grazed you: hanging a blink (by the wall clock), harmless
       s.age += dt;
       if (s.ret && !s.back && s.age >= s.ret) { s.back = true; s.vx = -s.vx; s.vy = -s.vy; } // 연화귀: out, then home again
       if (G.freezeT > 0) { /* frozen: it doesn't move, but it still cuts */ }
@@ -3140,9 +3375,9 @@ sdk.initializeAsync()
       }
       if (G.mode !== "play") continue;
       const d = distToShot(s);
-      if (d < hit + s.r * 0.6 && !inv) return die(s.x, s.y);
+      if (d < hit + s.r * 0.6 && !inv) return die(s.x, s.y, { shot: s });
       if (d < s.best) s.best = d;
-      else if (!s.near && s.best < near + s.r && s.best >= hit) { s.near = true; nearMiss(s.x, s.y); }
+      else if (!s.near && s.best < near + s.r && s.best >= hit) { s.near = true; nearMiss(s.x, s.y, s); }
     }
     const m = S * 0.25;
     G.shots = G.shots.filter((s) => !s.dead && (s.hold > 0 || (s.age < 12 && s.x > -m && s.x < W + m && s.y > -m && s.y < H + m)));
@@ -3152,7 +3387,7 @@ sdk.initializeAsync()
       if (h.step) h.step(dt);
       if (G.mode !== "play") continue;
       const d = h.dist();
-      if (d < hit && !inv) return die(P.x, P.y);
+      if (d < hit && !inv) return die(P.x, P.y, { hazard: h });
       if (d < h.best) h.best = d;
       else if (!h.near && h.best < near && h.best >= hit) { h.near = true; nearMiss(h.x ?? h.x0, h.y ?? h.y0); }
     }
@@ -3164,7 +3399,7 @@ sdk.initializeAsync()
       if (!c.checked && G.mode === "play") {
         c.checked = true;
         const d = distToLine(P.x, P.y, c.x, c.y, c.ang);
-        if (d < c.w / 2 + hit * 0.5 && !inv) { die(P.x, P.y); return true; }
+        if (d < c.w / 2 + hit * 0.5 && !inv) { die(P.x, P.y, { cut: c }); return true; }
         if (d < c.w / 2 + near) { // the nearest point of the stroke's line, so the body is thrown off it
           const sd = (P.x - c.x) * Math.sin(c.ang) - (P.y - c.y) * Math.cos(c.ang);
           nearMiss(P.x - sd * Math.sin(c.ang), P.y + sd * Math.cos(c.ang));
@@ -3224,25 +3459,40 @@ sdk.initializeAsync()
   }
   const distToLine = (px, py, x, y, ang) => Math.abs((px - x) * Math.sin(ang) - (py - y) * Math.cos(ang));
 
-  function nearMiss(fx, fy) { // (fx, fy): where the thing that just missed was, if known
+  function nearMiss(fx, fy, s) { // (fx, fy): where the thing that just missed was, if known; s: the blade itself, if it was one
     G.combo++; G.comboT = 1.4; G.near++; G.maxCombo = Math.max(G.maxCombo || 0, G.combo);
     const add = 0.2 + Math.min(0.3, G.combo * 0.05);
     G.bonus += add;
     G.texts.push({ text: G.combo > 1 ? `간발 ×${G.combo}` : "간발!", x: P.x, y: P.y - S * 0.06, t: 0, add });
-    sfx.ting();
-    if (!reduced) { G.slow = 0.55; G.slowT = 0.09; }
+    sfx.ting(); buzz(8);
+    if (!reduced) {
+      // only the blade that grazed you stops, for a blink, shivering (it can't cut while it hangs: it is already past you),
+      // and gold sparks fly off your side of it. The rest keep their time: the next one has to come when it was going to.
+      if (s && !(s.home > 0) && !s.ret && !(s.bounces > 0)) s.freeze = 0.05;
+      if (fx != null) { const a = Math.atan2(P.y - fy, P.x - fx); for (let i = 0; i < 3; i++) { const b = a + rnd(-0.7, 0.7), v = S * rnd(0.5, 0.9); G.parts.push({ kind: "spark", x: (fx + P.x) / 2, y: (fy + P.y) / 2, vx: Math.cos(b) * v, vy: Math.sin(b) * v, r: rnd(1.2, 2), life: 0.18, t: 0 }); } }
+      if (G.combo >= 3) { G.slow = 0.7; G.slowT = 0.06; } // (a run of them: the world gives a little)
+    }
     heroDodge(fx, fy);
     // a run of them is told by the words alone. No shake, flash or rings over the field: the next blade has to stay readable.
     if (G.combo >= 5 && G.combo % 5 === 0) { sfx.combo(); buzz([20, 30, 40]); }
+    const b = G.boss;
+    if (b && G.phase === "boss" && b.downT <= 0) { // the graze lands on the boss: a brush stroke into it, and it reels
+      if (!reduced && spaced("graze", 150)) G.parts.push({ kind: "stroke", x: P.x, y: P.y, x1: b.x, y1: b.y + bossUnit(b.def) * 0.6, vx: 0, vy: 0, w: G.combo >= 5 ? 4 : 2, color: G.combo >= 5 ? fightTint(b.def) : "#1d1a17", life: 0.16, t: 0 });
+      b.reel = { t: 0, ang: Math.atan2(b.y - P.y, b.x - P.x) };
+    }
     hurtBoss(0.025);
   }
 
-  function die(x, y) {
+  function die(x, y, cause) { // cause: { shot } | { hazard } | { cut } | { boss } — shown as you fall, so you see what it was
     if (G.mode !== "play") return;
     G.mode = "dying"; G.dieT = 0; G.shake = reduced ? 0 : 22;
     burstInk(x, y, 40); stain(x, y, S * 0.08); sfx.death(); buzz([60, 40, 120]);
     flash("200,50,31", 0.45); G.zoom = 0.05; G.stopT = 0.08;
     drag = null;
+    G.killer = cause || {}; G.killerY = y;
+    // its name, if it was one with a name: a boss's 비기 under way, or a great move just called
+    const c = G.callout, ago = c ? (performance.now() - c.at) / 1000 : Infinity;
+    G.killedBy = c && c.castAt && G.fight && G.fight.busy > 0 ? c.k : c && !G.boss && !c.wind && ago < 5 ? c.k : cause && cause.boss ? "보스의 몸" : "";
   }
 
   // ---- the strokes that make it feel like a fight
@@ -3250,11 +3500,11 @@ sdk.initializeAsync()
     G.cuts.push({ x: w.x, y: w.y, ang: w.ang, w: w.w, t: 0, checked: false, tint: w.tint });
     // 아수라's follow-up: the blade comes straight back across the same spot
     if (hard() && !w.follow && Math.random() < HARD.follow) {
-      G.warns.push({ kind: "band", x: w.x, y: w.y, ang: w.ang + (Math.random() < 0.5 ? Math.PI / 2 : Math.PI / 4), w: w.w, t: 0, dur: 0.42, delay: 0.05, follow: true, fire(v) { landCut(v); } });
+      G.warns.push({ kind: "band", x: w.x, y: w.y, ang: w.ang + (Math.random() < 0.5 ? Math.PI / 2 : Math.PI / 4), w: w.w, t: 0, dur: 0.5, delay: 0.05, follow: true, quick: true, fire(v) { landCut(v); } });
       sfx.warn();
     }
     sfx.slash(); G.shake = Math.max(G.shake, 10); buzz(20); flash("255,250,235", 0.28);
-    if (!reduced) G.stopT = Math.max(G.stopT, 0.025); // the blade bites
+    if (!reduced && !w.beat) G.stopT = Math.max(G.stopT, 0.025); // the blade bites (not on 뇌음's beat: the pause would put it off the music)
     const ux = Math.cos(w.ang), uy = Math.sin(w.ang), D = Math.hypot(W, H);
     for (let i = 0; i < 22; i++) { // ink thrown off the blade's path
       const s = rnd(-D, D), x = w.x + ux * s, y = w.y + uy * s;
@@ -3285,26 +3535,39 @@ sdk.initializeAsync()
     G.decals.push({ x, y, blobs, t: 0, life: 5 });
     if (G.decals.length > 40) G.decals.shift();
   }
-  function flash(rgb, a) { if (reduced) a *= 0.3; if (a >= G.flash) { G.flash = a; G.flashC = rgb; } }
+  function flash(rgb, a) {
+    if (reduced) a *= 0.3;
+    // never a glare over a warning about to go: you'd lose it in the white
+    if (a > 0.12 && G.mode === "play" && G.warns.some((w) => !(w.delay > 0) && w.kind !== "none" && w.dur - w.t < 0.4)) a = 0.12;
+    if (a >= G.flash) { G.flash = a; G.flashC = rgb; }
+  }
 
   function showBanner(st) { G.banner = { st, t: performance.now() }; $("stage").textContent = st.name; }
 
   // ------------------------------------------------------------------ drawing
   function draw(time) {
     ctx.save();
-    if (G.shake > 0.5) ctx.translate(rnd(-G.shake, G.shake), rnd(-G.shake, G.shake));
+    // a shake moves the paper; while there is anything on it to read, the blades, their warnings and you hold still
+    const sx = G.shake > 0.5 ? rnd(-G.shake, G.shake) : 0, sy = G.shake > 0.5 ? rnd(-G.shake, G.shake) : 0;
+    const calm = G.mode === "play" && (G.warns.length > 0 || G.shots.length > 0 || G.hazards.length > 0);
+    ctx.translate(sx, sy);
     if (G.zoom > 0.002) { ctx.translate(W / 2, H / 2); ctx.scale(1 + G.zoom, 1 + G.zoom); ctx.translate(-W / 2, -H / 2); }
     ctx.drawImage(paper, 0, 0, W, H);
     if (paperFade > 0 && paperOld) { ctx.globalAlpha = paperFade; ctx.drawImage(paperOld, 0, 0, W, H); ctx.globalAlpha = 1; } // the old scene dissolving
     drawDecals();
     drawDrift(time);
+    if (calm) ctx.translate(-sx, -sy);
+    drawCallout(); // (under everything you have to read)
     for (const w of G.warns) drawWarn(w, time);
     if (G.snaps.length) { // the instant a warning goes off, its shape flashes white-hot
       ctx.save(); if ("filter" in ctx) ctx.filter = "brightness(2.4) saturate(0.3)";
       for (const s of G.snaps) { ctx.globalAlpha = Math.max(0, 1 - s.t / 0.14); drawWarn({ ...s.w, t: s.w.dur, delay: 0, placed: true }, time); }
       ctx.restore();
     }
-    for (const h of G.hazards) h.draw(h, time);
+    // falling: what cut you stays as it was, everything else fades back, and a blade's whole way is drawn back to where it came from
+    const K = G.mode === "dying" && G.killer && G.dieT > 0.08 ? G.killer : null;
+    for (const h of G.hazards) { if (K && h !== K.hazard) { ctx.save(); ctx.globalAlpha = 0.25; h.draw(h, time); ctx.restore(); } else h.draw(h, time); }
+    if (K && K.shot) { const s = K.shot; ctx.save(); ctx.strokeStyle = "rgba(200,50,31,0.6)"; ctx.lineWidth = Math.max(3, (s.r || S * 0.01) * 2); ctx.lineCap = "round"; ctx.setLineDash([S * 0.02, S * 0.012]); ctx.beginPath(); ctx.moveTo(s.ox, s.oy); ctx.lineTo(s.x, s.y); ctx.stroke(); ctx.restore(); }
     drawMons(time);
     drawBoss(time);
     if (!reduced) for (const s of G.shots) { // streaks behind whatever is flying, fading back along its path
@@ -3313,8 +3576,13 @@ sdk.initializeAsync()
       ctx.beginPath(); ctx.moveTo(tr[0], tr[1]); for (let i = 2; i < tr.length; i += 2) ctx.lineTo(tr[i], tr[i + 1]); ctx.stroke();
     }
     for (const s of G.shots) {
+      if (K && s !== K.shot) { ctx.save(); ctx.globalAlpha = 0.25; drawShot(s); ctx.restore(); continue; }
+      if (s.freeze > 0) { // the blade that grazed you, shivering where it hangs (drawn only: it stays where it is)
+        const j = Math.sin(performance.now() * 0.12) * 1.5, a = Math.atan2(s.vy, s.vx) + Math.PI / 2;
+        ctx.save(); ctx.translate(Math.cos(a) * j, Math.sin(a) * j); drawShot(s); ctx.restore(); continue;
+      }
       if (!s.veil) { drawShot(s); continue; }
-      ctx.save(); ctx.globalAlpha = clamp(1.25 - Math.hypot(s.x - P.x, s.y - P.y) / (S * 0.26), 0.06, 1); drawShot(s); ctx.restore(); // 무영검: seen only close by
+      ctx.save(); ctx.globalAlpha = clamp(1.35 - Math.hypot(s.x - P.x, s.y - P.y) / (S * 0.36), 0.15, 1); drawShot(s); ctx.restore(); // 무영검: seen clearly only close by
     }
     for (const c of G.cuts) drawCut(c);
     if (G.mode === "play" || G.mode === "dying" || G.mode === "menu") drawPlayer(time);
@@ -3332,28 +3600,38 @@ sdk.initializeAsync()
         continue;
       }
       if (p.kind === "glow") { ctx.fillStyle = hexA(p.color, 0.85 * a); ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill(); continue; }
-      ctx.fillStyle = p.kind === "spark" ? `rgba(200,50,31,${a})` : p.kind === "chip" ? `rgba(111,138,74,${a})` : `rgba(29,26,23,${a * 0.85})`;
+      if (p.kind === "thrower") { if (p.t >= 0) drawThrower(p); continue; }
+      if (p.kind === "pull") { // drawn in to a point, quicker as it goes (a boss gathering itself)
+        const k = p.t / p.life, e = k * k, x = p.x + (p.x1 - p.x) * e, y = p.y + (p.y1 - p.y) * e;
+        ctx.fillStyle = hexA(p.color, 0.9 * Math.min(1, k * 4)); ctx.beginPath(); ctx.arc(x, y, p.r * (1 - 0.5 * k), 0, Math.PI * 2); ctx.fill(); continue;
+      }
+      if (p.kind === "stroke") { // a graze driven home: a brush stroke that leaves you and thickens into the boss
+        const dx = p.x1 - p.x, dy = p.y1 - p.y, sa = 0.6 * (1 - p.t / p.life);
+        ctx.strokeStyle = hexA(p.color, sa); ctx.lineCap = "round";
+        for (let i = 0; i < 3; i++) { const f0 = 0.3 + i * 0.22, f1 = Math.min(0.96, f0 + 0.26); ctx.lineWidth = p.w * (0.6 + i * 0.7); ctx.beginPath(); ctx.moveTo(p.x + dx * f0, p.y + dy * f0); ctx.lineTo(p.x + dx * f1, p.y + dy * f1); ctx.stroke(); }
+        continue;
+      }
+      ctx.fillStyle = p.kind === "spark" ? `rgba(201,162,74,${a})` : p.kind === "chip" ? `rgba(111,138,74,${a})` : `rgba(29,26,23,${a * 0.85})`; // (sparks gold: red is the blades')
       ctx.beginPath(); ctx.arc(p.x, p.y, p.r * (p.kind === "ink" ? 1 + p.t : 1), 0, Math.PI * 2); ctx.fill();
     }
     for (const x of G.texts) {
       const a = 1 - x.t / 0.9;
       ctx.globalAlpha = a;
       ctx.font = `${Math.round(S * 0.06)}px "Nanum Brush Script", cursive`;
-      ctx.textAlign = "center"; ctx.fillStyle = "#c8321f";
+      ctx.textAlign = "center"; ctx.fillStyle = "#1d1a17"; // (ink: red is for what cuts)
       ctx.fillText(x.text, x.x, x.y - x.t * S * 0.08);
       ctx.font = `700 ${Math.round(S * 0.026)}px "Noto Serif KR", serif`;
-      ctx.fillStyle = "#1d1a17";
       ctx.fillText(`+${x.add.toFixed(2)}초`, x.x, x.y - x.t * S * 0.08 + S * 0.034);
       ctx.globalAlpha = 1;
     }
     drawMood(time);
     drawBanner();
     drawCombo();
-    drawCallout();
     if (G.mode === "dying") drawStamp(G.dieT);
     ctx.restore();
     if (G.flash > 0.01) { ctx.fillStyle = `rgba(${G.flashC},${G.flash})`; ctx.fillRect(0, 0, W, H); }
-    if (G.story) { drawBossBar(); drawStageBar(); drawCine(time); drawCard(time); drawStamp(); }
+    if (G.finalCut) drawFinalCut();
+    if (G.story) { drawBossBar(); drawStageBar(); drawCine(time); drawCard(time); drawKillStamp(); }
     drawMsg();
   }
 
@@ -3366,24 +3644,33 @@ sdk.initializeAsync()
     const u = bossUnit(b.def) * (1 + (b.castT > 0 ? 0.1 * Math.sin((b.castT / 0.4) * Math.PI) : 0));
     const bodies = bossBodies(b);
     if (b.downT <= 0) {
+      if (b.next) { // where it is about to step: its shadow on the ground there first
+        const k = 1 - clamp(b.next.t / 0.35, 0, 1), bu = bossUnit(b.def);
+        ctx.fillStyle = `rgba(29,26,23,${0.1 + 0.14 * k})`;
+        for (const [x] of bossBodies({ ...b, x: b.next.x })) { ctx.beginPath(); ctx.ellipse(x, b.next.y + bu * 2, bu * (0.8 + 0.4 * k), bu * 0.3, 0, 0, Math.PI * 2); ctx.fill(); }
+      }
       for (const g of b.ghosts || []) { // where it just was, fading
         ctx.save(); ctx.globalAlpha = 0.28 * (1 - g.t / 0.3); ctx.translate(g.x - b.x, g.y - b.y);
         bodies.forEach(([x, y], i) => bossFigure(b.def, x, y, u, time, { mid: b.mid, side: i ? 1 : -1 })); ctx.restore();
       }
       ctx.save(); if (b.home > 0) ctx.globalAlpha = 0.45; // in the air, out of reach
+      if (b.reel) { const off = S * 0.012 * Math.sin(Math.PI * Math.min(1, b.reel.t / 0.12)); ctx.translate(Math.cos(b.reel.ang) * off, Math.sin(b.reel.ang) * off); } // a graze landed: it reels
       const L = b.lunge;
       if (L) { // a lunge at you and back, and a crescent of its colour where its blade went
         const k = Math.min(1, L.t / 0.35), off = S * 0.06 * Math.sin(Math.PI * k), sw = Math.max(0, 1 - L.t / 0.3);
         ctx.translate(Math.cos(L.ang) * off, Math.sin(L.ang) * off);
         if (sw > 0 && !reduced) {
           const R = u * 3.2, a0 = L.ang - 1.3 + k * 0.6;
-          ctx.save(); ctx.translate(b.x, b.y + u * 0.4); ctx.fillStyle = hexA(b.def.accent, 0.55 * sw);
+          ctx.save(); ctx.translate(b.x, b.y + u * 0.4); ctx.fillStyle = hexA(fightTint(b.def), 0.55 * sw);
           ctx.beginPath(); ctx.arc(0, 0, R, a0, a0 + 2.0); ctx.arc(0, 0, R * 0.82, a0 + 2.0, a0, true); ctx.closePath(); ctx.fill();
           ctx.strokeStyle = `rgba(255,250,235,${0.8 * sw})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, R, a0 + 0.2, a0 + 1.9); ctx.stroke();
           ctx.restore();
         }
       }
-      bodies.forEach(([x, y], i) => bossFigure(b.def, x, y, u, time, { hurt: b.hurtT > 0, mid: b.mid, side: i ? 1 : -1, cast: b.castT > 0 }));
+      // gathering itself it sinks and spreads, its weapon glinting; as it strikes it springs up for a moment
+      const wd = b.wind || 0, pp = (b.pop || 0) / 0.1;
+      if (wd > 0 || pp > 0) { const e = wd * wd, sy = 1 - 0.1 * e + 0.12 * pp, sx = 1 + 0.06 * e - 0.04 * pp, fy = b.y + u * 2; ctx.translate(b.x, fy); ctx.scale(sx, sy); ctx.translate(-b.x, -fy); }
+      bodies.forEach(([x, y], i) => bossFigure(b.def, x, y, u, time, { hurt: b.hurtT > 0, mid: b.mid, side: i ? 1 : -1, cast: b.castT > 0 || wd > 0.4 }));
       ctx.restore(); return;
     }
     // felled: cut in two along the last stroke, the halves sliding apart, dropping and fading
@@ -3887,7 +4174,11 @@ sdk.initializeAsync()
     // the bar: one brush stroke, round at both ends, a dry streak along its top
     ctx.lineCap = "round";
     ctx.strokeStyle = "rgba(29,26,23,0.16)"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + w - 4, y + 4); ctx.stroke();
-    const end = x + 4 + (w - 8) * Math.max(0, b.hp);
+    const end = x + 4 + (w - 8) * Math.max(0, b.hp), shown = x + 4 + (w - 8) * Math.max(0, b.hpShow ?? b.hp);
+    if (shown > end + 1) { // what a graze just cut off it, there a moment longer in pale paper
+      ctx.lineCap = "round"; ctx.strokeStyle = "rgba(29,26,23,0.55)"; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(end, y + 4); ctx.lineTo(shown, y + 4); ctx.stroke();
+      ctx.strokeStyle = "#f7f0de"; ctx.lineWidth = 6; ctx.stroke();
+    }
     if (b.hp > 0) {
       const g = ctx.createLinearGradient(x, 0, x + w, 0); g.addColorStop(0, d.accent); g.addColorStop(1, hexA(d.accent, 0.75));
       ctx.strokeStyle = b.hurtT > 0 ? "#f7f0de" : g; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(x + 4, y + 4); ctx.lineTo(end, y + 4); ctx.stroke();
@@ -3895,6 +4186,14 @@ sdk.initializeAsync()
       ctx.fillStyle = "#1d1a17"; for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(end + 3 + i * 4, y + 4 + (i % 2 ? -3 : 3), 1.6 - i * 0.4, 0, Math.PI * 2); ctx.fill(); } // ink flicked off its end
     }
     if (d.mid && !b.mid) { ctx.fillStyle = "rgba(29,26,23,0.5)"; ctx.fillRect(x + w * 0.5 - 1, y - 2, 2, 12); }
+    const f = (G.stageRun || G.dev) && G.fight;
+    if (f) { // where it gets its second wind: a notch, and once past it, a crack through the stroke
+      const nx = x + 4 + (w - 8) * 0.4;
+      ctx.strokeStyle = "rgba(29,26,23,0.6)"; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.beginPath();
+      if (!f.act2) { ctx.moveTo(nx, y - 3); ctx.lineTo(nx, y + 11); }
+      else { ctx.moveTo(nx - 4, y - 4); ctx.lineTo(nx + 1, y + 3); ctx.lineTo(nx - 2, y + 6); ctx.lineTo(nx + 3, y + 12); }
+      ctx.stroke();
+    }
     ctx.restore();
   }
   // break a line of words to fit a width
@@ -3988,10 +4287,31 @@ sdk.initializeAsync()
     ctx.restore();
   }
   // a boss felled: 斬, a red seal pressed over the page
-  function drawStamp() {
+  function drawThrower(p) { // a hooded figure in ink, no red on it (red is the blade's way): it rises, aims, throws, and is smoke
+    const r = p.r, thrown = p.t >= p.at, k = thrown ? (p.t - p.at) / (p.life - p.at) : 0;
+    if (thrown && !p.puffed) { p.puffed = true; burstInk(p.x, p.y, 6); }
+    ctx.save(); ctx.translate(p.x, p.y + (thrown ? -r * 0.3 * k : 0)); ctx.globalAlpha = 0.75 * Math.min(1, p.t / 0.15) * (1 - k);
+    ctx.fillStyle = "#2b2622"; ctx.strokeStyle = "#2b2622"; ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-r * 0.85, r * 1.1); ctx.quadraticCurveTo(-r * 0.7, -r * 0.1, 0, -r * 0.35); ctx.quadraticCurveTo(r * 0.7, -r * 0.1, r * 0.85, r * 1.1); ctx.closePath(); ctx.fill(); // the cloak
+    ctx.beginPath(); ctx.arc(0, -r * 0.55, r * 0.42, 0, Math.PI * 2); ctx.fill(); // the hood
+    const reach = thrown ? 1.5 : 0.7 + 0.2 * Math.sin(p.t * 30); // the arm drawn back, then flung out the way it threw
+    ctx.lineWidth = Math.max(2, r * 0.22); ctx.beginPath(); ctx.moveTo(0, -r * 0.1);
+    ctx.lineTo(Math.cos(p.ang) * r * reach * (thrown ? 1 : -0.6), -r * 0.1 + Math.sin(p.ang) * r * reach * (thrown ? 1 : -0.6)); ctx.stroke();
+    ctx.restore();
+  }
+  function drawFinalCut() { // the last blow: one white stroke from you through it, the world black for a blink behind it
+    const c = G.finalCut, age = (performance.now() - c.at) / 1000, k = Math.min(1, age / 0.1);
+    if (!reduced && age > 0.12 && age < 0.2) { ctx.fillStyle = "rgba(20,16,12,0.85)"; ctx.fillRect(0, 0, W, H); }
+    const a = age < 0.2 ? 1 : Math.max(0, 1 - (age - 0.2) / 0.35), x1 = c.x0 + (c.x1 - c.x0) * k, y1 = c.y0 + (c.y1 - c.y0) * k;
+    ctx.save(); ctx.lineCap = "round";
+    ctx.strokeStyle = `rgba(29,26,23,${0.6 * a})`; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(c.x0, c.y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,252,240,${a})`; ctx.lineWidth = 5; ctx.stroke();
+    ctx.restore();
+  }
+  function drawKillStamp() { // (not drawStamp: that name is the 敗 seal further down, and the later one would win)
     const s = G.stamp; if (!s) return;
     const age = (performance.now() - s.at) / 1000; if (age > 1.6) { G.stamp = null; return; }
-    const k = clamp(age / 0.16, 0, 1), sc = 2.4 - 1.4 * k, a = age > 1.1 ? (1.6 - age) / 0.5 : 1, sz = S * 0.42;
+    const s0 = reduced ? 1.3 : 2.4, k = clamp(age / 0.16, 0, 1), sc = s0 - (s0 - 1) * k, a = age > 1.1 ? (1.6 - age) / 0.5 : 1, sz = S * 0.42;
     ctx.save(); ctx.translate(W / 2, H * 0.42); ctx.rotate(-0.12); ctx.scale(sc, sc); ctx.globalAlpha = Math.max(0, a) * Math.min(1, k * 1.5);
     ctx.fillStyle = "rgba(200,50,31,0.92)"; ctx.beginPath();
     for (let i = 0; i < 24; i++) { const t = (i / 24) * Math.PI * 2, r = sz * 0.5 * (1 + Math.sin(i * 2.7) * 0.04); ctx.lineTo(Math.cos(t) * r * 1.0, Math.sin(t) * r); } // a round seal, its rim uneven
@@ -4077,9 +4397,14 @@ sdk.initializeAsync()
       glint(clamp(w.x, S * 0.04, W - S * 0.04), clamp(w.y, S * 0.04, H - S * 0.04), S * 0.03 * (1 + k * 0.6), time);
     } else if (w.kind === "band") { // the blade's path: its edges close in, a glint runs along it
       ctx.translate(w.x, w.y); ctx.rotate(w.ang);
+      // its edges stay where the blade will cut (the whole band); the time left shows as faint lines closing in on the middle
       const L = D * 1.2, half = (w.w / 2) * (1 - k * 0.85);
+      // the last moment before it goes, it stops pulsing and its edges set hard: the way is fixed now
+      const set = k >= 0.85;
       ctx.fillStyle = `rgba(200,50,31,${0.06 + k * 0.16})`; ctx.fillRect(-L, -w.w / 2, L * 2, w.w);
-      ctx.strokeStyle = `rgba(200,50,31,${0.35 + pulse * 0.5})`; ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(200,50,31,${set ? 0.95 : 0.45 + pulse * 0.45})`; ctx.lineWidth = set ? 2.5 : 1.8;
+      ctx.beginPath(); ctx.moveTo(-L, -w.w / 2); ctx.lineTo(L, -w.w / 2); ctx.moveTo(-L, w.w / 2); ctx.lineTo(L, w.w / 2); ctx.stroke();
+      ctx.strokeStyle = `rgba(200,50,31,${0.2 + k * 0.25})`; ctx.lineWidth = 1;
       ctx.beginPath(); ctx.moveTo(-L, -half); ctx.lineTo(L, -half); ctx.moveTo(-L, half); ctx.lineTo(L, half); ctx.stroke();
       const gx = -D * 0.6 + ((k * 2) % 1) * D * 1.2;
       const g = ctx.createLinearGradient(gx - S * 0.3, 0, gx, 0);
@@ -4174,7 +4499,7 @@ sdk.initializeAsync()
       for (let i = 0; i < 2; i++) arrow(Math.cos(w.gapA) * r * (1.08 + i * 0.1), Math.sin(w.gapA) * r * (1.08 + i * 0.1), w.gapA, S * 0.02);
     } else if (w.kind === "drop") { // a sword's lane lights up
       const [x0, y0, x1, y1, ang] = dropPath(w);
-      glowLine(x0, y0, x1, y1, 1, 0.12 + k * 0.35);
+      glowLine(x0, y0, x1, y1, Math.max(1.5, S * 0.005), 0.25 + k * 0.45);
       ctx.fillStyle = `rgba(200,50,31,${0.5 + pulse * 0.4})`;
       arrow(x0 + Math.cos(ang) * S * 0.03, y0 + Math.sin(ang) * S * 0.03, ang, S * 0.018);
     } else if (w.kind === "palm") { // 장풍's lane, the palm waiting at its edge, arrows the way it will go
@@ -4352,7 +4677,7 @@ sdk.initializeAsync()
     for (let x = -L; x <= L; x += L / 30) ctx.lineTo(x, -c.w * (0.06 + 0.06 * Math.sin(x * 0.03)));
     for (let x = L; x >= -L; x -= L / 30) ctx.lineTo(x, c.w * (0.06 + 0.06 * Math.cos(x * 0.02)));
     ctx.closePath(); ctx.fill();
-    if (k < 0.5) { ctx.fillStyle = `rgba(200,50,31,${0.8 * (1 - k / 0.5)})`; ctx.fillRect(-L, -1, L * 2, 2); } // a red edge on the stroke
+    if (k < 0.22) { ctx.fillStyle = `rgba(200,50,31,${0.8 * (1 - k / 0.22)})`; ctx.fillRect(-L, -1, L * 2, 2); } // a red edge on the stroke (gone at once: the next band may be laid right here)
     ctx.restore();
   }
 
@@ -4506,16 +4831,24 @@ sdk.initializeAsync()
     ctx.restore();
   }
   // the technique's name flashes up as it is used: great hanja on an ink stroke, its reading beneath in red
+  // It is drawn under the warnings and whatever flies, so it never hides one. A boss's 비기: up while it gathers
+  // itself (when there is nothing yet to read), then small in a corner while it lasts; out on the stage, small and high.
   function drawCallout() {
     const c = G.callout; if (!c || G.mode !== "play") return;
-    const age = (performance.now() - c.at) / 1000; if (age > 0.9) return;
-    const a = age < 0.08 ? age / 0.08 : age > 0.6 ? (0.9 - age) / 0.3 : 1, sc = 1.35 - Math.min(1, age / 0.12) * 0.35;
+    if (c.castAt) return drawSigTag(c);
+    const age = (performance.now() - c.at) / 1000, open = G.story && !G.boss, life = c.life || (c.wind ? 2 : open ? 0.6 : 0.9);
+    if (age > life) return;
+    const a = age < 0.08 ? age / 0.08 : age > life - 0.3 ? (life - age) / 0.3 : 1, sc = (1.35 - Math.min(1, age / 0.12) * 0.35) * (open ? 0.75 : 1);
     const fs = Math.round(Math.min(S * (c.h.length > 2 ? 0.1 : 0.13), 60));
+    // (if you are standing where it goes, it goes above or below you)
+    let ty = !G.story ? H * 0.2 : open ? H * 0.17 : H * 0.42;
+    if (Math.abs(P.y - ty) < fs * 1.3) ty += (P.y > ty ? -1 : 1) * fs * 2.6;
+    c.y = c.y == null ? ty : c.y + (ty - c.y) * 0.25;
     ctx.save(); ctx.globalAlpha = Math.max(0, a); ctx.textAlign = "center"; ctx.textBaseline = "middle";
-    ctx.translate(W / 2, G.story ? H * 0.42 : H * 0.2); ctx.scale(sc, sc);
+    ctx.translate(W / 2, c.y); ctx.scale(sc, sc);
     ctx.font = `900 ${fs}px "Noto Serif KR", serif`;
     const tw = ctx.measureText(c.h).width, bw = tw * 0.62 + fs * 0.4, bh = fs * 0.62;
-    ctx.fillStyle = "rgba(29,26,23,0.78)";
+    ctx.fillStyle = "rgba(29,26,23,0.66)";
     ctx.beginPath(); ctx.moveTo(-bw, -bh);
     for (let x = -bw; x <= bw; x += 8) ctx.lineTo(x, -bh + Math.sin(x * 0.09) * 2.5);
     ctx.lineTo(bw + bh * 0.4, 0);
@@ -4533,6 +4866,28 @@ sdk.initializeAsync()
     }
     ctx.fillStyle = "#f7f0de"; ctx.fillText(c.h, 0, fs * 0.02);
     ctx.font = `700 ${Math.round(fs * 0.32)}px "Noto Serif KR", serif`; ctx.fillStyle = "#e0573f"; ctx.fillText(c.k, 0, bh + fs * 0.32 + (G.boss && G.story ? fs * 0.08 : 0));
+    ctx.restore();
+  }
+  function drawSigTag(c) { // a 비기 under way: its name shrunk off to a corner by the boss bar (away from the boss); 破 when spent
+    if (!G.boss || G.phase !== "boss") return;
+    const now = performance.now(), t = (now - c.castAt) / 1000, out = c.brokeAt ? (now - c.brokeAt) / 1000 : 0;
+    if (out > 0.9) return;
+    const e = 1 - Math.pow(1 - Math.min(1, t / 0.18), 2), right = c.side > 0;
+    const big = Math.min(S * (c.h.length > 2 ? 0.1 : 0.13), 60), small = Math.round(Math.min(S * 0.04, 16));
+    ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle";
+    ctx.font = `900 ${small}px "Noto Serif KR", serif`;
+    const wS = ctx.measureText(c.h).width, cx = right ? W - 16 - wS / 2 : 16 + wS / 2, cy = Math.max(92, H * 0.12) + 30, y0 = c.y ?? H * 0.42;
+    const x = W / 2 + (cx - W / 2) * e, y = y0 + (cy - y0) * e;
+    ctx.globalAlpha = (1 - 0.3 * e) * clamp((0.9 - out) / 0.4, 0, 1);
+    ctx.font = `900 ${Math.round(big + (small - big) * e)}px "Noto Serif KR", serif`; ctx.fillStyle = "#1d1a17"; ctx.fillText(c.h, x, y);
+    if (e >= 1) { ctx.strokeStyle = fightTint(G.boss.def); ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(cx - wS / 2, cy + small * 0.7); ctx.lineTo(cx + wS / 2, cy + small * 0.62); ctx.stroke(); }
+    if (c.brokeAt) { // 破: pressed beside it, ink not red (red is the blades')
+      const k = Math.min(1, out / 0.12), sz = 20 * (1.4 - 0.4 * k), sx = right ? cx - wS / 2 - 16 : cx + wS / 2 + 16;
+      ctx.save(); ctx.translate(sx, cy); ctx.rotate(-0.1); ctx.globalAlpha *= Math.min(1, k * 1.5);
+      ctx.fillStyle = "#1d1a17"; ctx.fillRect(-sz / 2, -sz / 2, sz, sz);
+      ctx.fillStyle = "#f7f0de"; ctx.font = `900 ${Math.round(sz * 0.66)}px "Noto Serif KR", serif`; ctx.fillText("破", 0, sz * 0.03);
+      ctx.restore();
+    }
     ctx.restore();
   }
   function drawBeam(h) { // a blade of light with a white-hot core, an afterglow trailing behind
@@ -4803,7 +5158,7 @@ sdk.initializeAsync()
     if (t < 0.3) return;
     const k = Math.min(1, (t - 0.3) / 0.25), size = S * 0.28 * (1.6 - k * 0.6);
     ctx.save(); ctx.globalAlpha = k;
-    seal(W / 2, H / 2, "敗", size);
+    seal(W / 2, (G.killerY ?? H / 2) < H / 2 ? H * 0.68 : H * 0.32, "敗", size); // (away from what cut you, so it stays in view)
     ctx.restore();
   }
 
@@ -4979,7 +5334,7 @@ sdk.initializeAsync()
     b.dataset.state = "earned"; b.disabled = false; b.textContent = "이어하기";
   });
   function revive() {
-    G.revived = true; G.mode = "play"; G.dieT = 0; G.shake = 0; G.stopT = 0;
+    G.revived = true; G.mode = "play"; G.dieT = 0; G.shake = 0; G.stopT = 0; G.killer = null; G.killedBy = "";
     clearField(); G.mons = [];
     Object.assign(P, { inv: 2, push: null }); // two seconds to find your feet
     $("over").hidden = true; $("revive").hidden = true; $("hud").hidden = false;
