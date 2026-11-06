@@ -350,16 +350,26 @@ async function showBreakAd() {
   return r.status === "completed";
 }
 // true only for an ad watched to the end AND confirmed to our server by ONE store (it usually lands within a second or two)
+let missNote = null; // why the last reward didn't come, for the button
+let rewardRestUntil = 0; // an ad that timed out can still turn up late, so the placement isn't asked again straight away
 async function showRewardAd() {
+  missNote = null;
   if (!rewardAds) return false;
   const requestId = "r" + newId();
   const r = await sdk.ads.showRewardedAsync({ placementId: AD.rewarded, requestId });
   sdk.ads.loadRewarded({ placementId: AD.rewarded });
-  if (r.status !== "rewarded") return false; // closed early, or no ad to show: nothing is owed
+  if (r.status !== "rewarded") { // closed early, or no ad to show: nothing is owed
+    if (r.reason === "timeout") rewardRestUntil = Date.now() + 60_000;
+    missNote = r.status === "dismissed" ? "광고를 끝까지 봐야 받을 수 있어요"
+      : r.reason === "no_fill" ? "지금은 볼 수 있는 광고가 없어요"
+      : r.reason === "already_showing" ? null : "광고를 불러오지 못했어요";
+    return false;
+  }
   for (let i = 0; i < 20; i++) {
     try { if ((await server(`/onestore/reward/${requestId}`)).body.ok) return true; } catch { /* the network blinked: ask again */ }
     await wait(600);
   }
+  missNote = "보상이 확인되지 않았어요";
   return false;
 }
 
@@ -406,7 +416,11 @@ async function restore() {
   } catch { return null; }
 }
 
-window.JUKLIM_PLATFORM = { name: "onestore", showBreakAd, rewardReady: () => rewardAds, showRewardAd, products, buy, restore };
+window.JUKLIM_PLATFORM = { name: "onestore", showBreakAd, showRewardAd, products, buy, restore,
+  rewardReady: () => rewardAds && Date.now() >= rewardRestUntil,
+  missNote: () => missNote,
+  // the SDK answers every ad by itself, a long playable one too (its own limit is 10 minutes), plus our server's word
+  adWaitMs: 11 * 60_000 };
 
 // The game's script comes after this one, and the SDK's answers can arrive before it has run.
 const gameReady = new Promise((resolve) => {
@@ -2010,10 +2024,10 @@ sdk.initializeAsync()
       what: "북이 울릴 때마다 발밑에 붉은 띠가 깔렸다가 칼이 떨어진다. 넷째 박에는 엇갈린 띠가 두 개.",
       intro: "북이 울리면 칼이 떨어진다. 박자를 놓치지 마라.", sigLine: "하나, 둘, 셋, 그리고 넷.", down: "마지막 박자는… 네 것이었다." },
     { stage: "9-5", name: "빙경", title: "氷鏡 · 얼음 거울", look: "mirror", accent: "#7fb6d4", theme: "snow", sig: "mirror", sigName: ["氷鏡", "빙경"],
-      what: "보스가 던진 표창이 벽에 두 번까지 튕겨서 돌아온다.",
+      what: "얼음 거울 넉 장이 땅에 선다. 보스가 거울에 고드름을 던지면 거울에서 꺾여 나에게 날아온다. 꺾이는 길이 먼저 빛줄기로 보인다. 갈수록 두 장이 한꺼번에 나를 겨눈다.",
       intro: "얼음은 받은 칼을 그대로 돌려준다.", sigLine: "벽을 믿지 마라. 벽도 내 편이다.", down: "깨진 거울엔 아무것도 비치지 않지." },
     { stage: "10-5", name: "청우", title: "靑雨 · 비 속의 검객", look: "rain", accent: "#3f7f8f", theme: "gorge", sig: "rain", sigName: ["雨中劍", "우중검"],
-      what: "보스의 우산 그림자 하나만 비가 피해 간다. 그림자가 옮겨 갈 자리가 먼저 보이고, 소나기가 쏟아질 때 그 밖에 있으면 죽는다. 다섯 번.",
+      what: "보스의 우산 그림자 하나만 비가 피해 간다. 소나기가 쏟아질 때 그 밖에 있으면 죽고, 비가 떨어지는 순간 다음 그림자가 보인다. 비가 지나갈 때까지 버텼다가 바로 뛰어야 한다. 세 번째마다 비가 길게 오고, 우산이 미리 그려진 길을 따라 흘러간다. 우산 밑을 따라 움직여야 한다.",
       intro: "비가 오면 칼을 뽑지 않는다. 비가 대신 벤다.", sigLine: "내 우산 밑이 아니면 하늘 아래 전부가 칼이다.", down: "비가… 그쳤군." },
     { stage: "11-5", name: "검총주", title: "劍塚主 · 칼 무덤의 주인", look: "swords", accent: "#7a7f86", theme: "field", sig: "swords", sigName: ["萬劍歸宗", "만검귀종"],
       what: "칼무덤에서 칼이 솟아 땅에 박힌다. 박힌 칼마다 보스를 향한 붉은 선이 그어지고, 곧 모든 칼이 그 선을 따라 보스에게 한꺼번에 날아간다. 선과 선 사이나 칼 뒤쪽에 서야 한다. 칼을 거둔 보스는 사방으로 다시 터뜨린다. 두 번.",
@@ -2059,7 +2073,7 @@ sdk.initializeAsync()
   // whose shove can throw you into the boss's body or a 비기 with nothing you could have done)
   const BOSS_MIX = {
     twin: ["draw", "cross", "clones"], lotus: ["burst", "line", "spiral"], fire: ["draw", "homing", "spikes"], frost: ["line", "homing", "triple"],
-    void: ["draw", "cross", "triple"], charge: ["draw", "line", "clones"], veil: ["homing", "draw", "flick"], drum: ["burst", "line", "triple"],
+    void: ["draw", "cross", "triple"], charge: ["draw", "line", "clones"], veil: ["homing", "draw", "flick"], drum: ["burst", "line", "homing"],
     mirror: ["line", "cross", "ring"], rain: ["draw", "homing", "triple"], swords: ["line", "draw", "clones"], time: ["homing", "burst", "triple"],
     thunder: ["cross", "line", "spikes"], shadow: ["draw", "homing", "clones"], swarm: ["burst", "line", "spiral"], wheel: ["draw", "cross", "flick"],
     pendulum: ["line", "burst", "flick"], crumble: ["draw", "line", "spikes"], glare: ["line", "homing", "flick"], final: ["draw", "cross", "burst", "triple", "clones"],
@@ -2092,7 +2106,7 @@ sdk.initializeAsync()
       fire(w) { shoot("star", w.x, w.y, w.ang, speed, { spin: 18, r: S * 0.015 }); sfx.whoosh(); } });
     sfx.warn();
   }
-  const drumBeat = () => Math.max(0.52, 0.62 - lvl() * 0.007); // 뇌음's beat: its 비기 and its music keep the same time
+  const drumBeat = () => Math.max(0.62, 0.72 - lvl() * 0.006); // 뇌음's beat: its 비기 and its music keep the same time
   // how far into the game this boss is (0 for 1-5 … 14 for 15-5, more on the endless road): its 비기 grow with it
   // and within one fight, each time it comes again it comes a little harder
   // (종전, its last 비기 when its life is gone, comes fiercer: SL().last levels)
@@ -2213,40 +2227,66 @@ sdk.initializeAsync()
       }, () => { ctx.fillStyle = "rgba(225,228,230,0.22)"; ctx.fillRect(0, 0, W, H); });
       return 8;
     },
-    drum() { // a blade's path laid at your feet on every beat; on the fourth, two of them crossed
+    drum() { // a blade's path laid at your feet on the beat: one, one, two crossed, and a beat's rest before the next bar
+      // (11-06 "8-5 너무 어렵다, 피할 수가 없는 거 아니냐": at 보통's pace it laid a path every 0.57 s with never a rest,
+      // the crossed pair landing on top of the next; now each bar breathes on its fourth beat, and each path waits longer)
       const beat = drumBeat();
       if (ac) { M.step = 0; M.next = ac.currentTime + 0.03; } // its music's bar starts with its first blade
-      let k = 0;
-      for (let bar = 0; bar < 4; bar++) for (let i = 0; i < 4; i++, k++) {
+      for (let bar = 0; bar < 4; bar++) for (let i = 0; i < 3; i++) {
         const turn = bar * Math.PI / 8; // each bar the paths come round at a new angle
-        const angs = i === 3 ? [turn + Math.PI / 4, turn - Math.PI / 4] : [turn + [0, Math.PI / 2, Math.PI / 4][i]];
-        // each lands a beat and a quarter on: never more than two paths waiting at once
-        angs.forEach((ang, j) => G.warns.push({ kind: "band", x: 0, y: 0, ang, w: S * 0.075, t: 0, dur: beat * 1.25, delay: k * beat, beat: true,
+        const angs = i === 2 ? [turn + Math.PI / 4, turn - Math.PI / 4] : [turn + [0, Math.PI / 2][i]];
+        angs.forEach((ang, j) => G.warns.push({ kind: "band", x: 0, y: 0, ang, w: S * 0.075, t: 0, dur: beat * 1.4, delay: (bar * 4 + i) * beat, beat: true,
           place(w) { w.x = P.x; w.y = P.y; if (j === 0) sfx.taiko(); }, fire(w) { landCut(w); } }));
       }
       return 16 * beat + 1.4;
     },
-    mirror() { // fans of stars that come back off the walls, twice (three times, late on)
-      const volleys = 4 + Math.floor(lvl() / 5), bounces = lvl() >= 9 ? 3 : 2;
-      for (let k = 0; k < volleys; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.7, delay: k * 0.95,
-        place(w) { w.x = G.boss.x; w.y = G.boss.y; w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
-        fire(w) { for (let i = -2; i <= 2; i++) shoot("star", w.x, w.y, w.ang + i * 0.3, S * 0.58, { spin: 16, r: S * 0.015, bounces }); sfx.whoosh(); } });
-      return volleys * 0.95 + 3.0;
+    mirror() { // 氷鏡: panes of ice stand about the field; it throws an icicle at one, and off it the icicle comes at you, its
+      // bent way lit first. One after another, two panes at once late on. (11-06: fans of stars glancing off the walls were
+      // "너무 멋없다": the mirrors are its own now, standing where you can see them turn toward you)
+      const n = 6 + Math.floor(lvl() / 3), gap = Math.max(0.6, 0.78 - lvl() * 0.01), h = icePanes(n * gap + 2.4);
+      for (let k = 0; k < n; k++) later(k * gap, () => { mirrorShot(h, 0.75); if (lvl() >= 7 && k % 2) mirrorShot(h, 0.75); });
+      return n * gap + 2.2;
     },
-    rain() { // only the shadow of the umbrella stays dry: it drifts to a new spot, shown first, and then the downpour comes
-      const R = S * 0.21, n = 5, warn = Math.max(1.15, 1.5 - lvl() * 0.02), gap = warn + 0.6;
-      for (let k = 0; k < n; k++) later(k * gap + (k ? 0.3 : 0), () => {
-        // the next dry spot: somewhere you have to walk to (never where you stand), but near enough to reach in time
-        let at = null;
-        for (let i = 0; i < 40 && !at; i++) {
-          const c = [rnd(R + S * 0.04, W - R - S * 0.04), rnd(H * 0.34, H - R - S * 0.06)], d = Math.hypot(c[0] - P.x, c[1] - P.y);
-          if (d > R * 1.25 && d < S * 0.7) at = c;
-        }
-        at = at || [clamp(W - P.x, R, W - R), clamp(P.y, H * 0.34, H - R)];
-        G.warns.push({ kind: "zone", x: at[0], y: at[1], R, t: 0, dur: warn + (k ? 0 : 0.3), delay: 0, fire: pour }); // (the first time, a moment longer to read)
-        sfx.warn();
-      });
-      return n * gap + 1.2;
+    rain() { // only the shadow of the umbrella stays dry: it drifts to a new spot, shown first, and then the downpour comes.
+      // 11-06 "청우 너무 쉽다": there was a walk and a wait between one downpour and the next. Now the next shadow shows the
+      // moment the rain stops (it cuts for 0.45 s; shown any sooner, a run at once was death), smaller, shown for less time,
+      // more of them, and never touching the last one, so it is one run after another. `far` keeps every run in reach at
+      // keyboard speed (SPEED) from anywhere in the last shadow, a quarter second to see it first.
+      const R = S * 0.175, n = 6 + Math.min(3, Math.floor(lvl() / 4)), warn = Math.max(0.95, 1.25 - lvl() * 0.025), wet = 0.45;
+      const far = Math.min(S * 0.6, SPEED() * (warn - 0.25)), near = Math.min(R * 2.05, far);
+      const inside = (c) => c[0] >= R + S * 0.04 && c[0] <= W - R - S * 0.04 && c[1] >= H * 0.34 && c[1] <= H - R - S * 0.06;
+      // Every third time the rain doesn't stop at once: the umbrella drifts down a road drawn with its shadow, and you
+      // keep under it till it lands (11-06 "청우 너무 밍밍": one run after another was all of it)
+      let prev = null, t = 0;
+      for (let k = 0; k < n; k++) {
+        const dur = warn + (k ? 0 : 0.3); // (the first time, a moment longer to read)
+        const walk = k % 3 === 2 ? 1.5 + Math.min(0.4, lvl() * 0.03) : 0;
+        later(t, () => {
+          // the first: somewhere you have to walk to (never where you stand); after that, a run away from the last shadow
+          const [fx, fy] = prev || [P.x, P.y];
+          let at = null;
+          for (let i = 0; i < 60 && !at; i++) {
+            const a = rnd(0, Math.PI * 2), d = prev ? rnd(near, far) : rnd(R * 1.25, S * 0.6), c = [fx + Math.cos(a) * d, fy + Math.sin(a) * d];
+            if (inside(c)) at = c;
+          }
+          if (!at) { const a = Math.atan2(H * 0.62 - fy, W / 2 - fx); at = [clamp(fx + Math.cos(a) * near, R + S * 0.04, W - R - S * 0.04), clamp(fy + Math.sin(a) * near, H * 0.34, H - R - S * 0.06)]; }
+          prev = at;
+          if (walk) { // its road: a stride or two from where it opens, on the field
+            const path = [at];
+            for (let j = 0; j < (lvl() >= 6 ? 2 : 1); j++) {
+              const [px, py] = path[path.length - 1];
+              let c = null;
+              for (let i = 0; i < 40 && !c; i++) { const a = rnd(0, Math.PI * 2), d = S * rnd(0.28, 0.4), q = [px + Math.cos(a) * d, py + Math.sin(a) * d]; if (inside(q)) c = q; }
+              if (c) path.push(c);
+            }
+            if (path.length > 1) { prev = path[path.length - 1]; G.warns.push({ kind: "zone", x: at[0], y: at[1], R, path, t: 0, dur, delay: 0, fire: (w) => pourWalk(w.path, w.R, walk) }); sfx.warn(); return; }
+          }
+          G.warns.push({ kind: "zone", x: at[0], y: at[1], R, t: 0, dur, delay: 0, fire: pour });
+          sfx.warn();
+        });
+        t += dur + (walk ? walk + 0.25 : wet);
+      }
+      return t + 0.8;
     },
     swords() { // 萬劍歸宗, as its name says (11-06: the row of swords falling in turn over a gap to stand under was "초딩같다"):
       // the sword tomb wakes, swords bursting up out of the ground round you (a glint where each will come) and standing
@@ -2524,6 +2564,44 @@ sdk.initializeAsync()
       return 9.6;
     },
   };
+  // 빙경's mirrors: four panes of ice standing about the lower field (for `life` seconds), harmless themselves. A pane
+  // turns to throw the boss's icicle at you: its face set halfway between the boss and you, as a mirror would.
+  function icePanes(life) {
+    const spots = [[0.16, 0.48], [0.84, 0.48], [0.24, 0.8], [0.76, 0.8]];
+    const panes = spots.map(([fx, fy]) => ({ x: W * fx + rnd(-S * 0.05, S * 0.05), y: H * fy + rnd(-S * 0.05, S * 0.05), ang: rnd(0, Math.PI), used: 0 }));
+    const h = { kind: "panes", panes, t: 0, dur: life, best: Infinity, near: true, dist: () => Infinity, draw: drawPanes };
+    G.hazards.push(h); sfx.shing();
+    return h;
+  }
+  function mirrorShot(h, warn) { // one icicle, off the pane that has waited longest and is not right by you
+    if (!G.boss || !h || h.t >= h.dur) return;
+    const ok = h.panes.filter((p) => Math.hypot(p.x - P.x, p.y - P.y) > S * 0.25);
+    const pane = (ok.length ? ok : h.panes).reduce((a, b) => (a.used <= b.used ? a : b)); pane.used = h.t + rnd(0, 0.1);
+    G.warns.push({ kind: "bent", pts: [[0, 0], [0, 0], [0, 0]], t: 0, dur: warn, delay: 0,
+      place(w) {
+        const [bx, by] = bossAt(), d1 = Math.atan2(pane.y - by, pane.x - bx), d2 = Math.atan2(P.y - pane.y, P.x - pane.x);
+        pane.ang = Math.atan2(Math.sin(d1) + Math.sin(d2), Math.cos(d1) + Math.cos(d2)); // its face lies along in + out, as a mirror's does
+        const far = Math.hypot(W, H);
+        w.pts = [[bx, by], [pane.x, pane.y], [pane.x + Math.cos(d2) * far, pane.y + Math.sin(d2) * far]]; w.d1 = d1; w.d2 = d2;
+        sfx.warn();
+      },
+      fire(w) {
+        const [[bx, by], [mx, my]] = w.pts, sp = S * 1.1;
+        shoot("sword", bx, by, w.d1, sp, { len: S * 0.1, r: S * 0.009, ice: true, turnAt: Math.hypot(mx - bx, my - by) / sp, turnAng: w.d2 });
+        sfx.whoosh();
+      } });
+  }
+  function drawPanes(h, time) { // standing slabs of ice, a cold glint running along each
+    const a = Math.min(1, h.t / 0.3, Math.max(0, (h.dur - h.t) / 0.4)), L = S * 0.15, T = S * 0.022;
+    for (const p of h.panes) {
+      ctx.save(); ctx.globalAlpha = a; ctx.translate(p.x, p.y); ctx.rotate(p.ang);
+      ctx.fillStyle = "rgba(214,234,246,0.85)"; ctx.fillRect(-L / 2, -T / 2, L, T);
+      ctx.strokeStyle = "rgba(127,182,212,0.95)"; ctx.lineWidth = 1.5; ctx.strokeRect(-L / 2, -T / 2, L, T);
+      const g = ((time * 0.8 + p.x * 0.01) % 1) * L - L / 2;
+      ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(g, -T / 2); ctx.lineTo(g + T, T / 2); ctx.stroke();
+      ctx.restore();
+    }
+  }
   // 업화진's fire: one whole cell, burning for a moment (it cuts only while it's rising)
   function burnCell(w) {
     G.hazards.push({ kind: "flame", x0: w.x0, y0: w.y0, x1: w.x1, y1: w.y1, t: 0, dur: 0.5, best: Infinity, near: true,
@@ -2580,6 +2658,18 @@ sdk.initializeAsync()
     sfx.slash(); G.shake = Math.max(G.shake, 8);
   }
   // 우중검: the downpour, everywhere but under the umbrella (it cuts for a moment)
+  function pourWalk(path, R, dur) { // 우중검's long downpour: everywhere but under the umbrella, which drifts down its road as it pours
+    const at = (t) => {
+      const q = clamp(t / dur, 0, 1) * (path.length - 1), i = Math.min(path.length - 2, Math.floor(q)), f = q - i, e = f * f * (3 - 2 * f);
+      return [path[i][0] + (path[i + 1][0] - path[i][0]) * e, path[i][1] + (path[i + 1][1] - path[i][1]) * e];
+    };
+    G.hazards.push({ kind: "pour", x: path[0][0], y: path[0][1], R, t: 0, dur: dur + 0.3, best: Infinity, near: true,
+      step() { [this.x, this.y] = at(this.t); },
+      dist() { return this.t < dur && Math.hypot(P.x - this.x, P.y - this.y) > this.R - S * 0.012 ? 0 : Infinity; },
+      warnAt(x, y, pad) { return this.t < dur && Math.hypot(x - this.x, y - this.y) > this.R - pad; },
+      draw: drawPour });
+    sfx.burst(); flash("190,210,220", 0.2); impact(path[0][0], path[0][1], 1.4, "#3f7f8f");
+  }
   function pour(w) {
     G.hazards.push({ kind: "pour", x: w.x, y: w.y, R: w.R, t: 0, dur: 0.6, best: Infinity, near: true,
       dist() { return this.t < 0.45 && Math.hypot(P.x - this.x, P.y - this.y) > this.R - S * 0.012 ? 0 : Infinity; },
@@ -2607,7 +2697,7 @@ sdk.initializeAsync()
     ctx.restore();
   }
   function drawPour(h, time) {
-    const a = Math.max(0, 1 - h.t / h.dur);
+    const a = clamp((h.dur - h.t) / Math.min(h.dur, 0.6), 0, 1); // (a long one stays heavy till its last moments)
     ctx.save(); outside(h.x, h.y, h.R); ctx.clip("evenodd");
     ctx.fillStyle = `rgba(40,62,74,${0.22 * a})`; ctx.fillRect(0, 0, W, H);
     rainStreaks(150, S * 0.09, 0.75 * a, time * 2.4, 0.3);
@@ -2897,13 +2987,14 @@ sdk.initializeAsync()
       return t;
     } },
     veil: { name: ["暗殺", "암살"], run() { const stab = () => bandsAt([rnd(0, Math.PI)], S * 0.08, 0.6); return steps(1.1, () => SUBS.veil.run(), stab, stab, () => SUBS.veil.run(), stab); } },
-    drum: { name: ["雷鼓", "뇌고"], run() { // a roar off the drum, then three paths side by side on the beat, turning
-      const beat = drumBeat(), three = (g) => { const nx = Math.cos(g + Math.PI / 2), ny = Math.sin(g + Math.PI / 2); for (const o of [-1, 0, 1]) G.warns.push({ kind: "band", x: P.x + nx * S * 0.16 * o, y: P.y + ny * S * 0.16 * o, ang: g, w: S * 0.07, t: 0, dur: beat * 1.3, delay: 0, beat: true, fire(v) { landCut(v); } }); sfx.taiko(); };
-      return steps(beat * 2, () => { const [x, y] = bossAt(); roarAt(x, y); }, () => {}, () => three(0), () => three(Math.PI / 2), () => three(Math.PI / 4), () => three(-Math.PI / 4));
+    drum: { name: ["雷鼓", "뇌고"], run() { // a roar off the drum; once its rings have gone by, three paths side by side on the beat
+      // (never the two together: a ring's gap and a gap between paths at once could leave nowhere to stand)
+      const beat = drumBeat(), three = (g) => { const nx = Math.cos(g + Math.PI / 2), ny = Math.sin(g + Math.PI / 2); for (const o of [-1, 0, 1]) G.warns.push({ kind: "band", x: P.x + nx * S * 0.2 * o, y: P.y + ny * S * 0.2 * o, ang: g, w: S * 0.07, t: 0, dur: beat * 1.5, delay: 0, beat: true, fire(v) { landCut(v); } }); sfx.taiko(); };
+      return steps(beat * 2, () => { const [x, y] = bossAt(); roarAt(x, y); }, () => {}, () => {}, () => three(0), () => three(Math.PI / 2), () => three(Math.PI / 4));
     } },
-    mirror: { name: ["氷晶", "빙정"], run() { // a ring of stars that each come back once off a wall, and a wall of ice
-      const prism = () => { const n = 12; G.warns.push({ kind: "ring", x: 0, y: 0, n, off: 0, t: 0, dur: 0.8, delay: 0, place(w) { [w.x, w.y] = bossAt(); w.off = Math.atan2(P.y - w.y, P.x - w.x) + Math.PI / n; sfx.warn(); }, fire(w) { for (let i = 0; i < n; i++) shoot("star", w.x, w.y, w.off + (i / n) * Math.PI * 2, S * 0.55, { spin: 16, r: S * 0.014, bounces: 1 }); sfx.burst(); } }); };
-      return steps(1.6, prism, () => SUBS.mirror.run(), prism, () => SUBS.mirror.run());
+    mirror: { name: ["三面鏡", "삼면경"], run() { // three panes turn on you at once: three icicles off them, meeting where you stand; a wall of ice between
+      const h = icePanes(7.6), three = () => { for (let i = 0; i < 3; i++) mirrorShot(h, 0.85); };
+      return steps(1.7, three, () => SUBS.mirror.run(), three, three);
     } },
     rain: { name: ["驟雨", "취우"], run() { // the rain coming down as blades, lane after lane round you
       const wave = () => { for (let k = 0; k < 7; k++) G.warns.push({ kind: "drop", side: 0, p: clamp(P.x + (k - 3) * S * 0.12 + rnd(-S * 0.02, S * 0.02), S * 0.03, W - S * 0.03), t: 0, dur: 0.6, delay: k * 0.07, fire(w) { fireDrop(w); } }); sfx.warn(); };
@@ -3537,6 +3628,10 @@ sdk.initializeAsync()
       if (s.freeze > 0) { s.freeze -= dt / Math.max(0.3, (G.bossK || 1) * (G.timeK || 1)); continue; } // it grazed you: hanging a blink (by the wall clock), harmless
       s.age += dt;
       if (s.ret && !s.back && s.age >= s.ret) { s.back = true; s.vx = -s.vx; s.vy = -s.vy; } // 연화귀: out, then home again
+      if (s.turnAt && !s.turned && s.age >= s.turnAt) { // 빙경: off an ice mirror, away down its second leg
+        s.turned = true; const sp = Math.hypot(s.vx, s.vy); s.vx = Math.cos(s.turnAng) * sp; s.vy = Math.sin(s.turnAng) * sp; s.rot = s.turnAng;
+        spark(s.x, s.y, 4); sfx.tick();
+      }
       if (G.freezeT > 0) { /* frozen: it doesn't move, but it still cuts */ }
       else if (s.hold > 0) { // waiting in the air, then away
         s.hold -= dt;
@@ -4573,7 +4668,12 @@ sdk.initializeAsync()
     const pulse = 0.55 + 0.45 * Math.sin(time * (14 + k * 26));
     const D = Math.hypot(W, H);
     ctx.save();
-    if (w.kind === "line") { // an aim line reaching out from the thrower
+    if (w.kind === "bent") { // 빙경: the shard's way, from the boss to an ice mirror and from there at you, the turn glinting
+      const [[ax, ay], [mx, my], [bx, by]] = w.pts, a = 0.35 + pulse * 0.45, lw = Math.max(1.2, S * 0.004), m = Math.min(1, k * 2.5);
+      glowLine(ax, ay, ax + (mx - ax) * m, ay + (my - ay) * m, lw, a);
+      if (m >= 1) glowLine(mx, my, mx + (bx - mx) * Math.min(1, k * 2.5 - 1 + 0.4), my + (by - my) * Math.min(1, k * 2.5 - 1 + 0.4), lw, a);
+      glint(mx, my, S * 0.03 * (1 + k * 0.6), time);
+    } else if (w.kind === "line") { // an aim line reaching out from the thrower
       const reach = S * 4 * Math.min(1, k * 2.5);
       glowLine(w.x, w.y, w.x + Math.cos(w.ang) * reach, w.y + Math.sin(w.ang) * reach, Math.max(1.2, S * 0.004), 0.35 + pulse * 0.45);
       glint(clamp(w.x, S * 0.04, W - S * 0.04), clamp(w.y, S * 0.04, H - S * 0.04), S * 0.03 * (1 + k * 0.6), time);
@@ -4649,6 +4749,13 @@ sdk.initializeAsync()
       ctx.strokeStyle = `rgba(200,50,31,${0.5 + pulse * 0.4})`; ctx.lineWidth = 2.5; ctx.setLineDash([8, 6]);
       ctx.beginPath(); ctx.arc(w.x, w.y, w.R, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
       drawUmbrella(w.x, w.y, w.R * (1.4 - Math.min(1, k * 2) * 0.4), Math.min(1, k * 3) * 0.85, time); // it drifts down into place
+      if (w.path && w.path.length > 1) { // where it will drift once the rain comes: a dashed road, its turns ringed, an arrow at the end
+        ctx.strokeStyle = `rgba(63,127,143,${0.45 + pulse * 0.35})`; ctx.lineWidth = 3; ctx.setLineDash([10, 8]); ctx.lineDashOffset = -time * 40;
+        ctx.beginPath(); w.path.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); ctx.setLineDash([]);
+        for (const [x, y] of w.path.slice(1)) { ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, w.R, 0, Math.PI * 2); ctx.stroke(); }
+        const [ax, ay] = w.path[w.path.length - 2], [bx, by] = w.path[w.path.length - 1];
+        ctx.fillStyle = "rgba(63,127,143,0.8)"; arrow(bx, by, Math.atan2(by - ay, bx - ax), S * 0.03);
+      }
     } else if (w.kind === "clone") { // a shadow at the edge, its line through you
       const reach = S * 4 * Math.min(1, k * 2);
       glowLine(w.x, w.y, w.x + Math.cos(w.ang) * reach, w.y + Math.sin(w.ang) * reach, S * 0.005, 0.3 + pulse * 0.4);
@@ -5465,6 +5572,16 @@ sdk.initializeAsync()
   const WEB_PLATFORM = { name: "web", showBreakAd: async () => false, rewardReady: () => false, showRewardAd: async () => false,
     products: async () => null, buy: async () => false, restore: async () => null };
   const platform = () => window.JUKLIM_PLATFORM || WEB_PLATFORM;
+  // How long an ad may keep the game waiting. 원스토어's SDK always answers by itself (a long playable ad included), and
+  // says so in adWaitMs; Toss doesn't always, so without that word the game stops waiting on its own.
+  const adWait = (ms) => new Promise((r) => setTimeout(() => r(false), platform().adWaitMs || ms));
+  // no reward, and the store says why (nothing to show, closed early): on the button for a moment, then the button again
+  function adMissed(b, reset) {
+    const why = platform().missNote?.();
+    if (!why) return reset();
+    b.textContent = why;
+    setTimeout(reset, 1800);
+  }
 
   // a break ad after every fifth run, on the way out of the result screen: never over a run, never over a score
   const AD_EVERY = 5;
@@ -5480,7 +5597,7 @@ sdk.initializeAsync()
     if (runsSinceAd >= AD_EVERY && !noAds) {
       adBusy = true;
       let shown = false;
-      try { shown = await Promise.race([platform().showBreakAd(), new Promise((r) => setTimeout(() => r(false), 45000))]); } catch { shown = false; }
+      try { shown = await Promise.race([platform().showBreakAd(), adWait(45000)]); } catch { shown = false; }
       if (shown) adSeen(); // not shown (none loaded yet): try again after the next run
       adBusy = false;
     }
@@ -5500,8 +5617,8 @@ sdk.initializeAsync()
     if (b.dataset.state === "busy") return;
     b.dataset.state = "busy"; b.disabled = true; b.textContent = "광고 보는 중";
     let earned = false;
-    try { earned = await Promise.race([platform().showRewardAd(), new Promise((r) => setTimeout(() => r(false), 60000))]); } catch { earned = false; }
-    if (!earned) return syncRevive();
+    try { earned = await Promise.race([platform().showRewardAd(), adWait(60000)]); } catch { earned = false; }
+    if (!earned) return adMissed(b, syncRevive);
     adSeen(); // no break ad straight after one watched for a reward
     b.dataset.state = "earned"; b.disabled = false; b.textContent = "이어하기";
   });
@@ -5716,8 +5833,8 @@ sdk.initializeAsync()
     if (b.dataset.state === "busy") return;
     b.dataset.state = "busy"; b.disabled = true; b.textContent = "광고 보는 중";
     let earned = false;
-    try { earned = await Promise.race([platform().showRewardAd(), new Promise((r) => setTimeout(() => r(false), 60000))]); } catch { earned = false; }
-    if (!earned) return syncDouble();
+    try { earned = await Promise.race([platform().showRewardAd(), adWait(60000)]); } catch { earned = false; }
+    if (!earned) return adMissed(b, syncDouble);
     adSeen(); // no break ad straight after one watched for a reward
     G.doubled = true; addCoins(G.lastPay); sfx.coin();
     G.gain += G.lastPay; G.gainParts.push("두 배"); renderGain();
