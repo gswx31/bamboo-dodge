@@ -276,7 +276,10 @@
   <div class="screen" id="dev" hidden>
     <section class="slip" data-seal="試">
       <h2 class="shop-title">보스 비기</h2>
-      <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기 하나를 쉬지 않고 쓰고, 뒤로는 그 보스에 어울리는 것이 흘러간다 (32초).</p>
+      <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓰고, 체력이 다하면 마지막으로 종전을 쓴다. 종전을 버티면 벤다 (32초).</p>
+      <div class="lvl" id="devLvl" role="group" aria-label="보스 난이도">
+        <span>난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
+      </div>
       <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
       <button class="btn btn--ghost" id="devClose">돌아가기</button>
@@ -937,7 +940,7 @@ sdk.initializeAsync()
     wheel: { bpm: 140, scale: "dark", ost: [5, _, 6, 5, _, 6, 5, _, 7, _, 6, 5, _, 4, 3, _], harm: [0, 0, 1, -1], boom: [0, 3, 6, 8, 11, 14], wood: [2, 10], shk: 2, gongEvery: 2, low: true }, // a wheel's rattle, fast
     pendulum: { bpm: 80, scale: "dark", ost: [5, _, _, _, _, _, _, _, 3, _, _, _, _, _, _, _], harm: [0, -1, 0, -1], boom: [0, 8], wood: [4, 12], shk: 0, clang: [0, 8], gongEvery: 1, gongHz: 200, low: true }, // tick, tock, iron on iron
     crumble: { bpm: 92, scale: "zhi", ost: [3, _, _, 4, _, _, 3, _, 1, _, _, 3, _, _, 4, _], harm: [0, 0, -1, 0], boom: [0, 1, 8, 9], wood: [], shk: 3, low: true, gongEvery: 2, gongHz: 150 }, // stamping, the ground grinding
-    gaze: { bpm: 70, scale: "cold", ost: [_, _, _, _, 9, _, _, _, _, _, _, _, 8, _, _, _], harm: [0], boom: [0], wood: [], shk: 0, mel: false, trem: true, bell: true, freeze: true }, // almost nothing; it stops dead while the eye is open
+    glare: { bpm: 84, scale: "cold", ost: [_, _, _, _, 9, _, _, _, _, _, _, _, 8, _, _, _], harm: [0], boom: [0, 8], wood: [], shk: 0, mel: false, trem: true, bell: true }, // almost nothing but a pulse: something is watching
     final: { bpm: 138, scale: "dark", ost: [5, 3, 5, 6, 5, 3, 5, 7, 5, 3, 5, 6, 4, 3, 2, 1], harm: [0, 0, -1, 1], boom: [0, 3, 6, 8, 11, 14], wood: [4, 10, 12], shk: 2, gongEvery: 1, canon: 4, low: true },
   };
   const bossSong = () => (G.mode === "play" && G.boss && G.phase !== "bossDown" && BOSS_MUSIC[G.boss.def.sig]) || null;
@@ -1029,7 +1032,7 @@ sdk.initializeAsync()
       t: 0, rt: 0, bonus: 0, near: 0, combo: 0, comboT: 0, stage: 0, slow: 1, slowT: 0, shake: 0,
       shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], decals: [], snaps: [], timers: {}, dieT: 0,
       flash: 0, zoom: 0, stopT: 0, dark: 0, bigT: 0, lastBig: "",
-      bigSeen: new Set(), callout: null, stamp: null, killer: null, killedBy: "", killerY: null, finalCut: null,
+      bigSeen: new Set(), callout: null, stamp: null, killer: null, killedBy: "", killerY: null, killLine: null,
       phase: "", pt: 0, ct: 0, st: 0, boss: null, lines: [], lineI: 0, lineT: 0, onLines: null, card: null, safe: false, cleared: false, banner: null,
       timeK: 1, bossK: 1, freezeT: 0,
       mons: [], seen: new Set(), monT: 1, msg: null,
@@ -1073,10 +1076,8 @@ sdk.initializeAsync()
     { from: 36, key: "flick", run: bigFlick, name: ["彈指神通", "탄지신통"] },
     { from: 52, key: "roar", run: bigRoar, name: ["獅子吼", "사자후"] },
     { from: 68, key: "silk", run: bigSilk, name: ["天蠶絲", "천잠사"] },
-    { from: 84, key: "mist", run: bigMist, name: ["毒霧", "독무"] },
-  ];
+  ]; // (독무, which slowed your feet, is gone: a dragging thumb never feels slowed, 11-06)
   function runBig(b) { G.lastBig = b.key; G.bigSeen.add(b.key); b.run(); G.dark = 1; sfx.taiko(); if (b.name) callout(...b.name); }
-  const mistGap = (t) => (G.lastBig === "mist" ? Math.max(t, 7.3) : t); // the next big move waits till 독무 has cleared
   // a technique's name, called out as it is used: great hanja, its reading beneath
   function callout(h, k) { G.callout = { h, k, at: performance.now() }; }
 
@@ -1413,18 +1414,6 @@ sdk.initializeAsync()
     sfx.warn();
   }
 
-  // ---- 독무: poison mist welling up beside you and spreading; inside it you wade, slowed
-  function bigMist() {
-    const a = rnd(0, Math.PI * 2), d = S * rnd(0.15, 0.3);
-    const x = clamp(P.x + Math.cos(a) * d, S * 0.1, W - S * 0.1), y = clamp(P.y + Math.sin(a) * d, S * 0.15, H - S * 0.1);
-    G.hazards.push({ kind: "mist", x, y, seed: rnd(0, 6), t: 0, dur: 7, best: Infinity, near: true,
-      radius() { return S * (0.06 + 0.3 * Math.min(1, this.t / 3)) * (this.t > 6 ? Math.max(0, 7 - this.t) : 1); },
-      dist() { return Infinity; }, // it slows, it doesn't cut
-      draw: drawMist });
-    sfx.hiss();
-  }
-  const inMist = () => G.hazards.some((h) => h.kind === "mist" && Math.hypot(P.x - h.x, P.y - h.y) < h.radius());
-  const MIST_SLOW = 0.45;
 
   // ------------------------------------------------------------------ 검객전 (story mode)
   // Five chapters of about a minute each: a scene of its own, its own attacks, then a boss who speaks before and after.
@@ -1573,7 +1562,7 @@ sdk.initializeAsync()
   function clearField() {
     for (const s of G.shots) { if (!s.dead) { s.dead = true; shatter(s); } }
     G.warns = []; G.hazards = []; G.cuts = []; G.snaps = []; G.parts = G.parts.filter((p) => p.kind !== "thrower");
-    G.timeK = 1; G.bossK = 1; G.freezeT = 0; // and whatever a 비기 had done to time is undone
+    G.timeK = 1; G.bossK = 1; G.freezeT = 0; G.killLine = null; // and whatever a 비기 had done to time is undone
   }
   // something heavy lands: the world catches for a blink, the ground shakes, a ring of ink runs out from it
   function impact(x, y, power = 1, color = "#1d1a17") {
@@ -1602,7 +1591,7 @@ sdk.initializeAsync()
         const pool = ch.big.length > 1 ? ch.big.filter((k) => k !== G.lastBig) : ch.big;
         const key = pool[Math.floor(Math.random() * pool.length)];
         runBig(BIG.find((b) => b.key === key));
-        G.bigT = mistGap(rnd(ch.bigEvery[0], ch.bigEvery[1]));
+        G.bigT = rnd(ch.bigEvery[0], ch.bigEvery[1]);
       }
       if (G.ct >= ch.fight) enterBoss();
     } else if (G.phase === "boss") {
@@ -1662,7 +1651,7 @@ sdk.initializeAsync()
       // between them it shows where it will stand (a shadow on the ground) a moment before it steps there — never
       // onto you, nor across you.
       const f = (G.stageRun || G.dev) && G.fight;
-      if (f && !(b.home > 0) && (f.busy > 0 || f.wind || f.final)) { b.tx = b.x; b.ty = b.y; b.next = null; b.wT = Math.max(b.wT, 0.4); }
+      if (f && !(b.home > 0) && (f.busy > 0 || f.wind || f.kill)) { b.tx = b.x; b.ty = b.y; b.next = null; b.wT = Math.max(b.wT, 0.4); }
       else if (G.phase === "boss") {
         if (b.next) { if ((b.next.t -= dt) <= 0) { b.tx = b.next.x; b.ty = b.next.y; b.next = null; } }
         else if ((b.wT -= dt) <= 0) fixed("move", () => {
@@ -1718,7 +1707,7 @@ sdk.initializeAsync()
     if (!b || G.phase !== "boss") return;
     if (b.hpShow == null) b.hpShow = b.hp;
     b.hp -= amount; b.hurtT = 0.12; b.hpHold = 0.45; // (the bar keeps the bit you cut off a moment, then lets it go)
-    if ((G.stageRun || G.dev) && G.fight) b.hp = Math.max(0.03, b.hp); // (a 비기 fight ends only on its last exchange)
+    if ((G.stageRun || G.dev) && G.fight) b.hp = Math.max(G.fight.last ? 0 : 0.03, b.hp); // (only its clock brings on its 종전)
     burstInk(b.x, b.y, 5);
   }
 
@@ -1735,26 +1724,26 @@ sdk.initializeAsync()
     { name: "흑월봉", theme: "moon", boss: 4, fresh: "rain", pats: ["line", "draw", "homing"], big: ["rain", "ring", "roar", "triple"], diff: [30, 56] },
     // past 흑월봉, the same places again with new masters in them, everything mixed and quicker
     { name: "불탄 죽림", theme: "grove", boss: 5, fresh: "cross", pats: ["line", "draw", "homing", "cross"], big: ["triple", "rain", "silk", "spikes"], diff: [40, 66] },
-    { name: "안개 계곡", theme: "gorge", boss: 6, fresh: "beam", pats: ["line", "draw", "homing", "cross"], big: ["beam", "mist", "clones", "spiral"], diff: [48, 74] },
+    { name: "안개 계곡", theme: "gorge", boss: 6, fresh: "beam", pats: ["line", "draw", "homing", "cross"], big: ["beam", "palm", "clones", "spiral"], diff: [48, 74] },
     { name: "붉은 절", theme: "temple", boss: 7, fresh: "burst", pats: ["line", "draw", "homing", "cross", "burst"], big: ["roar", "triple", "silk", "palm", "flick"], diff: [56, 82] },
-    { name: "얼음 고개", theme: "snow", boss: 8, fresh: "mist", pats: ["line", "draw", "homing", "cross", "burst"], big: ["mist", "ring", "rain", "beam", "flick"], diff: [64, 90] },
+    { name: "얼음 고개", theme: "snow", boss: 8, fresh: "ring", pats: ["line", "draw", "homing", "cross", "burst"], big: ["ring", "rain", "beam", "flick", "palm"], diff: [64, 90] },
     { name: "비 내리는 고개", theme: "gorge", boss: 9, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["rain", "beam", "spiral", "palm", "clones"], diff: [72, 96] },
     { name: "검총", theme: "field", boss: 10, fresh: "silk", pats: ["line", "draw", "homing", "cross", "burst"], big: ["silk", "rain", "triple", "spikes", "beam"], diff: [80, 104] },
-    { name: "광음곡", theme: "gorge", boss: 11, fresh: "flick", pats: ["line", "draw", "homing", "cross", "burst"], big: ["flick", "spiral", "ring", "clones", "mist"], diff: [88, 112] },
+    { name: "광음곡", theme: "gorge", boss: 11, fresh: "flick", pats: ["line", "draw", "homing", "cross", "burst"], big: ["flick", "spiral", "ring", "clones", "palm"], diff: [88, 112] },
     { name: "뇌운봉", theme: "moon", boss: 12, fresh: "roar", pats: ["line", "draw", "homing", "cross", "burst"], big: ["roar", "ring", "spiral", "beam", "palm"], diff: [96, 120] },
     { name: "추혼로", theme: "temple", boss: 13, fresh: "triple", pats: ["line", "draw", "homing", "cross", "burst"], big: ["triple", "clones", "silk", "flick", "rain"], diff: [104, 128] },
-    { name: "호접곡", theme: "field", boss: 14, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["ring", "mist", "spiral", "silk", "flick"], diff: [112, 136] },
+    { name: "호접곡", theme: "field", boss: 14, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["ring", "roar", "spiral", "silk", "flick"], diff: [112, 136] },
     { name: "화륜평", theme: "moon", boss: 15, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["beam", "triple", "rain", "clones", "flick"], diff: [120, 144] },
     { name: "철산", theme: "temple", boss: 16, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["palm", "silk", "ring", "spiral", "roar"], diff: [128, 152] },
-    { name: "장승골", theme: "grove", boss: 17, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["spikes", "mist", "triple", "beam", "rain"], diff: [136, 160] },
+    { name: "장승골", theme: "grove", boss: 17, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["spikes", "roar", "triple", "beam", "rain"], diff: [136, 160] },
     { name: "천안사", theme: "snow", boss: 18, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["flick", "clones", "ring", "silk", "palm"], diff: [144, 168] },
     { name: "천하봉", theme: "grove", boss: 19, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [152, 176] },
   ];
   const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", homing: "따라붙는 칼", cross: "십자 발도", burst: "터지는 칼",
     spikes: "죽순", palm: "장풍", clones: "그림자", spiral: "칼바람", flick: "탄지신통", ring: "천라지망", roar: "사자후",
-    rain: "칼비", silk: "천잠사", triple: "삼연참", beam: "검기", mist: "독무" };
+    rain: "칼비", silk: "천잠사", triple: "삼연참", beam: "검기" };
   // the five stages of a 장: how long, and how far apart the attacks (× their usual wait)
-  const STEPS = [ // thirty seconds each (the boss stage: four, then the boss for BOSS_SECONDS)
+  const STEPS = [ // thirty seconds each (the boss stage: the boss from the start, for BOSS_SECONDS)
     { dur: 30, gap: 1.3 },
     { dur: 30, gap: 1.2 },
     { dur: 30, gap: 1.1 },
@@ -1773,7 +1762,7 @@ sdk.initializeAsync()
     ["“띠가 엇갈려 깔리면 둘 다 벗어나라”", "타다 남은 대숲이 한 줄로 길게 쓰러져 있다", "범을 맨손으로 때려잡았다는 사내가 있다고 한다", "맹호, 대숲을 몸으로 뚫고 다니는 자", "땅이 쿵쿵 울린다"],
     ["“검기가 닿지 않는 자리는 미리 비어 보인다”", "안개가 걷히지 않는 계곡이 생겼다", "베인 자들은 칼을 보지 못했다고 한다", "무영, 그림자도 소리도 없는 자객", "안개 속에서 칼끝이 반짝였다"],
     ["“칼이 사방으로 터지면 줄과 줄 사이에 서라”", "버려진 절에서 밤마다 북소리가 난다", "북이 울릴 때마다 땅에 칼자국이 생긴다고 한다", "뇌음, 북 한 번에 칼 한 자루를 떨어뜨리는 승려", "목탁 소리가 멎고 북소리가 시작됐다"],
-    ["“독무에 발을 들이면 걸음이 무거워진다”", "고개 위의 눈이 한여름에도 녹지 않는다", "얼음 벽에 비친 칼이 진짜 칼보다 빠르다고 한다", "빙경, 받은 칼을 그대로 돌려보내는 여인", "얼음 벽마다 네 얼굴이 비친다"],
+    ["“칼이 너를 둘러싸면 비어 있는 쪽으로 빠져라”","고개 위의 눈이 한여름에도 녹지 않는다", "얼음 벽에 비친 칼이 진짜 칼보다 빠르다고 한다", "빙경, 받은 칼을 그대로 돌려보내는 여인", "얼음 벽마다 네 얼굴이 비친다"],
     ["“이제 네게 가르칠 것이 없다”", "그 고개엔 비가 그친 날이 없다고 한다", "비를 맞은 나그네는 모두 베여 있었다", "청우, 우산 하나로 비를 부리는 검객", "빗소리가 칼 소리로 바뀌었다"],
     ["“실이 팽팽해지면 그 줄에 닿지 마라”", "주인을 잃은 칼들이 묻힌 골짜기가 있다", "밤이면 칼무덤에서 쇠 우는 소리가 난다", "검총주, 만 자루 칼을 거느린 자", "하늘에 칼이 걸렸다"],
     ["“조준선이 번쩍이면 이미 늦다. 미리 움직여라”", "골짜기에 들어간 사람이 하루 만에 백발이 되어 나왔다", "그 안에선 해가 빨리 졌다가 늦게 뜬다고 한다", "광음, 시간을 손에 쥔 노인", "물방울이 공중에서 멈췄다"],
@@ -1783,7 +1772,7 @@ sdk.initializeAsync()
     ["“불길은 금방 꺼진다. 꺼진 자리로 건너라”", "들판에 바퀴 자국 모양으로 풀이 탔다", "밤마다 불덩이가 들판을 굴러다닌다고 한다", "화륜, 불바퀴를 타고 달리는 소년", "멀리서 바퀴 구르는 소리가 난다"],
     ["“흔들리는 것은 끝에서 잠깐 멈춘다”", "광산 마을에서 쇠 부딪는 소리가 끊이지 않는다", "한 손에 만 근을 든다는 장사가 있다고 한다", "철추, 쇠공 둘을 매달고 다니는 장사", "머리 위에서 쇠사슬이 운다"],
     ["“한자리에 오래 서지 마라. 땅도 지친다”", "마을 어귀의 장승이 하룻밤 새 자리를 옮겼다", "장승 앞을 지난 자는 땅이 꺼져 사라졌다고 한다", "장승, 천 년을 선 채로 마을을 지킨 수호신", "발밑에 금이 간다"],
-    ["“눈이 뜨이면 손가락을 멈춰라”", "절 지붕 위에 커다란 눈이 그려져 있다", "그 절에선 아무도 움직이지 않는다고 한다", "천안, 움직이는 것은 무엇이든 보는 눈", "누군가 보고 있다"],
+    ["“눈빛은 깜빡일 때 건너라”", "절 지붕 위에 커다란 눈이 그려져 있다", "그 눈과 마주친 자리는 재가 된다고 한다", "천안, 무엇이든 꿰뚫어 보는 눈", "누군가 보고 있다"],
     ["“여기서부터는 네 검으로 가라”", "천하제일을 가린다는 봉우리가 있다", "그 위에 이름 없는 고수가 기다린다", "무명, 이름을 버리고 천하를 얻은 자", "바람도 숨을 죽였다"],
   ];
   // past the last 장 the 강호 talks about you
@@ -1814,15 +1803,17 @@ sdk.initializeAsync()
   //   bamboo its gap, and how far it may close up late on
   //   boss   how fast a boss fight runs; lv: how much stronger every boss's 비기 is
   const STAGE_LEVELS = {
-    normal: { name: "보통", pace: 0.85, base: 2, slope: 0.24, crowd: 0.17, bamboo: 0.67, floor: 0.76, boss: 0.83, lv: 0.5, top: "stageTop" }, // (a touch harder again: "보통도 아주 조금은 더 어렵게")
+    normal: { name: "보통", pace: 0.92, base: 6, slope: 0.27, crowd: 0.13, bamboo: 0.64, floor: 0.7, boss: 0.83, lv: 0.5, top: "stageTop" }, // (11-06: "지금 기준에서 20퍼 정도 더 어렵게": the stages; its bosses' fights got their own harder, with the attacks between and 종전)
     master: { name: "고수", pace: 1.0, base: 12, slope: 0.33, crowd: 0.06, bamboo: 0.6, floor: 0.62, boss: 0.95, lv: 2.5, top: "stageTopM" }, // (base: 1-1 already bites)
   };
   let stageLevel = STAGE_LEVELS[store.get("stageLevel", "normal")] ? store.get("stageLevel", "normal") : "normal";
   const SL = () => STAGE_LEVELS[stageLevel];
-  const stageTop = () => Number(store.get(SL().top, "0")) || 0;
+  // the level a boss fight runs at: the stage's, or the one picked in 개발자 모드 (which shows the stages' bosses as they are)
+  const fightLevel = () => (G.stageRun ? stageLevel : G.dev ? G.dev.lvl : "");
+  const stageTop =() => Number(store.get(SL().top, "0")) || 0;
   const squash = (t) => 28 + SL().base + (t - 8) * SL().slope;
   const bossLv = (w) => 0.7 * (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
-  const BOSS_PACE = 0.8; // (스토리·개발자 모드; 스테이지 모드 takes its level's)
+  const BOSS_PACE = 0.8; // (스토리 모드; 스테이지 모드 and 개발자 모드 take their level's)
   const stageMemo = new Map();
   function stageDef(i) { // stage i (0 is 1-1): everything about it
     if (stageMemo.has(i)) return stageMemo.get(i);
@@ -1877,8 +1868,9 @@ sdk.initializeAsync()
   function enterStage() { // its card, a breath with nothing in the air
     const sd = stageDef(G.sg);
     G.phase = "title"; G.pt = 0; G.seedN = {}; G.boss = null; G.titleLen = 1.7; G.next = null;
-    G.card = { ch: { num: sd.label, name: sd.world.name, sub: sd.sub }, at: performance.now(), life: 1.7 };
     $("stage").textContent = `${sd.label} · ${sd.world.name}${stageLevel === "master" ? " · 고수" : ""}`;
+    if (sd.boss) { enterStageFight(); return enterBoss(); } // the boss straight away, its own card for the stage's (11-06: "처음에 바로")
+    G.card = { ch: { num: sd.label, name: sd.world.name, sub: sd.sub }, at: performance.now(), life: 1.7 };
     sfx.stage();
   }
   // 보통 only, and never shown: a stage that keeps beating you gives a little. After the third fall in a row there, each
@@ -1938,7 +1930,7 @@ sdk.initializeAsync()
         const pool = sd.big.length > 1 ? sd.big.filter((k) => k !== G.lastBig) : sd.big;
         const key = pool[Math.floor(Math.random() * pool.length)]; // (drawn once: inside find() it was drawn anew for each one)
         runBig(BIG.find((b) => b.key === key));
-        G.bigT = mistGap(rnd(sd.bigEvery[0], sd.bigEvery[1]));
+        G.bigT = rnd(sd.bigEvery[0], sd.bigEvery[1]);
       });
       if (!sd.boss && sd.dur - G.ct < 6) G.dark = Math.max(G.dark, 0.27); // the last six seconds: the edges close in a little
       if (G.ct >= sd.dur) { if (sd.boss) enterBoss(); else stageEnd(); }
@@ -2040,9 +2032,9 @@ sdk.initializeAsync()
     { stage: "18-5", name: "장승", title: "長丞 · 마을 어귀의 수호신", look: "totem", accent: "#9b4a2c", theme: "grove", sig: "crumble", sigName: ["地陷", "지함"],
       what: "땅이 칸으로 나뉜다. 한 칸에 오래 서 있으면 금이 가고 무너져 3초 동안 구멍이 된다. 장승이 발을 구르면 내 둘레가 열십자로 갈라진다.",
       intro: "이 마을을 지나려면 땅부터 이겨라.", sigLine: "오래 선 자리는 무너진다.", down: "천 년을 서 있었더니… 이제야 눕는구나." },
-    { stage: "19-5", name: "천안", title: "天眼 · 하늘의 눈", look: "eye", accent: "#c9a227", theme: "snow", sig: "gaze", sigName: ["天眼", "천안"],
-      what: "하늘의 눈이 감겨 있는 동안 칼이 날아온다. 눈꺼풀이 떨리면 곧 눈을 뜨고, 뜨는 동안 날던 칼이 모두 멈춘다. 눈이 떠 있을 때 움직이면 죽는다.",
-      intro: "움직이는 것은 모두 보인다.", sigLine: "눈을 뜨면… 숨도 쉬지 마라.", down: "보지 못했다… 처음으로." },
+    { stage: "19-5", name: "천안", title: "天眼 · 하늘의 눈", look: "eye", accent: "#c9a227", theme: "snow", sig: "glare", sigName: ["天眼光", "천안광"],
+      what: "눈이 뜨이면 붉은 눈빛이 나를 따라 돈다. 나보다 느리지만 멈추면 닿는다. 눈빛이 깜빡이는 동안만 건널 수 있고, 그 사이 가장자리에서 칼이 날아온다.",
+      intro: "보이는 것은 모두 태운다.", sigLine: "눈을 마주치지 마라. 타 버린다.", down: "보지 못했다… 처음으로." },
     { stage: "20-5", name: "무명", title: "無名 · 이름 없는 고수", look: "final", accent: "#b8912a", theme: "grove", sig: "final", sigName: ["天下", "천하"],
       what: "추혼의 그림자가 따라오는 가운데, 흑월역의 검은 칸이 차례로 내려앉고 시간이 휜다.",
       intro: "이름 없는 검객이 여기까지 왔군. 나도 이름이 없다.", sigLine: "네 그림자와 내 달, 둘 다 피해 보아라.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
@@ -2052,10 +2044,21 @@ sdk.initializeAsync()
   const BOSS_BG = {
     twin: "bamboo", lotus: "water", fire: "fire", frost: "ice", void: null, charge: "bamboo", veil: null, drum: null,
     mirror: "ice", rain: null, swords: null, time: null, thunder: null, shadow: "wisp", swarm: null, wheel: null,
-    pendulum: null, crumble: null, gaze: null, final: null,
+    pendulum: null, crumble: null, glare: null, final: null,
+  };
+  // between one 비기 and the next, each boss throws a couple of the ordinary attacks that suit it (11-06: "단일 패턴만
+  // 나와서 쉬운 느낌": the 비기 is the fight's spine, these keep it from going quiet). PATTERNS and BIG keys.
+  // (light ones only: 검우, 사자후 and 검기 fill the whole field and, measured, buried the 비기 under them; and never 장풍,
+  // whose shove can throw you into the boss's body or a 비기 with nothing you could have done)
+  const BOSS_MIX = {
+    twin: ["draw", "cross", "clones"], lotus: ["burst", "line", "spiral"], fire: ["draw", "homing", "spikes"], frost: ["line", "homing", "triple"],
+    void: ["cross", "burst", "flick"], charge: ["draw", "line", "clones"], veil: ["homing", "draw", "flick"], drum: ["burst", "line", "triple"],
+    mirror: ["line", "cross", "ring"], rain: ["draw", "homing", "triple"], swords: ["line", "draw", "clones"], time: ["homing", "burst", "triple"],
+    thunder: ["cross", "line", "spikes"], shadow: ["draw", "homing", "clones"], swarm: ["burst", "line", "spiral"], wheel: ["draw", "cross", "flick"],
+    pendulum: ["line", "burst", "flick"], crumble: ["draw", "line", "spikes"], glare: ["line", "homing", "flick"], final: ["draw", "cross", "burst", "triple", "clones"],
   };
   const BG_NAMES = { bamboo: "대나무", water: "물방울 칼", fire: "불똥", ice: "고드름", wisp: "도깨비불" };
-  BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; });
+  BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; b.mix = BOSS_MIX[b.sig]; });
   function spawnDrift(kind) {
     if (kind === "bamboo") return spawnBamboo();
     if (kind === "ice") { // icicles let go from the top
@@ -2087,7 +2090,8 @@ sdk.initializeAsync()
   const drumBeat = () => Math.max(0.52, 0.62 - lvl() * 0.007); // 뇌음's beat: its 비기 and its music keep the same time
   // how far into the game this boss is (0 for 1-5 … 14 for 15-5, more on the endless road): its 비기 grow with it
   // and within one fight, each time it comes again it comes a little harder
-  const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 0.5 : 0);
+  // (종전, its last 비기 when its life is gone, comes fiercer: 2.5 levels, 4 at 고수)
+  const lvl = () => (G.fight ? (G.fight.lv || 0) + Math.max(0, G.fight.n - 1) * 0.5 + (G.fight.last ? (fightLevel() === "master" ? 4 : 2.5) : 0) : 0);
   // `active`: how long it stays black. Whoever calls it must lift it before the next one is chosen, or two rows
   // could go black together and leave nowhere to stand.
   function blackQuarter(warn = 1.3, other = false, active = 2.6) { // 흑월역's one quarter: the one you stand in (or, `other`, one beside it)
@@ -2428,26 +2432,46 @@ sdk.initializeAsync()
         draw: drawFloor });
       return life + 0.2;
     },
-    gaze() { // the great eye: shut, it sends blades; its lid trembles, it opens, and everything in the air stands still. So must you.
-      const cyc = [2.3, 0.75, 1.3], n = 3, per = cyc[0] + cyc[1] + cyc[2];
-      G.hazards.push({ kind: "gaze", t: 0, dur: n * per + 0.2, best: Infinity, near: true, caught: false, next: 0.4, phase: "shut", cyc, ox: 0, oy: 0,
-        state(t = this.t) { const k = t % per; return t >= n * per ? "done" : k < cyc[0] ? "shut" : k < cyc[0] + cyc[1] ? "stir" : "open"; },
-        still() { const s = this.state(); return s === "stir" || s === "open"; }, // (for a reader of the screen: the lid is moving, or the eye is open)
-        step(dt) {
-          const s = this.state();
-          if (s !== this.phase) {
-            if (s === "stir") sfx.warn();
-            if (s === "open") { this.ox = P.x; this.oy = P.y; G.freezeT = cyc[2]; sfx.issen(); flash("255,244,214", 0.3); }
-            if (s === "shut" && this.phase === "open") { sfx.whoosh(); this.caught = false; } // (a revived player's 무적 may have covered it)
-            this.phase = s;
-          }
-          if (s === "shut") { this.next -= dt; if (this.next <= 0) { this.next = Math.max(0.75, 0.9 - lvl() * 0.01); const [x, y] = edgePoint(); aimedLine(x, y, S * 0.7); } }
-          // seen moving while it looks: a step's worth of drift is forgiven, no more
-          if (s === "open" && !this.caught && Math.hypot(P.x - this.ox, P.y - this.oy) > S * 0.035) { this.caught = true; flash("200,50,31", 0.4); }
+    glare() { // the eye opens and its gaze turns after you, never faster than you can run; it blinks, and in the blink you cross it
+      // (11-06: the old eye, "freeze while it looks", asked you to stand still in a game about moving: "피하기와 맞지 않는 컨셉")
+      // Each look: it comes up dashed a little to your side and creeps (warm), then burns and blinks by turns. A wall
+      // can corner you against it, so the way out is always the next blink, never more than `burn` away.
+      const looks = [[0, 3.4], [4.0, 7.4]], warm = 0.9, burn = Math.max(0.75, 0.95 - lvl() * 0.015), blink = 0.42, vcap = S * (0.38 + lvl() * 0.01);
+      G.hazards.push({ kind: "glare", t: 0, dur: 7.6, best: Infinity, near: true, ang: 0, k: -2, x: G.boss.x, y: G.boss.y, w: S * 0.032,
+        look() { return looks.findIndex(([a, b]) => this.t >= a && this.t < b); },
+        state() { // "off", "warm" (dashed, creeping), "burn" (it cuts), "blink" (dashed: cross now)
+          const k = this.look(); if (k < 0) return "off";
+          const u = this.t - looks[k][0] - warm; if (u < 0) return "warm";
+          return u % (burn + blink) < burn ? "burn" : "blink";
         },
-        dist() { return this.caught ? 0 : Infinity; },
-        draw: drawGaze });
-      return n * per + 0.3;
+        step(dt) {
+          const b = G.boss; if (b) { this.x = b.x; this.y = b.y - bossUnit(b.def) * 1.2; } // from the eye on its brow
+          const me = Math.atan2(P.y - this.y, P.x - this.x), k = this.look();
+          if (k !== this.k) { // it opens (from one side of you, then the other), or it shuts
+            this.k = k;
+            if (k >= 0) { this.ang = me + (k % 2 ? -1 : 1) * 1.15; sfx.issen(); flash("255,244,214", 0.2); } else sfx.whoosh();
+          }
+          const s = this.state();
+          if (s !== this.s) { if (s === "burn") sfx.hum(); this.s = s; }
+          if (k < 0) return;
+          const far = Math.max(S * 0.12, Math.hypot(P.x - this.x, P.y - this.y)), turn = (vcap / far) * dt * (s === "warm" ? 0.35 : 1);
+          let d = me - this.ang; while (d > Math.PI) d -= Math.PI * 2; while (d < -Math.PI) d += Math.PI * 2;
+          this.ang += clamp(d, -turn, turn);
+        },
+        dist() {
+          if (this.state() !== "burn") return Infinity;
+          const ux = Math.cos(this.ang), uy = Math.sin(this.ang), px = P.x - this.x, py = P.y - this.y;
+          return px * ux + py * uy < 0 ? Infinity : Math.max(0, Math.abs(px * uy - py * ux) - this.w / 2);
+        },
+        warnAt(x, y, pad) { // (for a reader of the screen: on its line, or in the slice it is turning through toward you)
+          if (this.state() === "off") return false;
+          const a = Math.atan2(y - this.y, x - this.x), me = Math.atan2(P.y - this.y, P.x - this.x), wrap = (v) => Math.atan2(Math.sin(v), Math.cos(v));
+          const ahead = wrap(a - this.ang), toMe = wrap(me - this.ang), near = Math.abs(Math.sin(ahead)) * Math.hypot(x - this.x, y - this.y) < this.w + pad;
+          return (near && Math.abs(ahead) < Math.PI / 2) || (Math.sign(ahead) === Math.sign(toMe) && Math.abs(ahead) < Math.min(Math.abs(toMe), 0.45));
+        },
+        draw: drawGlare });
+      for (let k = 0; k < 6; k++) later(1.0 + k * 1.1, () => { const [x, y] = edgePoint(); aimedLine(x, y, S * 0.75); }); // and blades from the edges while you run
+      return 7.8;
     },
     shadow() { // you, a moment ago, walking your own path; stand still and it catches you
       const lag = Math.max(1.1, 1.45 - lvl() * 0.02);
@@ -2668,34 +2692,23 @@ sdk.initializeAsync()
     });
     ctx.restore();
   }
-  function drawGaze(h, time) { // 천안: an eye across the sky. Shut; its lid trembling; open, watching you
-    const s = h.state(), per = h.cyc[0] + h.cyc[1] + h.cyc[2], k = h.t % per;
-    if (s === "done") return;
-    const ex = W / 2, ey = Math.max(150, H * 0.17), ew = W * 0.32; // (below the boss's bar)
-    let open = 0;
-    if (s === "stir") open = 0.12 * Math.abs(Math.sin(time * 30)) + 0.1 * ((k - h.cyc[0]) / h.cyc[1]);
-    if (s === "open") open = Math.min(1, (k - h.cyc[0] - h.cyc[1]) / 0.15) * Math.min(1, (per - k) / 0.2);
-    ctx.save();
-    if (s !== "shut") { // the page itself goes still and pale, its edges reddening as the lid lifts
-      const g = ctx.createRadialGradient(W / 2, H / 2, S * 0.4, W / 2, H / 2, Math.hypot(W, H) / 2);
-      g.addColorStop(0, "rgba(200,50,31,0)"); g.addColorStop(1, `rgba(200,50,31,${s === "open" ? 0.28 : 0.12 + 0.1 * Math.sin(time * 20)})`);
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      if (s === "open") { ctx.fillStyle = "rgba(255,244,214,0.18)"; ctx.fillRect(0, 0, W, H); }
+  function drawGlare(h, time) { // 천안광: the eye's look, a ray from it. Dashed while it creeps or blinks (cross it then); burning, a red-gold beam
+    const s = h.state(); if (s === "off") return;
+    const D = Math.hypot(W, H) * 1.3, ux = Math.cos(h.ang), uy = Math.sin(h.ang), x1 = h.x + ux * D, y1 = h.y + uy * D;
+    ctx.save(); ctx.lineCap = "round";
+    if (s === "burn") {
+      ctx.strokeStyle = "rgba(200,50,31,0.22)"; ctx.lineWidth = h.w * 2.6; ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(x1, y1); ctx.stroke();
+      ctx.strokeStyle = "rgba(200,50,31,0.85)"; ctx.lineWidth = h.w; ctx.stroke();
+      ctx.strokeStyle = `rgba(255,240,196,${0.75 + 0.2 * Math.sin(time * 40)})`; ctx.lineWidth = h.w * 0.35; ctx.stroke();
+      if (Math.random() < 0.5) { const d = rnd(S * 0.1, D * 0.6), sx = h.x + ux * d, sy = h.y + uy * d; if (sx > 0 && sx < W && sy > 0 && sy < H) spark(sx, sy, 1); }
+    } else { // where it looks, harmless for now: thin and broken
+      ctx.strokeStyle = `rgba(200,50,31,${s === "warm" ? 0.35 + 0.25 * Math.sin(time * 18) : 0.4})`; ctx.lineWidth = 2;
+      ctx.setLineDash([S * 0.025, S * 0.025]); ctx.lineDashOffset = -time * 80;
+      ctx.beginPath(); ctx.moveTo(h.x, h.y); ctx.lineTo(x1, y1); ctx.stroke(); ctx.setLineDash([]);
     }
-    ctx.translate(ex, ey);
-    const lid = (sign) => { ctx.moveTo(-ew, 0); ctx.quadraticCurveTo(0, sign * ew * 0.62 * Math.max(0.05, open), ew, 0); };
-    ctx.fillStyle = "rgba(247,240,222,0.92)"; ctx.beginPath(); lid(-1); ctx.quadraticCurveTo(0, ew * 0.62 * Math.max(0.05, open), -ew, 0); ctx.fill();
-    if (open > 0.15) { // the iris follows you
-      const dx = clamp((P.x - ex) / W, -0.5, 0.5) * ew * 0.5, dy = clamp((P.y - ey) / H, 0, 1) * ew * 0.12, ir = ew * 0.26 * open;
-      ctx.save(); ctx.beginPath(); lid(-1); ctx.quadraticCurveTo(0, ew * 0.62 * open, -ew, 0); ctx.clip();
-      ctx.fillStyle = "#c9a227"; ctx.beginPath(); ctx.arc(dx, dy, ir, 0, Math.PI * 2); ctx.fill();
-      ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(dx, dy, ir * 0.45, 0, Math.PI * 2); ctx.fill();
-      ctx.restore();
-      if (s === "open") { ctx.strokeStyle = `rgba(201,162,39,${0.35 * open})`; ctx.lineWidth = 2; ctx.setLineDash([6, 8]); ctx.beginPath(); ctx.moveTo(dx, dy); ctx.lineTo(P.x - ex, P.y - ey); ctx.stroke(); ctx.setLineDash([]); }
-    }
-    ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = 3; ctx.beginPath(); lid(-1); ctx.stroke(); ctx.beginPath(); lid(1); ctx.stroke();
-    ctx.lineWidth = 2; for (let i = -4; i <= 4; i++) { const x = (i / 5) * ew, y = ew * 0.62 * Math.max(0.05, open) * (1 - (i / 5) ** 2) * 0.5; ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x * 1.08, y + ew * 0.1); ctx.stroke(); } // lashes
-    if (h.caught) { ctx.fillStyle = "rgba(200,50,31,0.5)"; ctx.beginPath(); ctx.arc(0, 0, ew * 0.3, 0, Math.PI * 2); ctx.fill(); }
+    const g = ctx.createRadialGradient(h.x, h.y, 0, h.x, h.y, S * 0.08); // the eye itself, alight
+    g.addColorStop(0, `rgba(255,236,170,${s === "burn" ? 0.9 : 0.5})`); g.addColorStop(1, "rgba(201,162,39,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(h.x, h.y, S * 0.08, 0, Math.PI * 2); ctx.fill();
     ctx.restore();
   }
   function drawTime(h, time) { // slow: the page yellows and a clock hand creeps; fast: the edges blur
@@ -2748,6 +2761,7 @@ sdk.initializeAsync()
   }
   // ---- 개발자 모드: pick a boss, watch its 비기 three times, hear its three lines
   const DEV = /[?&]dev\b/.test(location.search);
+  let devLevel = STAGE_LEVELS[store.get("devLevel", "normal")] ? store.get("devLevel", "normal") : "normal"; // 보통 or 고수, as in 스테이지 모드
   function bossDefOf(d) {
     return { name: d.name, title: d.title, look: d.look, accent: d.accent, sig: d.sig, stage: d.stage, hp: 30, acts: [],
       intro: () => [{ who: d.name, text: withName(d.intro) }], down: () => [{ who: d.name, text: withName(d.down) }] };
@@ -2755,11 +2769,11 @@ sdk.initializeAsync()
   function startDevBoss(i) {
     const d = BOSS_SET[i], def = bossDefOf(d);
     begin();
-    G.story = true; G.stageRun = false; G.dev = { i }; G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; G.devInv = $("devInv").checked; G.ch = 0;
+    G.story = true; G.stageRun = false; G.dev = { i, lvl: devLevel }; G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; G.devInv = $("devInv").checked; G.ch = 0;
     reset(); G.mode = "play";
     setTheme(d.theme, true);
     $("dev").hidden = true; $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("devExit").hidden = false;
-    $("stage").textContent = `${d.stage} · ${d.name}`;
+    $("stage").textContent = `${d.stage} · ${d.name} · ${STAGE_LEVELS[devLevel].name}`;
     G.boss = { def, x: W / 2, y: -S * 0.3, tx: W / 2, ty: H * 0.24, wT: 1.5, hp: 1, actT: 1.4, last: "", hurtT: 0, castT: 0, downT: 0, mid: false, landed: false };
     G.phase = "bossIntro"; G.card = { boss: def, at: performance.now() }; G.dark = 1;
     sfx.taiko(); setTimeout(() => sfx.taiko(), 220);
@@ -2768,69 +2782,77 @@ sdk.initializeAsync()
   function devStep(dt, realDt) {
     stepLines(realDt);
     if (!G.dev) return; // its last words just ended: back at the list already
-    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], bossLv(G.dev.i), 32); }
+    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], bossLv(G.dev.i) + STAGE_LEVELS[G.dev.lvl].lv, 32); }
     if (G.boss) moveBoss(realDt);
     G.safe = (G.phase !== "boss") || G.devInv;
   }
-  // A boss fight: the 장's own attacks (bamboo and its steady ones) all the way through, and the boss's one 비기
-  // over and over with barely a breath between, its line only the first time. Nothing else of the boss's: one
-  // technique, learned and dodged. lv (0 for 1-5 … 14 for 15-5) shortens the breaths; it lasts `seconds`.
+  // A boss fight: its 비기 over and over, and between one and the next a couple of the ordinary attacks that suit it
+  // (BOSS_MIX), its own element drifting behind. lv (0 for 1-5 … 14 for 15-5) makes all of it harder. Its life runs
+  // down by the wall clock over `seconds`; at nothing it does not fall yet: 종전, its 비기 once more at its fiercest with
+  // its other attacks on top, and only once that is outlasted the last stroke (11-06: "체력 다 까이면 종전패턴 하고 보스를
+  // 죽이는 연출"; there is no second phase).
   function bossFight(dt, d, lv, seconds) {
     const b = G.boss, f = G.fight;
     f.lv = lv;
-    const bp = G.stageRun ? SL().boss * easeK() : BOSS_PACE;
+    const bp = G.stageRun ? SL().boss * easeK() : G.dev ? STAGE_LEVELS[G.dev.lvl].boss : BOSS_PACE;
     G.bossK = bp; // the whole fight a little slower than life (cleared with the field when it ends)
     G.t = 20 + lv * 6; // how hard the shared attacks are
+    if (f.kill) return killStep(dt, b, f); // the last stroke: nothing else moves
     const talking = G.lines.length > 0; // its line is on screen (a box over the bottom of the field): nothing starts under it
-    // Its life runs down by the wall clock (the fight lasts as long as ever). A 비기 under way finishes before it can run
-    // out, and once it is nearly gone the fight ends on one last exchange, not on the clock.
-    if (!talking && !f.final) b.hp = Math.max(f.busy > 0 || f.wind || f.turn > 0 ? 0.03 : 0, b.hp - dt / (seconds * bp));
-    if (b.hp <= 0) return bossDown();
-    if (f.final) { if (finalExchange(dt, b, f)) return; }
-    else {
+    if (!talking) b.hp = Math.max(0, b.hp - dt / (seconds * bp));
     // each 비기 in three beats: it gathers itself (the last of the breath: where it comes from, and when), it strikes,
-    // and when the 비기 is spent what it threw breaks up (破) and there is a breath again
+    // and when the 비기 is spent what it threw breaks up (破); then its other attacks, and it gathers itself again
     const wl = BOSS_WIND * bp; // (half a second by the wall clock)
-    if (f.busy > 0 && (f.busy -= dt) <= 0) sigSpent(b, f);
-    if (f.wind) { f.wind.t += dt; b.wind = Math.min(1, f.wind.t / wl); G.dark = Math.max(G.dark, 0.7 * b.wind); }
-    if (f.turn > 0) f.turn -= dt / bp; // (its second wind: see secondWind)
-    // (its second wind comes first even if one long 비기 carried it past four tenths and down to its last breath)
-    if (!f.act2 && b.hp <= 0.4 && f.said && !(f.busy > 0) && !f.wind && !talking) secondWind(b, f, wl);
-    else if (b.hp <= 0.06 && f.said && !(f.busy > 0) && !f.wind && !talking && !(f.turn > 0)) startFinal(b, f);
-    else if (f.turn > 0) { /* it is getting up */ }
+    if (f.busy > 0 && (f.busy -= dt) <= 0) { sigSpent(b, f); if (f.last) return startKill(b, f); f.mix = { t: 0, k: 0 }; }
+    if (f.wind) { f.wind.t += dt; b.wind = Math.min(1, f.wind.t / (f.wind.len || wl)); G.dark = Math.max(G.dark, 0.7 * b.wind); }
+    if (f.mix && !talking) mixStep(dt, f, d);
+    if (f.last && f.busy > 0 && (f.layer -= dt) <= 0) { f.layer = fightLevel() === "master" ? 1.6 : 2.6; fixed("mix", () => mixAttack(f, d)); } // 종전: its other attacks on top
+    if (b.hp <= 0 && !f.last && f.said && !(f.busy > 0) && !talking) startLast(b, f, wl);
     else if (f.wait > 0) { // it has said its line: now the technique, a moment after the box has gone
       if (!talking) f.wait -= dt;
       if (f.wait <= 0) f.sigT = wl;
-    } else if ((f.sigT -= dt) <= wl && (b.hp > 0.06 || f.wind)) {
-      if (!f.wind && f.said && f.sigT > 0 && b.hp > 0.08) windUp(b, d);
+    } else if ((f.sigT -= dt) <= wl && (b.hp > 0 || f.last)) {
+      if (!f.wind && f.said && f.sigT > 0) windUp(b, d);
       if (f.sigT <= 0) fixed("sig", () => {
         if (f.n === 0 && !f.said) { f.said = true; say([{ who: d.name, text: withName(d.sigLine) }], null); f.wait = 0.5; f.sigT = Infinity; return; }
-        if (!f.wind) callout(...d.sigName); // (no wind-up this time: named as it comes)
+        if (f.last) callout(d.sigName[0], `종전 · ${d.sigName[1]}`);
+        else if (!f.wind) callout(...d.sigName); // (no wind-up this time: named as it comes)
         if (G.callout) { G.callout.castAt = performance.now(); G.callout.side = b.x < W / 2 ? 1 : -1; } // its name off to the corner, away from it
         f.wind = null; b.wind = 0; b.pop = 0.1;
         G.dark = Math.max(G.dark, 0.7); b.castT = 0.6; f.n++;
         b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; // it throws itself at you as it calls it
         f.busy = Infinity; f.busy = SIGS[d.sig](); // (busy while it is thrown, so that whatever it throws at once is its too)
-        f.sigT = f.busy + breathOf(lv); // a breath, then the next one
+        f.sigT = f.last ? Infinity : f.busy + breathOf(lv) + MIX_AT[MIX_AT.length - 1]; // its other attacks, a breath, the next one
       });
     }
-    // behind it, the boss's own element drifting across (some have none): a backdrop, the 비기 is the fight
-    if (d.bg && !talking && !(f.turn > 0)) {
+    // behind it, the boss's own element drifting across (some have none): a backdrop
+    if (d.bg && !talking) {
       G.timers.drift = (G.timers.drift ?? 0.8) - dt;
       if (G.timers.drift <= 0) fixed("drift", () => {
         const n0 = G.shots.length; spawnDrift(d.bg); G.timers.drift = 1.2 * pace();
         for (let i = n0; i < G.shots.length; i++) delete G.shots[i].sig; // (the backdrop is not the 비기's: 破 leaves it be)
       });
     }
-    }
     // its body is a blade too (not while it leaps back to its place, high over your head)
     const u = bossUnit(b.def);
     if (P.inv <= 0 && !G.safe && !(b.home > 0)) for (const [x, y] of bossBodies(b)) if (Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u) return die(P.x, P.y, { boss: true });
   }
+  // after each 비기 (fight seconds into the breath), one of its other attacks, then another
+  const MIX_AT = [0.2, 1.2];
+  function mixStep(dt, f, d) {
+    const m = f.mix; m.t += dt;
+    while (m.k < MIX_AT.length && m.t >= MIX_AT[m.k]) { m.k++; fixed("mix", () => mixAttack(f, d)); }
+    if (m.k >= MIX_AT.length) f.mix = null;
+  }
+  function mixAttack(f, d) { // never the same one twice running
+    const pool = d.mix.length > 1 ? d.mix.filter((k) => k !== f.lastMix) : d.mix, k = pool[Math.floor(Math.random() * pool.length)];
+    f.lastMix = k;
+    if (PATTERNS[k]) PATTERNS[k].spawn(); else BIG.find((x) => x.key === k).run(); // (a big one unnamed: the corner keeps the 비기's name)
+  }
   const BOSS_WIND = 0.5; // seconds a boss gathers itself before each 비기 (cut from the end of its breath, so no slower for it)
   // the breath between 비기 (fight time). The wind-up and 破 made each one easier to read, so the breaths are shorter than
   // they were: more 비기 to a fight, not shorter warnings. 고수 breathes least, but never under a second.
-  const breathOf = (lv) => (G.stageRun && stageLevel === "master" ? Math.max(1.0, 1.55 - lv * 0.05) : Math.max(1.2, 1.65 - lv * 0.05));
+  const breathOf = (lv) => (fightLevel() === "master" ?Math.max(1.0, 1.55 - lv * 0.05) : Math.max(1.2, 1.65 - lv * 0.05));
   function windUp(b, d) { // it plants its feet and sinks, its colour drawn into it, and the 비기's name goes up over nothing yet
     G.fight.wind = { t: 0 };
     callout(...d.sigName); G.callout.wind = true;
@@ -2852,63 +2874,50 @@ sdk.initializeAsync()
     if (G.callout && G.callout.castAt) G.callout.brokeAt = performance.now();
     sfx.release(); buzz(15);
   }
-  // ---- its second wind: at four tenths of its life, between 비기, it is driven back a step, staggers, and comes on again
-  // darker. The field is bare for that moment; nothing about how it fights changes (it already grows harder each time).
-  function secondWind(b, f, wl) {
-    f.act2 = true; f.turn = 1.2; f.sigT = Math.max(f.sigT, wl + 0.2 * (G.bossK || 1)); b.wT = Math.max(b.wT, 1.6);
-    for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
-    G.warns = G.warns.filter((w) => w.kind === "none"); // (what a 비기 still has queued stays: there is none between them)
-    b.mid = true; b.reel = { t: 0, ang: -Math.PI / 2 }; b.ty = Math.max(H * 0.18, b.y - S * 0.04); b.tx = b.x;
-    const u = bossUnit(b.def);
-    for (const [x, y] of bossBodies(b)) { burstInk(x, y + u, 24); stain(x, y + u * 2, S * 0.07); }
-    G.parts.push({ kind: "ring", x: b.x, y: b.y + u * 2, vx: 0, vy: 0, r: u, grow: S * 0.9, color: fightTint(b.def), life: 0.6, t: 0 });
-    if (!reduced) { G.stopT = Math.max(G.stopT, 0.08); G.shake = Math.max(G.shake, 12); }
-    sfx.taiko(); setTimeout(() => sfx.taiko(), 180); sfx.release(); buzz([40, 20, 40]);
-  }
-  // ---- 마지막 일합: nearly spent, it gathers all it has left and runs at you bodily down one red road, alone on a bare
-  // field (a long warning, nothing else to read). Step off the road, and as it passes you cut it down: the last blow is yours.
-  function startFinal(b, f) {
-    f.final = { t: 0, step: "gather" };
-    for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
-    G.warns = []; G.hazards = []; b.tx = b.x; b.ty = b.y; b.next = null;
-    callout("一合", "마지막 일합"); Object.assign(G.callout, { wind: true, life: 1.1 });
-    sfx.gather(); setTimeout(() => sfx.gather(), 420); buzz([20, 60, 20]);
+  // ---- 종전: its life is gone and it is not done. It plants itself and gathers all it has (twice the usual wind-up, 終戰
+  // over it), then throws its 비기 once more at its fiercest (lvl), its other attacks coming on top every so often.
+  function startLast(b, f, wl) {
+    f.last = true; f.mix = null; f.layer = 1.2; f.wind = { t: 0, len: wl * 2 }; f.sigT = wl * 2;
+    b.tx = b.x; b.ty = b.y; b.next = null;
+    callout("終戰", "종전"); G.callout.wind = true;
+    G.dark = Math.max(G.dark, 0.8); if (!reduced) G.shake = Math.max(G.shake, 10);
+    sfx.gather(); setTimeout(() => sfx.gather(), 320); sfx.taiko(); buzz([20, 60, 20]);
     if (reduced) return;
     const u = bossUnit(b.def);
     for (const [x, y] of bossBodies(b)) for (let i = 0; i < 28; i++) {
       const a = rnd(0, Math.PI * 2), r = u * rnd(3.5, 5.5), cy = y + u * 0.6;
-      G.parts.push({ kind: "pull", color: moteOf(b.def), x: x + Math.cos(a) * r, y: cy + Math.sin(a) * r, x1: x, y1: cy, vx: 0, vy: 0, r: rnd(1.8, 3.6), life: rnd(0.45, 1.0), t: 0 });
+      G.parts.push({ kind: "pull", color: moteOf(b.def), x: x + Math.cos(a) * r, y: cy + Math.sin(a) * r, x1: x, y1: cy, vx: 0, vy: 0, r: rnd(1.8, 3.6), life: rnd(0.45, 0.9), t: 0 });
     }
   }
-  function finalExchange(dt, b, f) { // (returns true once the boss is down)
-    const F = f.final; F.t += dt / (G.bossK || 1); // by the wall clock
-    if (F.step === "gather") {
-      b.wind = Math.min(1, F.t / 1.0); G.dark = Math.max(G.dark, 0.9 * b.wind);
-      if (F.t < 1.0) return false;
-      const u = bossUnit(b.def), spread = b.def.look === "twins" ? S * 0.085 : 0, cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x);
-      G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: (u * 1.2 + spread) * 2, t: 0, dur: G.stageRun && stageLevel === "master" ? 1.0 : 1.1, delay: 0,
-        fire(w) { runAt(ang, w.x, w.y - u * 0.8); F.step = "run"; } });
-      sfx.warn(); b.wind = 0; b.pop = 0.1; b.castT = 0.6; b.lunge = { t: 0, ang };
-      F.step = "aim"; return false;
+  // ---- the last stroke: its 종전 outlasted, everything in the air breaks and the music stops. A breath; then you go
+  // through it in one draw and out the far side, and put the sword away; only then does it come apart along your line.
+  function startKill(b, f) {
+    f.kill = { t: 0, step: 0 };
+    for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
+    G.warns = []; G.hazards = []; G.timeK = 1; G.freezeT = 0;
+    b.tx = b.x; b.ty = b.y; b.next = null; b.wind = 0; b.dash = null; b.lunge = null; b.home = 0;
+    P.inv = Math.max(P.inv, 3); P.push = null;
+    if (ac && bgmBus) { const n = ac.currentTime; bgmBus.gain.cancelScheduledValues(n); bgmBus.gain.setValueAtTime(bgmBus.gain.value, n); bgmBus.gain.setTargetAtTime(0, n, 0.03); }
+    sfx.gather(); buzz([10, 40, 10]);
+  }
+  function killStep(dt, b, f) {
+    const K = f.kill; K.t += dt / (G.bossK || 1); // by the wall clock
+    G.dark = Math.max(G.dark, 0.85);
+    if (K.step === 0 && K.t >= 0.45) { // the draw: from where you stand, through it, out past its reach
+      K.step = 1;
+      const u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(cy - P.y, b.x - P.x), far = Math.hypot(b.x - P.x, cy - P.y) + u * 3.5;
+      const x1 = clamp(P.x + Math.cos(ang) * far, edge(), W - edge()), y1 = clamp(P.y + Math.sin(ang) * far, edge(), H - edge());
+      G.killLine = { x0: P.x, y0: P.y, x1, y1, at: performance.now() };
+      b.cutAng = ang; b.hurtT = 0.4; P.x = x1; P.y = y1; HERO.ghosts.length = 0;
+      if (!reduced) { G.stopT = 0.14; G.shake = Math.max(G.shake, 16); HERO.spinT = 0.4; }
+      flash("255,250,235", 0.7); sfx.slash(); sfx.release(); buzz([30, 20, 60]);
     }
-    if (F.step === "run" && !b.dash) { // it has gone by and you are still standing: your turn
-      F.step = "cut"; F.t = 0;
-      const ux = Math.cos(Math.atan2(b.y - P.y, b.x - P.x)), uy = Math.sin(Math.atan2(b.y - P.y, b.x - P.x));
-      G.finalCut = { x0: P.x, y0: P.y, x1: b.x + ux * S * 0.25, y1: b.y + uy * S * 0.25, at: performance.now() };
-      if (!reduced) { G.stopT = 0.16; HERO.spinT = 0.4; }
-      if (ac && bgmBus) { const n = ac.currentTime; bgmBus.gain.cancelScheduledValues(n); bgmBus.gain.setValueAtTime(bgmBus.gain.value, n); bgmBus.gain.setTargetAtTime(0, n, 0.01); } // the music stops dead
-      sfx.slash(); buzz(30);
-      return false;
+    if (K.step === 1 && K.t >= 1.2) { K.step = 2; sfx.sheath(); } // the blade goes home…
+    if (K.step === 2 && K.t >= 1.4) { // …and it falls in two
+      G.killLine = null;
+      if (ac && bgmBus) { const n = ac.currentTime; bgmBus.gain.setTargetAtTime(MUSIC_VOL, n + 0.8, 0.4); }
+      bossDown();
     }
-    if (F.step === "cut") {
-      if (!F.sheathed && F.t >= 0.5) { F.sheathed = true; sfx.sheath(); }
-      if (F.t >= 0.55) {
-        G.finalCut = null;
-        if (ac && bgmBus) { const n = ac.currentTime; bgmBus.gain.setTargetAtTime(MUSIC_VOL, n + 0.6, 0.4); }
-        bossDown(); return true;
-      }
-    }
-    return false;
   }
   function devBack() {
     clearField(); G.boss = null; G.lines = []; G.onLines = null; G.card = null; G.dev = null; G.story = false; G.mode = "menu";
@@ -2926,7 +2935,7 @@ sdk.initializeAsync()
       head.append(who, sig);
       const what = document.createElement("p"); what.textContent = d.what;
       const lines = document.createElement("dl");
-      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음 (비기만)"], ["등장", d.intro], ["비기", d.sigLine], ["쓰러질 때", d.down]]) {
+      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["등장", d.intro], ["비기", d.sigLine], ["쓰러질 때", d.down]]) {
         const dt = document.createElement("dt"); dt.textContent = k;
         const dd = document.createElement("dd"); dd.textContent = withName(t);
         lines.append(dt, dd);
@@ -3235,8 +3244,7 @@ sdk.initializeAsync()
     if (!drag || e.pointerId !== drag.id || G.mode !== "play") return;
     const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
     drag.x = e.clientX; drag.y = e.clientY;
-    const wade = inMist() ? MIST_SLOW : 1;
-    P.x += dx * 1.15 * wade; P.y += dy * 1.15 * wade;
+    P.x += dx * 1.15; P.y += dy * 1.15;
     if (Math.hypot(dx, dy) > 0.5) { const d = Math.hypot(dx, dy); P.dx = dx / d; P.dy = dy / d; }
   });
   const endDrag = (e) => { if (drag && e.pointerId === drag.id) drag = null; };
@@ -3274,13 +3282,11 @@ sdk.initializeAsync()
     if (keys.has("arrowright") || keys.has("d")) kx++;
     if (keys.has("arrowup") || keys.has("w")) ky--;
     if (keys.has("arrowdown") || keys.has("s")) ky++;
-    const wade = inMist() ? MIST_SLOW : 1; // 독무 slows you
-    if (kx || ky) { const d = Math.hypot(kx, ky); P.x += (kx / d) * SPEED() * wade * dt; P.y += (ky / d) * SPEED() * wade * dt; P.dx = kx / d; P.dy = ky / d; }
+    if (kx || ky) { const d = Math.hypot(kx, ky); P.x += (kx / d) * SPEED() * dt; P.y += (ky / d) * SPEED() * dt; P.dx = kx / d; P.dy = ky / d; }
     if (P.push) { // thrown by 장풍
       P.x += P.push.vx * realDt; P.y += P.push.vy * realDt; P.push.t -= realDt;
       if (P.push.t <= 0) P.push = null;
     }
-    if (wade < 1 && Math.random() < realDt * 8) G.parts.push({ kind: "glow", color: "#8fbf6a", x: P.x + rnd(-8, 8), y: P.y + rnd(-6, 6), vx: 0, vy: -rnd(15, 35), r: rnd(1.5, 3), life: 0.6, t: 0 });
     P.x = clamp(P.x, edge(), W - edge()); P.y = clamp(P.y, edge(), H - edge());
     P.inv = Math.max(0, P.inv - realDt);
     if (G.story) storyStep(dt, realDt); else endlessStep(dt);
@@ -3320,11 +3326,11 @@ sdk.initializeAsync()
         const pool = open.length > 1 ? open.filter((b) => b.key !== G.lastBig) : open;
         const b = fresh || pool[Math.floor(Math.random() * pool.length)];
         runBig(b);
-        if (G.t >= FRENZY && pool.length > 1 && b.key !== "mist" && Math.random() < 0.3 + Math.min(0.4, endless() * 0.05)) {
-          const others = pool.filter((x) => x !== b && x.key !== "mist"); // (독무 never doubles up: it slows your feet)
+        if (G.t >= FRENZY && pool.length > 1 && Math.random() < 0.3 + Math.min(0.4, endless() * 0.05)) {
+          const others = pool.filter((x) => x !== b);
           runBig(others[Math.floor(Math.random() * others.length)]);
         }
-        G.bigT = mistGap(rnd(6, 8.5) * clamp(pace() * 1.4, 0.6, 1) * rare);
+        G.bigT = rnd(6, 8.5) * clamp(pace() * 1.4, 0.6, 1) * rare;
       }
     }
   }
@@ -3630,7 +3636,7 @@ sdk.initializeAsync()
     if (G.mode === "dying") drawStamp(G.dieT);
     ctx.restore();
     if (G.flash > 0.01) { ctx.fillStyle = `rgba(${G.flashC},${G.flash})`; ctx.fillRect(0, 0, W, H); }
-    if (G.finalCut) drawFinalCut();
+    if (G.killLine) drawKillLine();
     if (G.story) { drawBossBar(); drawStageBar(); drawCine(time); drawCard(time); drawKillStamp(); }
     drawMsg();
   }
@@ -3673,8 +3679,8 @@ sdk.initializeAsync()
       bodies.forEach(([x, y], i) => bossFigure(b.def, x, y, u, time, { hurt: b.hurtT > 0, mid: b.mid, side: i ? 1 : -1, cast: b.castT > 0 || wd > 0.4 }));
       ctx.restore(); return;
     }
-    // felled: cut in two along the last stroke, the halves sliding apart, dropping and fading
-    const k = b.downT, ang = -0.6, ux = Math.cos(ang), uy = Math.sin(ang), nx = -uy, ny = ux, L = S * 2;
+    // felled: cut in two along the last stroke (yours, through it), the halves sliding apart, dropping and fading
+    const k = b.downT, ang = b.cutAng ?? -0.6, ux = Math.cos(ang), uy = Math.sin(ang), nx = -uy, ny = ux, L = S * 2;
     for (const s of [-1, 1]) {
       ctx.save(); ctx.globalAlpha = Math.max(0, 1 - k / 1.2);
       ctx.translate(nx * s * k * S * 0.1 + ux * s * k * S * 0.06, ny * s * k * S * 0.1 + uy * s * k * S * 0.06 + k * k * S * 0.18);
@@ -3995,8 +4001,8 @@ sdk.initializeAsync()
       ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = u * 0.06;
       for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * hr * 0.38, hy + hr * 0.08, hr * 0.2, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke(); }
       ctx.beginPath(); ctx.arc(0, hy + hr * 0.35, hr * 0.35, Math.PI * 0.15, Math.PI * 0.85); ctx.stroke();
-      const gz = G.hazards.find((h) => h.kind === "gaze"), st = gz ? gz.state() : "shut";
-      const open = st === "open" ? 1 : st === "stir" ? 0.35 + 0.2 * Math.sin(t * 30) : 0.12 + 0.05 * Math.sin(t * 2);
+      const gz = G.hazards.find((h) => h.kind === "glare"), st = gz ? gz.state() : "off"; // its third eye: wide while it burns, half open while it looks
+      const open = st === "burn" ? 1 : st === "off" ? 0.12 + 0.05 * Math.sin(t * 2) : 0.45 + 0.15 * Math.sin(t * 30);
       const ex = 0, ey = hy - hr * 0.5, ew = hr * 0.42;
       ctx.fillStyle = "#f7f0de"; ctx.beginPath(); ctx.moveTo(ex - ew, ey); ctx.quadraticCurveTo(ex, ey - ew * open, ex + ew, ey); ctx.quadraticCurveTo(ex, ey + ew * open, ex - ew, ey); ctx.fill();
       ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = 1.5; ctx.stroke();
@@ -4187,12 +4193,9 @@ sdk.initializeAsync()
     }
     if (d.mid && !b.mid) { ctx.fillStyle = "rgba(29,26,23,0.5)"; ctx.fillRect(x + w * 0.5 - 1, y - 2, 2, 12); }
     const f = (G.stageRun || G.dev) && G.fight;
-    if (f) { // where it gets its second wind: a notch, and once past it, a crack through the stroke
-      const nx = x + 4 + (w - 8) * 0.4;
-      ctx.strokeStyle = "rgba(29,26,23,0.6)"; ctx.lineWidth = 2; ctx.lineCap = "round"; ctx.beginPath();
-      if (!f.act2) { ctx.moveTo(nx, y - 3); ctx.lineTo(nx, y + 11); }
-      else { ctx.moveTo(nx - 4, y - 4); ctx.lineTo(nx + 1, y + 3); ctx.lineTo(nx - 2, y + 6); ctx.lineTo(nx + 3, y + 12); }
-      ctx.stroke();
+    if (f && f.last && !f.kill) { // 종전: nothing left in the stroke, and still it fights: the empty bar beats red
+      ctx.strokeStyle = `rgba(200,50,31,${0.35 + 0.35 * Math.sin(performance.now() * 0.014)})`; ctx.lineWidth = 9; ctx.lineCap = "round";
+      ctx.beginPath(); ctx.moveTo(x + 4, y + 4); ctx.lineTo(x + w - 4, y + 4); ctx.stroke();
     }
     ctx.restore();
   }
@@ -4299,13 +4302,14 @@ sdk.initializeAsync()
     ctx.lineTo(Math.cos(p.ang) * r * reach * (thrown ? 1 : -0.6), -r * 0.1 + Math.sin(p.ang) * r * reach * (thrown ? 1 : -0.6)); ctx.stroke();
     ctx.restore();
   }
-  function drawFinalCut() { // the last blow: one white stroke from you through it, the world black for a blink behind it
-    const c = G.finalCut, age = (performance.now() - c.at) / 1000, k = Math.min(1, age / 0.1);
-    if (!reduced && age > 0.12 && age < 0.2) { ctx.fillStyle = "rgba(20,16,12,0.85)"; ctx.fillRect(0, 0, W, H); }
-    const a = age < 0.2 ? 1 : Math.max(0, 1 - (age - 0.2) / 0.35), x1 = c.x0 + (c.x1 - c.x0) * k, y1 = c.y0 + (c.y1 - c.y0) * k;
+  function drawKillLine() { // the last stroke: the world black for a blink, then one white line from where you were to where you are
+    const c = G.killLine, age = (performance.now() - c.at) / 1000;
+    if (!reduced && age < 0.09) { ctx.fillStyle = "rgba(20,16,12,0.85)"; ctx.fillRect(0, 0, W, H); }
+    const a = age < 0.3 ? 1 : Math.max(0, 1 - (age - 0.3) / 0.8), k = Math.min(1, age / 0.06);
+    const x1 = c.x0 + (c.x1 - c.x0) * k, y1 = c.y0 + (c.y1 - c.y0) * k;
     ctx.save(); ctx.lineCap = "round";
-    ctx.strokeStyle = `rgba(29,26,23,${0.6 * a})`; ctx.lineWidth = 9; ctx.beginPath(); ctx.moveTo(c.x0, c.y0); ctx.lineTo(x1, y1); ctx.stroke();
-    ctx.strokeStyle = `rgba(255,252,240,${a})`; ctx.lineWidth = 5; ctx.stroke();
+    ctx.strokeStyle = `rgba(29,26,23,${0.55 * a})`; ctx.lineWidth = 11; ctx.beginPath(); ctx.moveTo(c.x0, c.y0); ctx.lineTo(x1, y1); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,252,240,${a})`; ctx.lineWidth = 4; ctx.stroke();
     ctx.restore();
   }
   function drawKillStamp() { // (not drawStamp: that name is the 敗 seal further down, and the later one would win)
@@ -4817,19 +4821,6 @@ sdk.initializeAsync()
     }
     ctx.restore();
   }
-  function drawMist(h, time) { // 독무: green-violet mist churning, spreading, then thinning away
-    const r = h.radius(); if (r <= 0) return;
-    ctx.save();
-    for (let i = 0; i < 7; i++) {
-      const a = h.seed + i * 0.9 + time * 0.4 * (i % 2 ? 1 : -1), bx = h.x + Math.cos(a) * r * 0.45, by = h.y + Math.sin(a) * r * 0.35, br = r * (0.55 + (i % 3) * 0.15);
-      const g = ctx.createRadialGradient(bx, by, 0, bx, by, br);
-      g.addColorStop(0, i % 2 ? "rgba(120,170,90,0.32)" : "rgba(126,86,150,0.26)"); g.addColorStop(1, "rgba(120,170,90,0)");
-      ctx.fillStyle = g; ctx.beginPath(); ctx.arc(bx, by, br, 0, Math.PI * 2); ctx.fill();
-    }
-    ctx.strokeStyle = "rgba(90,130,70,0.35)"; ctx.lineWidth = 1.5; ctx.setLineDash([4, 6]);
-    ctx.beginPath(); ctx.arc(h.x, h.y, r, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
-    ctx.restore();
-  }
   // the technique's name flashes up as it is used: great hanja on an ink stroke, its reading beneath in red
   // It is drawn under the warnings and whatever flies, so it never hides one. A boss's 비기: up while it gathers
   // itself (when there is nothing yet to read), then small in a corner while it lasts; out on the stage, small and high.
@@ -5247,6 +5238,9 @@ sdk.initializeAsync()
   // 개발자 모드: only with ?dev in the address
   $("devOpen").hidden = !DEV;
   $("devOpen").addEventListener("click", () => { renderDev(); $("start").hidden = true; $("dev").hidden = false; });
+  const devLabels = () => { for (const b of document.querySelectorAll("#devLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === devLevel)); };
+  for (const b of document.querySelectorAll("#devLvl button")) b.addEventListener("click", () => { devLevel = b.dataset.lvl; store.set("devLevel", devLevel); devLabels(); });
+  devLabels();
   $("devClose").addEventListener("click", () => { $("dev").hidden = true; $("start").hidden = false; });
   $("devExit").addEventListener("click", () => { if (G.dev) devBack(); });
   $("again").addEventListener("click", () => adBreak(() => {
