@@ -1533,7 +1533,7 @@ sdk.initializeAsync()
     G.card = { boss: def, at: performance.now() };
     sfx.taiko(); setTimeout(() => sfx.taiko(), 220); G.dark = 1;
     if (sd && bossSeen.has(G.sg)) { // again: straight into it, its words were heard the first time ("just once more" stays quick)
-      G.fight.said = true; G.card.life = 1.0; G.phase = "boss"; G.timers.drift = 1.6; return;
+      G.fight.said = true; G.fight.retry = true; G.card.life = 1.0; G.phase = "boss"; G.timers.drift = 1.6; return;
     }
     if (sd) bossSeen.add(G.sg);
     say(def.intro(), () => {
@@ -1859,6 +1859,9 @@ sdk.initializeAsync()
     // each kind of attack keeps its own clock, so five kinds at once came five times as thick: the more kinds,
     // the longer each one waits (all of them still come, only not all on top of each other)
     d.crowd = 1 + SL().crowd * Math.max(0, d.pats.length - 2);
+    // the 장's master is felt before it is seen: now and then a lesser form of what it does, more often stage by stage,
+    // and its element among the bamboo (11-06: "1~4 정도가 너무 밍밍한데 그 맵에 있는 특성도 그전에 미리 나오는건")
+    if (!d.boss) { const foe = BOSS_SET[wd.boss]; d.foe = foe.sig; d.foeEvery = [[8, 10], [6.5, 8], [5.5, 7], [4.5, 6]][s]; d.drift = foe.bg !== "bamboo" ? foe.bg : null; }
     stageMemo.set(i, d);
     return d;
   }
@@ -1900,7 +1903,7 @@ sdk.initializeAsync()
   const easeK = () => (G.stageRun && stageLevel === "normal" && assist.sg === G.sg ? 1 / (1 + 0.06 * clamp(assist.n - 2, 0, 3)) : 1);
   function enterStageFight() {
     const sd = stageDef(G.sg);
-    G.phase = "fight"; G.ct = 0; G.timers = { bamboo: 0.6 }; G.lastBig = "";
+    G.phase = "fight"; G.ct = 0; G.timers = { bamboo: 0.6, foe: 3.5 }; G.lastBig = "";
     G.bossK = SL().pace * easeK(); // (cleared with the field when the stage ends)
     sd.pats.forEach((k, i) => { G.timers[k] = PATTERNS[k].first + 0.5 + i * 0.9; }); // one after another, not all in the first second
     G.bigT = sd.big.length ? 4 : Infinity;
@@ -1941,7 +1944,8 @@ sdk.initializeAsync()
       G.ct += dt / (G.bossK || 1); G.st += dt / (G.bossK || 1); // by the wall clock: thirty seconds stay thirty
       G.t = sd.diff[0] + (sd.diff[1] - sd.diff[0]) * Math.min(1, G.ct / sd.dur); // how hard things are, for the shared attacks
       G.timers.bamboo -= dt;
-      if (G.timers.bamboo <= 0) fixed("bamboo", () => { spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(SL().floor, pace()); }); // (it stops thickening past a point)
+      if (G.timers.bamboo <= 0) fixed("bamboo", () => { if (sd.drift && Math.random() < 0.5) spawnDrift(sd.drift); else spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(SL().floor, pace()); }); // (it stops thickening past a point)
+      if (sd.foe && (G.timers.foe -= dt) <= 0 && sd.dur - G.ct > 3) fixed("foe", () => { foreshadow(sd.foe); G.timers.foe = rnd(sd.foeEvery[0], sd.foeEvery[1]); });
       for (const k of sd.pats) {
         G.timers[k] -= dt;
         if (G.timers[k] <= 0) fixed(k, () => { PATTERNS[k].spawn(); G.timers[k] = PATTERNS[k].every() * sd.gap * sd.crowd; });
@@ -2923,7 +2927,7 @@ sdk.initializeAsync()
     if (f.wind) { f.wind.t += dt; b.wind = Math.min(1, f.wind.t / (f.wind.len || wl)); G.dark = Math.max(G.dark, 0.7 * b.wind); }
     if (f.mix && !talking) mixStep(dt, f, d);
     if (f.last && f.busy > 0 && (f.layer -= dt) <= 0) { f.layer = SL().layer; fixed("mix", () => (f.alt = !f.alt) ? subAttack(d) : mixAttack(f, d)); } // 종전: its other moves on top, by turns
-    if (b.hp <= 0 && !f.last && f.said && !(f.busy > 0) && !talking) startLast(b, f, wl);
+    if (b.hp <= 0 && !f.last && f.said && !(f.busy > 0) && !talking) startLast(b, f, wl, d);
     else if (f.wait > 0) { // it has said its line: now the technique, a moment after the box has gone
       if (!talking) f.wait -= dt;
       if (f.wait <= 0) f.sigT = wl;
@@ -2963,6 +2967,25 @@ sdk.initializeAsync()
     if (m.k >= MIX_AT.length) f.mix = null;
   }
   const subAttack = (d) => SUBS[d.sig].run();
+  // A 장's stages before its master: its lesser move, mostly the 종전 one; where that needs the master standing there, or
+  // shows its manner better another way, something of its own (thrown from up the mountain where the master waits)
+  const FORESHADOW = {
+    void: () => { const R = S * 0.15; blackMoon(clamp(P.x, R * 0.6, W - R * 0.6), clamp(P.y, H * 0.16, H - R * 0.6), R, 1.0, 1.6); },
+    charge: () => { // claw marks: three rakes across you
+      const g = rnd(0, Math.PI), nx = Math.cos(g + Math.PI / 2), ny = Math.sin(g + Math.PI / 2);
+      for (const o of [-1, 0, 1]) G.warns.push({ kind: "band", x: P.x + nx * S * 0.13 * o, y: P.y + ny * S * 0.13 * o, ang: g, w: S * 0.055, t: 0, dur: 0.8, delay: (o + 1) * 0.08, fire(w) { landCut(w); } });
+      sfx.warn();
+    },
+    rain: () => { // one umbrella's shade, and the downpour round it
+      const R = S * 0.2; let at = null;
+      for (let i = 0; i < 30 && !at; i++) { const c = [rnd(R, W - R), rnd(H * 0.3, H - R)], d = Math.hypot(c[0] - P.x, c[1] - P.y); if (d > R * 1.2 && d < S * 0.6) at = c; }
+      at = at || [W / 2, H * 0.6];
+      G.warns.push({ kind: "zone", x: at[0], y: at[1], R, t: 0, dur: 1.3, delay: 0, fire: pour }); sfx.warn();
+    },
+    wheel: () => bigRing("fire"),
+    final: () => foreshadow(["twin", "lotus", "fire", "frost", "void", "veil", "thunder", "swords"][Math.floor(Math.random() * 8)]),
+  };
+  const foreshadow = (sig) => (FORESHADOW[sig] || SUBS[sig].run)();
   // Each boss's second 비기, in its manner, taking turns with its first (11-06: "나머지 보스들도 컨셉과 함께 다양한 고유기").
   // Each returns how many seconds it takes, like SIGS. Built from the same warned pieces as the rest.
   function bandsAt(angs, w = S * 0.075, dur = 0.75) { // blade paths through where you stand, at these angles, all at once
@@ -3145,9 +3168,30 @@ sdk.initializeAsync()
   }
   // ---- 종전: its life is gone and it is not done. It plants itself and gathers all it has (twice the usual wind-up, 終戰
   // over it), then throws its 비기 once more at its fiercest (lvl), its other attacks coming on top every so often.
-  function startLast(b, f, wl) {
-    f.last = true; f.mix = null; f.layer = 1.2; f.wind = { t: 0, len: wl * 2 }; f.sigT = wl * 2;
+  // what each says as its life runs out, before its 종전 (11-06: "종전 전에 보스 대사 추가")
+  const LAST_LINES = {
+    twin: "둘이 하나가 된다. 이것이 마지막 그림자다.", lotus: "흘러간 물이 전부 돌아온다. 피할 곳은 없다.",
+    fire: "남은 업을 모두 태우겠다. 너와 함께.", frost: "백 년 쌓인 눈이다. 한꺼번에 내리마.",
+    void: "달이 지기 전에 너를 묻는다.", charge: "이번엔 범이 진짜로 문다.",
+    veil: "이제야 보여 주지. 진짜 그림자를.", drum: "마지막 장단이다. 끝까지 들어라.",
+    mirror: "거울이 깨지기 전에 너부터 깨뜨린다.", rain: "우산을 접는다. 이 비는 그치지 않는다.",
+    swords: "만 자루 칼이 아직 남았다.", time: "남은 시간을 전부 쓰겠다.",
+    thunder: "하늘을 통째로 내리겠다.", shadow: "네가 지나온 길을 전부 데려왔다.",
+    swarm: "꿈은 이제부터야.", wheel: "불이 꺼지기 전에 한 바퀴만 더.",
+    pendulum: "줄이 끊어져도 쇠공은 간다.", crumble: "천 년을 버틴 땅이다. 쉽게 내주지 않는다.",
+    glare: "눈을 감기 전에 한 번만 더 보마.", final: "이름 없는 검의 마지막 초식이다.",
+  };
+  // its life is gone: the field falls quiet for its last words (not on a retry: they were heard), then it gathers itself
+  function startLast(b, f, wl, d) {
+    f.last = true; f.mix = null; f.layer = 1.2; f.sigT = Infinity;
     b.tx = b.x; b.ty = b.y; b.next = null;
+    for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
+    G.warns = []; G.hazards = []; G.timeK = 1; G.freezeT = 0;
+    if (f.retry || !LAST_LINES[d.sig]) return gatherLast(b, f, wl);
+    say([{ who: d.name, text: withName(LAST_LINES[d.sig]) }], () => gatherLast(b, f, wl));
+  }
+  function gatherLast(b, f, wl) {
+    f.wind = { t: 0, len: wl * 2 }; f.sigT = wl * 2;
     callout("終戰", "종전"); G.callout.wind = true;
     G.dark = Math.max(G.dark, 0.8); if (!reduced) G.shake = Math.max(G.shake, 10);
     sfx.gather(); setTimeout(() => sfx.gather(), 320); sfx.taiko(); buzz([20, 60, 20]);
