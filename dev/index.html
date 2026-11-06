@@ -1803,7 +1803,7 @@ sdk.initializeAsync()
   //   bamboo its gap, and how far it may close up late on
   //   boss   how fast a boss fight runs; lv: how much stronger every boss's 비기 is
   const STAGE_LEVELS = {
-    normal: { name: "보통", pace: 0.92, base: 6, slope: 0.27, crowd: 0.13, bamboo: 0.64, floor: 0.7, boss: 0.86, lv: 0.9, top: "stageTop" }, // (11-06: "지금 기준에서 20퍼 정도 더 어렵게"; its bosses less, their fights got their own harder)
+    normal: { name: "보통", pace: 0.92, base: 6, slope: 0.27, crowd: 0.13, bamboo: 0.64, floor: 0.7, boss: 0.83, lv: 0.5, top: "stageTop" }, // (11-06: "지금 기준에서 20퍼 정도 더 어렵게": the stages; its bosses' fights got their own harder, with the attacks between and 종전)
     master: { name: "고수", pace: 1.0, base: 12, slope: 0.33, crowd: 0.06, bamboo: 0.6, floor: 0.62, boss: 0.95, lv: 2.5, top: "stageTopM" }, // (base: 1-1 already bites)
   };
   let stageLevel = STAGE_LEVELS[store.get("stageLevel", "normal")] ? store.get("stageLevel", "normal") : "normal";
@@ -2048,13 +2048,14 @@ sdk.initializeAsync()
   };
   // between one 비기 and the next, each boss throws a couple of the ordinary attacks that suit it (11-06: "단일 패턴만
   // 나와서 쉬운 느낌": the 비기 is the fight's spine, these keep it from going quiet). PATTERNS and BIG keys.
-  // (light ones only: 검우, 사자후 and 검기 fill the whole field and, measured, buried the 비기 under them)
+  // (light ones only: 검우, 사자후 and 검기 fill the whole field and, measured, buried the 비기 under them; and never 장풍,
+  // whose shove can throw you into the boss's body or a 비기 with nothing you could have done)
   const BOSS_MIX = {
     twin: ["draw", "cross", "clones"], lotus: ["burst", "line", "spiral"], fire: ["draw", "homing", "spikes"], frost: ["line", "homing", "triple"],
-    void: ["cross", "burst", "flick"], charge: ["draw", "line", "palm"], veil: ["homing", "draw", "flick"], drum: ["burst", "line", "triple"],
-    mirror: ["line", "cross", "ring"], rain: ["draw", "homing", "palm"], swords: ["line", "draw", "clones"], time: ["homing", "burst", "triple"],
+    void: ["cross", "burst", "flick"], charge: ["draw", "line", "clones"], veil: ["homing", "draw", "flick"], drum: ["burst", "line", "triple"],
+    mirror: ["line", "cross", "ring"], rain: ["draw", "homing", "triple"], swords: ["line", "draw", "clones"], time: ["homing", "burst", "triple"],
     thunder: ["cross", "line", "spikes"], shadow: ["draw", "homing", "clones"], swarm: ["burst", "line", "spiral"], wheel: ["draw", "cross", "flick"],
-    pendulum: ["line", "burst", "palm"], crumble: ["draw", "line", "spikes"], glare: ["line", "homing", "flick"], final: ["draw", "cross", "burst", "triple", "clones"],
+    pendulum: ["line", "burst", "flick"], crumble: ["draw", "line", "spikes"], glare: ["line", "homing", "flick"], final: ["draw", "cross", "burst", "triple", "clones"],
   };
   const BG_NAMES = { bamboo: "대나무", water: "물방울 칼", fire: "불똥", ice: "고드름", wisp: "도깨비불" };
   BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; b.mix = BOSS_MIX[b.sig]; });
