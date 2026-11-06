@@ -198,6 +198,14 @@
   .skin b .skin__tier { display: block; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-align: center; margin-bottom: 1px; }
   .skin__tier--rare { color: #3f6fae; } .skin__tier--epic { color: #6a3fae; } .skin__tier--myth { color: #9a7420; } .skin__tier--boss { color: var(--ink); }
   .skin button.is-short { background: transparent; color: var(--ink-soft); border-color: var(--ink-soft); }
+  .shop-ask { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; background: rgba(29,26,23,0.45); }
+  .shop-ask[hidden] { display: none; }
+  .shop-ask__box { width: min(320px, 100%); box-sizing: border-box; background: var(--slip); border: 1.5px solid var(--ink); padding: 18px 16px; display: grid; gap: 10px; justify-items: center; text-align: center; }
+  .shop-ask__box canvas { width: 72px; height: 72px; }
+  #shopAskQ { margin: 0; font-family: var(--font-mark); font-weight: 900; font-size: 18px; color: var(--ink); }
+  .shop-ask__sub { margin: 0; font-size: 13px; color: var(--ink-soft); }
+  .shop-ask__row { display: flex; gap: 8px; width: 100%; }
+  .shop-ask__row .btn { flex: 1; font-size: 16px; padding: 10px; }
   .skin--epic { border-color: #6a3fae; } .skin--myth { border-color: #b8902e; box-shadow: inset 0 0 0 1px #e8c66a; }
   .skin button { font: inherit; font-size: 13px; width: 100%; padding: 6px 4px; cursor: pointer; border-radius: 0; border: 1.5px solid var(--ink); background: var(--ink); color: var(--slip); }
   .skin button:disabled { background: transparent; color: var(--ink-soft); border-color: var(--ink-soft); cursor: default; }
@@ -285,6 +293,14 @@
       <p class="shop-note" id="shopNote"></p>
       <button class="btn btn--ghost" id="shopClose">돌아가기</button>
     </section>
+    <div class="shop-ask" id="shopAsk" hidden role="dialog" aria-modal="true" aria-labelledby="shopAskQ">
+      <div class="shop-ask__box">
+        <canvas id="shopAskPv"></canvas>
+        <p id="shopAskQ"></p>
+        <p class="shop-ask__sub" id="shopAskSub"></p>
+        <div class="shop-ask__row"><button type="button" class="btn btn--ghost" id="shopAskNo">그만두기</button><button type="button" class="btn" id="shopAskYes">사기</button></div>
+      </div>
+    </div>
   </div>
 
   <div class="screen" id="dev" hidden>
@@ -1324,7 +1340,8 @@ sdk.initializeAsync()
     for (let i = 0; i < n; i++) {
       if ((i - gapAt + n) % n < gapN) continue;
       const a = (i / n) * Math.PI * 2, kx = x + Math.cos(a) * R, ky = y + Math.sin(a) * R;
-      shoot("kunai", kx, ky, a + Math.PI, 0, { r: S * 0.01, hold, go: S * 0.62, red: true, skin });
+      // (11-06 "가운데로 모아지고 없애야지, 반대편으로도 이동하는 게 너무 어렵다": each one ends where they all meet)
+      shoot("kunai", kx, ky, a + Math.PI, 0, { r: S * 0.01, hold, go: S * 0.62, red: true, skin, range: R });
       G.parts.push({ kind: "ink", x: kx, y: ky, vx: 0, vy: 0, r: S * 0.012, life: 0.35, t: 0 });
     }
     const gapA = ((gapAt + (gapN - 1) / 2) / n) * Math.PI * 2, gapW = ((gapN + 1) / n) * Math.PI * 2;
@@ -3736,6 +3753,10 @@ sdk.initializeAsync()
           s.vx = Math.cos(cur + turn) * sp; s.vy = Math.sin(cur + turn) * sp;
         }
         s.x += s.vx * dt; s.y += s.vy * dt;
+        if (s.range) { // it only goes so far (천라지망: to the middle), then it's gone in a puff of ink
+          s.trav = (s.trav || 0) + Math.hypot(s.vx, s.vy) * dt;
+          if (s.trav >= s.range) { s.dead = true; G.parts.push({ kind: "ink", x: s.x, y: s.y, vx: 0, vy: 0, r: S * 0.01, life: 0.3, t: 0 }); continue; }
+        }
         s.rot = s.spin ? s.rot + s.spin * dt : Math.atan2(s.vy, s.vx);
         (s.trail || (s.trail = [])).push(s.x, s.y); if (s.trail.length > 14) s.trail.splice(0, 2); // where it has just been, for its streak
         if (s.bounces > 0) {
@@ -5783,6 +5804,7 @@ sdk.initializeAsync()
     resume() { paused = false; if (ac && !muted && !document.hidden) ac.resume(); },
     silent(on) { ringerSilent = !!on; if (master) master.gain.setTargetAtTime(muted || ringerSilent ? 0 : 1, ac.currentTime, 0.05); },
     back() { // the shop (or the 비기 list) closes; anything else is the app's to answer
+      if (!$("shopAsk").hidden) { $("shopAskNo").click(); return true; } // the buy question first
       if (!$("shop").hidden) { $("shopClose").click(); return true; }
       if (!$("dev").hidden) { $("devClose").click(); return true; }
       if (!$("boss").hidden) { $("bossClose").click(); return true; }
@@ -5929,7 +5951,7 @@ sdk.initializeAsync()
       const b = document.createElement("button"); b.type = "button";
       if (SKIN === sk) { b.textContent = "입는 중"; b.disabled = true; }
       else if (owned.has(id)) { b.textContent = "입기"; b.addEventListener("click", () => { wear(id); renderShop(); }); }
-      else if (sk.coin) { b.textContent = `엽전 ${fmt(sk.coin)}`; if (coins < sk.coin) b.classList.add("is-short"); b.addEventListener("click", () => buyWithCoins(id)); } // short: it says by how much
+      else if (sk.coin) { b.textContent = `엽전 ${fmt(sk.coin)}`; if (coins < sk.coin) b.classList.add("is-short"); b.addEventListener("click", () => askBuy(id)); } // asked first; short: it says by how much
       else if (sk.earn) { b.textContent = sk.earn; b.disabled = true; }
       else if (prices[sk.sku]) { b.textContent = prices[sk.sku]; b.addEventListener("click", () => buySkin(id, b)); }
       else { b.textContent = "토스 앱에서"; b.disabled = true; }
@@ -6090,6 +6112,25 @@ sdk.initializeAsync()
     G.gain += G.lastPay; G.gainParts.push("두 배"); renderGain();
     b.hidden = true;
   });
+  // 11-06 "돈 부족해도 알림 안 나오고, 구매할 거냐고 물어보는 게": a coin buy is asked first, in a box over the shop
+  // (the note under the cards was off screen), and a short purse is told there, by how much
+  let askingFor = null;
+  function askBuy(id) {
+    const sk = HERO_SKINS[id];
+    if (!sk.coin || owned.has(id)) return;
+    const short = coins < sk.coin;
+    drawSkinPreview($("shopAskPv"), sk);
+    $("shopAskQ").textContent = short ? `엽전이 ${fmt(sk.coin - coins)}개 모자라요` : `${sk.name}${josa(sk.name, "을", "를")} 살까요?`;
+    $("shopAskSub").textContent = `필요한 엽전 ${fmt(sk.coin)}개, 가진 엽전 ${fmt(coins)}개`;
+    $("shopAskYes").hidden = short; $("shopAskNo").textContent = short ? "확인" : "그만두기";
+    askingFor = short ? null : id;
+    $("shopAsk").hidden = false; (short ? $("shopAskNo") : $("shopAskYes")).focus();
+    if (short) sfx.warn();
+  }
+  function closeAsk() { askingFor = null; $("shopAsk").hidden = true; }
+  $("shopAskYes").addEventListener("click", () => { const id = askingFor; closeAsk(); if (id) buyWithCoins(id); });
+  $("shopAskNo").addEventListener("click", closeAsk);
+  $("shopAsk").addEventListener("click", (e) => { if (e.target === $("shopAsk")) closeAsk(); }); // a tap outside the box
   function buyWithCoins(id) {
     const sk = HERO_SKINS[id];
     if (!sk.coin || owned.has(id)) return;
