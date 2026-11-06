@@ -2547,13 +2547,25 @@ sdk.initializeAsync()
       return life + 0.3;
     },
     crumble() { // the ground in cells: wherever you stand too long cracks and falls in; the totem's stamp cracks a cross round you
-      const cols = 5, rows = 9, cw = W / cols, ch = H / rows, life = 9.5, crackT = 0.85, holeT = 2.0, linger = 0.8;
+      // 11-06 "18 너무 쉬운 것 같다, 단계에 비해서": it was a walk. Now the stone you just left gives way behind you, the
+      // pits stay open longer, the stamp comes sooner, and aftershocks crack stones away from you. Never your own 3x3
+      // (an aftershock), and after every stamp one corner stone is sure to bear you: there is always a way out.
+      const cols = 5, rows = 9, cw = W / cols, ch = H / rows, life = 9.5, crackT = 0.85, holeT = Math.min(2.8, 2.3 + lvl() * 0.04), linger = 0.6;
       const cells = Array.from({ length: cols * rows }, () => ({ load: 0, crack: -1, hole: -1 }));
-      G.hazards.push({ kind: "floor", cells, cols, rows, cw, ch, crackT, holeT, t: 0, dur: life, best: Infinity, near: true, stomp: 1.2,
+      G.hazards.push({ kind: "floor", cells, cols, rows, cw, ch, crackT, holeT, t: 0, dur: life, best: Infinity, near: true, stomp: 1.2, aft: 1.6, last: -1,
         cellAt(x, y) { return clamp(Math.floor(y / ch), 0, rows - 1) * cols + clamp(Math.floor(x / cw), 0, cols - 1); },
         crack(i) { const c = cells[i]; if (c && c.crack < 0 && c.hole < 0) c.crack = this.t; },
         step(dt) {
           const t = this.t, mine = this.cellAt(P.x, P.y), open = t < life - 1.6;
+          if (open && this.last >= 0 && this.last !== mine && cells[this.last].load > 0.15) this.crack(this.last); // the stone behind you
+          this.last = mine;
+          this.aft -= dt;
+          if (open && this.aft <= 0) { // an aftershock: a stone or two away from you cracks (it falls in like any other)
+            this.aft = Math.max(0.75, 1.25 - lvl() * 0.03);
+            const mx = mine % cols, my = Math.floor(mine / cols);
+            const far = cells.map((c, i) => i).filter((i) => Math.max(Math.abs(i % cols - mx), Math.abs(Math.floor(i / cols) - my)) > 1 && cells[i].crack < 0 && cells[i].hole < 0);
+            for (let k = lvl() >= 9 ? 2 : 1; k > 0 && far.length; k--) this.crack(far.splice(Math.floor(Math.random() * far.length), 1)[0]);
+          }
           cells.forEach((c, i) => {
             if (i === mine && open) { c.load += dt; if (c.load > linger) this.crack(i); } else c.load = Math.max(0, c.load - dt * 0.5);
             if (c.crack >= 0 && t - c.crack >= crackT) { // it gives way
@@ -2566,11 +2578,15 @@ sdk.initializeAsync()
           });
           this.stomp -= dt;
           if (this.stomp <= 0 && open) { // the stamp: your cell and the four beside it
-            this.stomp = Math.max(2.2, 2.9 - lvl() * 0.04);
+            this.stomp = Math.max(1.6, 2.4 - lvl() * 0.06);
             const cx = mine % cols, cy = Math.floor(mine / cols);
             for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) if (cx + dx >= 0 && cx + dx < cols && cy + dy >= 0 && cy + dy < rows) this.crack((cy + dy) * cols + cx + dx);
             // the way out is the corners: the cracked stones still bear you a moment, step across one to the cell beyond it
-            this.foot = { t: this.t, cells: [[1, 1], [1, -1], [-1, 1], [-1, -1]].filter(([dx, dy]) => cx + dx >= 0 && cx + dx < cols && cy + dy >= 0 && cy + dy < rows).map(([dx, dy]) => (cy + dy) * cols + cx + dx).filter((j) => cells[j].hole < 0 && cells[j].crack < 0) };
+            const corners = [[1, 1], [1, -1], [-1, 1], [-1, -1]].filter(([dx, dy]) => cx + dx >= 0 && cx + dx < cols && cy + dy >= 0 && cy + dy < rows).map(([dx, dy]) => (cy + dy) * cols + cx + dx);
+            if (!corners.some((j) => cells[j].hole < 0 && cells[j].crack < 0)) { // every corner gone: the stamp heaves one back up
+              const j = corners[Math.floor(Math.random() * corners.length)]; cells[j].hole = -1; cells[j].crack = -1; cells[j].load = 0;
+            }
+            this.foot = { t: this.t, cells: corners.filter((j) => cells[j].hole < 0 && cells[j].crack < 0) };
             G.shake = Math.max(G.shake, 9); sfx.taiko(); if (G.boss) G.boss.castT = 0.4;
           }
         },
@@ -5678,6 +5694,7 @@ sdk.initializeAsync()
   function begin() { // what every run needs first: the name kept, the sound woken
     const nick = me();
     $("nick").value = nick; store.set("nick", nick);
+    $("nickScreen").hidden = true; // (a run started some other way, ?dev for one, while the name was still being asked)
     audio(); if (ac && ac.state === "suspended") ac.resume();
   }
   function startEndless(kind = G.kind) {
