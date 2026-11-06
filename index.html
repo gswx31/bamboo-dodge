@@ -191,7 +191,8 @@
   .skin--wide button { grid-column: 2; grid-row: 1 / span 2; }
   .skin b { font-family: var(--font-mark); font-weight: 900; font-size: 16px; letter-spacing: .06em; }
   .skin b .skin__tier { display: block; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-align: center; margin-bottom: 1px; }
-  .skin__tier--rare { color: #3f6fae; } .skin__tier--epic { color: #6a3fae; } .skin__tier--myth { color: #9a7420; }
+  .skin__tier--rare { color: #3f6fae; } .skin__tier--epic { color: #6a3fae; } .skin__tier--myth { color: #9a7420; } .skin__tier--boss { color: var(--ink); }
+  .skin button.is-short { background: transparent; color: var(--ink-soft); border-color: var(--ink-soft); }
   .skin--epic { border-color: #6a3fae; } .skin--myth { border-color: #b8902e; box-shadow: inset 0 0 0 1px #e8c66a; }
   .skin button { font: inherit; font-size: 13px; width: 100%; padding: 6px 4px; cursor: pointer; border-radius: 0; border: 1.5px solid var(--ink); background: var(--ink); color: var(--slip); }
   .skin button:disabled { background: transparent; color: var(--ink-soft); border-color: var(--ink-soft); cursor: default; }
@@ -1576,6 +1577,8 @@ sdk.initializeAsync()
     G.bonus += 3; // a boss felled is worth three seconds
     sfx.issen(); buzz([40, 30, 90]);
     if (G.dev) G.dev.won = true;
+    G.newSkin = bossSkinWon(); // told on the next card (스테이지 모드) or the 보스전 list
+    if (G.dev && G.newSkin) G.dev.newSkin = G.newSkin;
     say(b.def.down(), G.dev ? devBack : G.stageRun ? stageClear : nextChapter);
   }
   function nextChapter() {
@@ -1953,7 +1956,9 @@ sdk.initializeAsync()
     // a 장 behind you: first the name the 강호 gives you for it, then the next 장's first card
     store.set("stageTitle", Math.max(Number(store.get("stageTitle", "-1")), sd.w));
     G.phase = "title"; G.pt = 0; G.titleLen = 2.4; G.next = enterStage;
-    G.card = { ch: { num: "별호", name: titleOf(sd.w), sub: "강호가 너를 이렇게 부르기 시작했다" }, at: performance.now(), life: 2.4 };
+    const won = G.newSkin && HERO_SKINS[G.newSkin]; G.newSkin = null; // its clothes, the first time it fell
+    G.card = { ch: { num: "별호", name: titleOf(sd.w), sub: won ? `${won.name}${josa(won.name, "을", "를")} 얻었다. 상점에서 입을 수 있다` : "강호가 너를 이렇게 부르기 시작했다" }, at: performance.now(), life: won ? 3 : 2.4 };
+    if (won) G.titleLen = 3;
     sfx.stage();
   }
   // the furthest stage ever reached: where a new run starts
@@ -5293,9 +5298,40 @@ sdk.initializeAsync()
     heukryong: { name: "흑룡", coin: 80000, tier: "신화", hat: "#0b0b10", hatLine: "#9b7bff", robe: "#07070a", band: "#6f4bff", eye: "#e9e2ff", eyeGlow: "150,110,255", ghost: "40,25,80", ghostLife: 0.5, mote: "glow", moteColor: "130,95,255", aura: "90,60,200", auraK: 0.55, sheath: "#07070a", guard: "#9b7bff" },
     eunha: { name: "은하", coin: 100000, tier: "신화", hat: "#1b1f3a", hatLine: "#c8d4ff", robe: "#0d1230", band: "#9fb4ff", eye: "#ffffff", eyeGlow: "200,215,255", ghost: "90,110,220", ghostLife: 0.45, hue: [190, 300], mote: "star", moteColor: "255,255,255", aura: "120,140,255", auraK: 0.45, guard: "#c8d4ff" },
     cheonma: { name: "천마", coin: 150000, tier: "신화", hat: "#151012", hatLine: "#e8c66a", robe: "#120d10", band: "#7b4bb8", eye: "#fff3cf", eyeGlow: "255,200,90", ghost: "60,30,70", ghostLife: 0.55, mote: "gold", moteColor: "255,205,100", aura: "110,60,170", auraK: 0.5, sheath: "#120d10", grip: "#7b4bb8", guard: "#e8c66a" },
+    // 11-06 "보스 잡을 때마다 보스 컨셉과 어울리는 코스튬": each boss's own clothes, won the first time it falls (in
+    // 스테이지 모드, or in 보스전), never sold. `boss` is its place in BOSS_SET. Still no red, even for the red bosses.
+    b_ssang: { name: "쌍영의 옷", boss: 0, tier: "보스", earn: "1-5 격파", hat: "#1d1a17", hatLine: "#d9d4c8", robe: "#141210", band: "#e8e2d4", eye: "#ffffff", ghost: "20,18,16", ghostLife: 0.55, mote: "ink", sheath: "#141210", guard: "#d9d4c8" },
+    b_yeon: { name: "연화의 옷", boss: 1, tier: "보스", earn: "2-5 격파", hat: "#d8c9a8", hatLine: "#3d6a8a", robe: "#2f5e7e", band: "#f0b7c8", eye: "#eaf6ff", ghost: "61,106,138", ghostLife: 0.32, mote: "petal", aura: "120,170,210", auraK: 0.25 },
+    b_jeok: { name: "적염의 옷", boss: 2, tier: "보스", earn: "3-5 격파", hat: "#3a2a1c", hatLine: "#ffb347", robe: "#c2621c", band: "#ffd27a", eye: "#fff0c8", eyeGlow: "255,170,60", ghost: "230,120,40", ghostLife: 0.3, mote: "ember", moteColor: "255,170,60", aura: "255,140,40", auraK: 0.3 },
+    b_seolgwi: { name: "설귀의 옷", boss: 3, tier: "보스", earn: "4-5 격파", hat: "#eef3f7", hatLine: "#5f8fb4", robe: "#dfe8f0", band: "#5f8fb4", eye: "#bfe6ff", eyeGlow: "160,210,255", ghost: "190,212,235", ghostLife: 0.4, mote: "snow", aura: "200,225,255", auraK: 0.3, sheath: "#dfe8f0" },
+    b_heukwol: { name: "흑월교주의 옷", boss: 4, tier: "보스", earn: "5-5 격파", hat: "#0d0c10", hatLine: "#c9c2d6", robe: "#0a090c", band: "#c9c2d6", eye: "#f0ecff", eyeGlow: "200,190,230", ghost: "10,9,12", ghostLife: 0.55, mote: "glow", moteColor: "210,200,240", aura: "40,30,60", auraK: 0.45, sheath: "#0a090c", guard: "#c9c2d6" },
+    b_maengho: { name: "맹호의 옷", boss: 5, tier: "보스", earn: "6-5 격파", hat: "#c7782a", hatLine: "#2a1d14", robe: "#d08a35", band: "#1d1a17", eye: "#fff2c0", eyeGlow: "255,200,80", ghost: "199,120,42", ghostLife: 0.3, mote: "gold", moteColor: "255,190,90" },
+    b_muyeong: { name: "무영의 옷", boss: 6, tier: "보스", earn: "7-5 격파", hat: "#55525c", hatLine: "#9a96a3", robe: "#3c3a42", band: "#8d8a96", eye: "#e8e6f0", ghost: "85,82,92", ghostLife: 0.65, mote: null, sheath: "#3c3a42" },
+    b_noeeum: { name: "뇌음의 옷", boss: 7, tier: "보스", earn: "8-5 격파", hat: "#5a3a24", hatLine: "#e0b060", robe: "#6b4226", band: "#e0b060", eye: "#fff3d6", ghost: "107,66,38", ghostLife: 0.32, mote: "glow", moteColor: "255,220,140", aura: "224,176,96", auraK: 0.22 },
+    b_bingyeong: { name: "빙경의 옷", boss: 8, tier: "보스", earn: "9-5 격파", hat: "#cfe9f5", hatLine: "#7fb6d4", robe: "#9fd0e8", band: "#ffffff", eye: "#ffffff", eyeGlow: "180,230,255", ghost: "127,182,212", ghostLife: 0.38, mote: "star", moteColor: "220,245,255", aura: "160,220,245", auraK: 0.35 },
+    b_cheongu: { name: "청우의 옷", boss: 9, tier: "보스", earn: "10-5 격파", hat: "#c9a96e", hatLine: "#3f7f8f", robe: "#2e5f6b", band: "#9fc6d2", eye: "#e6f6fa", ghost: "63,127,143", ghostLife: 0.34, mote: "glow", moteColor: "159,198,210" },
+    b_geomchong: { name: "검총주의 옷", boss: 10, tier: "보스", earn: "11-5 격파", hat: "#4a4e54", hatLine: "#c9ccce", robe: "#5c6168", band: "#c9ccce", eye: "#eef2f4", eyeGlow: "200,210,220", ghost: "122,127,134", ghostLife: 0.36, mote: "spark", moteColor: "220,225,230", sheath: "#c9ccce", guard: "#7a7f86" },
+    b_gwangeum: { name: "광음의 옷", boss: 11, tier: "보스", earn: "12-5 격파", hat: "#b08d4a", hatLine: "#4a3b2c", robe: "#8a6d3b", band: "#e8cf6a", eye: "#fff6d0", eyeGlow: "232,207,106", ghost: "176,141,74", ghostLife: 0.5, hue: [35, 60], mote: "star", moteColor: "232,207,106" },
+    b_byeokryeok: { name: "벽력의 옷", boss: 12, tier: "보스", earn: "13-5 격파", hat: "#2b2a20", hatLine: "#ffe066", robe: "#3a3828", band: "#ffe066", eye: "#fffbe0", eyeGlow: "255,230,90", ghost: "217,178,58", ghostLife: 0.3, mote: "spark", moteColor: "255,240,140", aura: "255,225,80", auraK: 0.4, flicker: true, guard: "#ffe066" },
+    b_chuhon: { name: "추혼의 옷", boss: 13, tier: "보스", earn: "14-5 격파", hat: "#1c2526", hatLine: "#8fd0c8", robe: "#243233", band: "#8fd0c8", eye: "#d8fff8", eyeGlow: "143,208,200", ghost: "74,107,111", ghostLife: 0.6, mote: "glow", moteColor: "143,208,200", aura: "90,160,150", auraK: 0.35 },
+    b_hojeop: { name: "호접의 옷", boss: 14, tier: "보스", earn: "15-5 격파", hat: "#3a2a48", hatLine: "#d7b6ff", robe: "#5a3a7e", band: "#c9a0f0", eye: "#f6ecff", eyeGlow: "200,160,255", ghost: "123,74,158", ghostLife: 0.38, hue: [255, 315], mote: "star", moteColor: "215,182,255" },
+    b_hwaryun: { name: "화륜의 옷", boss: 15, tier: "보스", earn: "16-5 격파", hat: "#2a1d14", hatLine: "#ffcf5a", robe: "#3a2414", band: "#ffcf5a", eye: "#fff3cf", eyeGlow: "255,190,70", ghost: "255,170,60", ghostLife: 0.3, mote: "ember", moteColor: "255,200,90", aura: "255,170,60", auraK: 0.45, flicker: true, guard: "#ffcf5a" },
+    b_cheolchu: { name: "철추의 옷", boss: 16, tier: "보스", earn: "17-5 격파", hat: "#3d3b37", hatLine: "#a8a39a", robe: "#4e4b45", band: "#a8a39a", eye: "#f0ede6", ghost: "109,106,99", ghostLife: 0.28, mote: "ink", sheath: "#6d6a63", grip: "#3d3b37", guard: "#a8a39a" },
+    b_jangseung: { name: "장승의 옷", boss: 17, tier: "보스", earn: "18-5 격파", hat: "#7a5634", hatLine: "#2a1d14", robe: "#8a5f38", band: "#e8d9b0", eye: "#fff6e0", ghost: "155,110,70", ghostLife: 0.3, mote: "leaf", sheath: "#7a5634" },
+    b_cheonan: { name: "천안의 옷", boss: 18, tier: "보스", earn: "19-5 격파", hat: "#f2e6c0", hatLine: "#c9a227", robe: "#e8dcb4", band: "#c9a227", eye: "#fffbe8", eyeGlow: "255,220,110", ghost: "201,162,39", ghostLife: 0.4, mote: "star", moteColor: "255,230,140", aura: "255,220,120", auraK: 0.4 },
+    b_mumyeong: { name: "무명의 옷", boss: 19, tier: "보스", earn: "20-5 격파", hat: "#b8975c", hatLine: "#e8c66a", robe: "#1d1a17", band: "#e8c66a", eye: "#fff8e0", eyeGlow: "255,225,140", ghost: "232,198,106", ghostLife: 0.5, hue: [40, 290], mote: "gold", moteColor: "255,215,110", aura: "255,215,120", auraK: 0.5, guard: "#e8c66a" },
     geomseong: { name: "검성", coin: 300000, tier: "신화", hat: "#fbf6e6", hatLine: "#d9b45a", robe: "#fbf8ef", band: "#e8c66a", eye: "#fff8e0", eyeGlow: "255,230,150", ghost: "230,200,120", ghostLife: 0.5, hue: [40, 290], mote: "star", moteColor: "255,230,150", aura: "255,225,140", auraK: 0.55, sheath: "#fbf8ef", grip: "#d9b45a", guard: "#e8c66a" },
   };
   const owned = new Set(["cheong", ...String(store.get("skins", "")).split(",").filter((k) => HERO_SKINS[k])]);
+  const BOSS_SKIN_OF = {}; // BOSS_SET index -> the clothes it gives
+  for (const [k, s] of Object.entries(HERO_SKINS)) if (s.boss != null) BOSS_SKIN_OF[s.boss] = k;
+  // a boss has just fallen in 스테이지 모드 or 보스전 (not 개발자 모드 or the old story): its clothes, the first time
+  function bossSkinWon() {
+    const bi = G.stageRun ? stageDef(G.sg).world.boss : G.dev && G.dev.play ? G.dev.i : -1, id = BOSS_SKIN_OF[bi];
+    if (!id || owned.has(id)) return null;
+    grantSkin(id, true, true);
+    return id;
+  }
   let SKIN = HERO_SKINS[owned.has(store.get("skin", "cheong")) ? store.get("skin", "cheong") : "cheong"];
   const HERO_SCALE = 0.82; // the hat is wide; at this size the figure takes about the room the old ink drop did
   const HERO = { t: 0, px: 0, py: 0, vx: 0, vy: 0, hx: 0, hy: -1, lean: 0, face: 1, faceS: 1, dodgeT: 0, nx: 0, ny: 0, dir: 1, spinT: 0,
@@ -5690,7 +5726,8 @@ sdk.initializeAsync()
       addCoins(pay); sfx.coin();
       const w = bossWins[dv.lvl] || (bossWins[dv.lvl] = []);
       if (!w.includes(dv.i)) { w.push(dv.i); store.set("bossWins", JSON.stringify(bossWins)); renderBoss(); }
-      $("bossNote").textContent = `${d.name}${josa(d.name, "을", "를")} 베었다. 엽전 +${pay}`;
+      const ns = dv.newSkin && HERO_SKINS[dv.newSkin];
+      $("bossNote").textContent = `${d.name}${josa(d.name, "을", "를")} 베었다. 엽전 +${pay}` + (ns ? `, ${ns.name}${josa(ns.name, "을", "를")} 얻었다.` : "");
     } else $("bossNote").textContent = dv.quit ? BOSS_NOTE : `${d.name}에게 베였다. ${lasted.toFixed(1)}초 버텼다.`;
   }
   const bossLabels = () => { for (const b of document.querySelectorAll("#bossLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === bossLevel)); };
@@ -5845,17 +5882,17 @@ sdk.initializeAsync()
       else { b.textContent = prices[NOADS.sku]; b.addEventListener("click", () => buyNoAds(b)); }
       card.append(name, what, b); grid.append(card);
     }
-    for (const [id, sk] of Object.entries(HERO_SKINS)) {
+    for (const [id, sk] of Object.entries(HERO_SKINS).sort((a, b) => (a[1].boss != null) - (b[1].boss != null))) { // the bosses' clothes last
       // inside Toss with nothing on sale (no business registered yet, so no in-app purchases): leave it out, don't tease it
       if (sk.sku && !owned.has(id) && !prices[sk.sku] && platform().name !== "web") continue;
       const card = document.createElement("div"); card.className = "skin" + (SKIN === sk ? " is-on" : "");
       const pv = document.createElement("canvas"); drawSkinPreview(pv, sk);
       const name = document.createElement("b"); name.textContent = sk.name;
-      if (sk.tier) { const t = document.createElement("small"); t.className = "skin__tier skin__tier--" + ({ 희귀: "rare", 전설: "epic", 신화: "myth" }[sk.tier] || "rare"); t.textContent = sk.tier; card.classList.add("skin--" + t.className.split("--")[1]); name.prepend(t); }
+      if (sk.tier) { const t = document.createElement("small"); t.className = "skin__tier skin__tier--" + ({ 희귀: "rare", 전설: "epic", 신화: "myth", 보스: "boss" }[sk.tier] || "rare"); t.textContent = sk.tier; card.classList.add("skin--" + t.className.split("--")[1]); name.prepend(t); }
       const b = document.createElement("button"); b.type = "button";
       if (SKIN === sk) { b.textContent = "입는 중"; b.disabled = true; }
       else if (owned.has(id)) { b.textContent = "입기"; b.addEventListener("click", () => { wear(id); renderShop(); }); }
-      else if (sk.coin) { b.textContent = `엽전 ${fmt(sk.coin)}`; if (coins < sk.coin) b.disabled = true; else b.addEventListener("click", () => buyWithCoins(id)); }
+      else if (sk.coin) { b.textContent = `엽전 ${fmt(sk.coin)}`; if (coins < sk.coin) b.classList.add("is-short"); b.addEventListener("click", () => buyWithCoins(id)); } // short: it says by how much
       else if (sk.earn) { b.textContent = sk.earn; b.disabled = true; }
       else if (prices[sk.sku]) { b.textContent = prices[sk.sku]; b.addEventListener("click", () => buySkin(id, b)); }
       else { b.textContent = "토스 앱에서"; b.disabled = true; }
@@ -6018,7 +6055,8 @@ sdk.initializeAsync()
   });
   function buyWithCoins(id) {
     const sk = HERO_SKINS[id];
-    if (!sk.coin || coins < sk.coin || owned.has(id)) return;
+    if (!sk.coin || owned.has(id)) return;
+    if (coins < sk.coin) { $("shopNote").textContent = `엽전이 ${fmt(sk.coin - coins)}개 모자라다. ${sk.name}${josa(sk.name, "은", "는")} 엽전 ${fmt(sk.coin)}개.`; sfx.warn(); return; }
     addCoins(-sk.coin); grantSkin(id); wear(id); sfx.coin();
     $("shopNote").textContent = `${sk.name}${josa(sk.name, "을", "를")} 입었다. 엽전 -${fmt(sk.coin)}`;
     renderShop();
