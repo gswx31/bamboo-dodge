@@ -198,6 +198,27 @@
   .skin b .skin__tier { display: block; font-family: inherit; font-size: 10px; font-weight: 700; letter-spacing: .12em; text-align: center; margin-bottom: 1px; }
   .skin__tier--rare { color: #3f6fae; } .skin__tier--epic { color: #6a3fae; } .skin__tier--myth { color: #9a7420; } .skin__tier--boss { color: var(--ink); }
   .skin button.is-short { background: transparent; color: var(--ink-soft); border-color: var(--ink-soft); }
+  #shop .slip { gap: 10px; }
+  #shop .shop-title { font-size: 46px; }
+  .shop-tabs { display: flex; gap: 4px; }
+  .shop-tabs button { flex: 1; min-width: 0; font: inherit; font-family: var(--font-mark); font-weight: 900; font-size: 14px; padding: 7px 2px; cursor: pointer; border-radius: 0; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); line-height: 1.1; }
+  .shop-tabs button small { display: block; font-size: 10px; font-weight: 700; color: var(--ink-soft); }
+  .shop-tabs button[aria-selected="true"] { background: var(--ink); color: var(--slip); }
+  .shop-tabs button[aria-selected="true"] small { color: var(--slip); }
+  .shop-pager { display: flex; align-items: center; justify-content: center; gap: 18px; font-size: 14px; color: var(--ink-soft); }
+  .shop-pager[hidden] { display: none; }
+  .shop-pager button { font: inherit; font-size: 22px; line-height: 1; width: 44px; height: 36px; cursor: pointer; border-radius: 0; border: 1.5px solid var(--ink); background: transparent; color: var(--ink); }
+  .shop-pager button:disabled { border-color: color-mix(in srgb, var(--ink) 25%, transparent); color: color-mix(in srgb, var(--ink) 25%, transparent); cursor: default; }
+  #shop .skin { gap: 4px; padding: 8px 6px; }
+  #shop .skin canvas { width: 60px; height: 60px; }
+  @media (max-height: 700px) { /* a short phone: the slip a little tighter, so 돌아가기 still shows */
+    #shop.screen { padding-block: calc(10px + var(--sa-top)) calc(10px + var(--sa-bottom)); }
+    #shop .slip { padding: 14px 14px; gap: 8px; }
+    #shop .shop-title { font-size: 36px; }
+    #shop .skin { gap: 2px; padding: 6px; }
+    #shop .skin canvas { width: 48px; height: 48px; }
+    #shop .shop-note { font-size: 12px; }
+  }
   .shop-ask { position: fixed; inset: 0; z-index: 70; display: grid; place-items: center; padding: 20px; background: rgba(29,26,23,0.45); }
   .shop-ask[hidden] { display: none; }
   .shop-ask__box { width: min(320px, 100%); box-sizing: border-box; background: var(--slip); border: 1.5px solid var(--ink); padding: 18px 16px; display: grid; gap: 10px; justify-items: center; text-align: center; }
@@ -289,7 +310,9 @@
     <section class="slip" data-seal="衣">
       <h2 class="shop-title">상점</h2>
       <span class="coins shop-purse" aria-label="가진 엽전"><i class="coin" aria-hidden="true"></i><span id="shopCoins">0</span></span>
+      <div class="shop-tabs" id="shopTabs" role="tablist" aria-label="옷 종류"></div>
       <div class="shop-grid" id="shopGrid"></div>
+      <div class="shop-pager" id="shopPager"><button type="button" id="shopPrev" aria-label="이전 쪽">‹</button><span id="shopPageNo">1 / 1</span><button type="button" id="shopNext" aria-label="다음 쪽">›</button></div>
       <p class="shop-note" id="shopNote"></p>
       <button class="btn btn--ghost" id="shopClose">돌아가기</button>
     </section>
@@ -5930,9 +5953,44 @@ sdk.initializeAsync()
     for (const [x1, y1, x2, y2] of [[-0.24, -0.34, -0.95, 0.55], [-0.38, -0.34, -1.12, 0.32]]) { c.beginPath(); c.moveTo(x1 * r, y1 * r); c.quadraticCurveTo((x1 - 0.5) * r, 0, x2 * r, y2 * r); c.stroke(); }
     heroFigure(c, r, sk, 1, 0, 0.3, 1, 0);
   }
+  // 11-06 "상점도 페이징, 돌아가기가 스크롤해야 보인다": the clothes in tabs by kind, a page of 4 or 6 at a time (as many
+  // rows as the screen has room for), so the whole slip, 돌아가기 with it, fits on one screen. A swipe turns the page too.
+  const SHOP_TABS = [["일반", (sk) => !sk.tier], ["희귀", (sk) => sk.tier === "희귀"], ["전설", (sk) => sk.tier === "전설"], ["신화", (sk) => sk.tier === "신화"], ["보스", (sk) => sk.tier === "보스"]];
+  let shopTab = 0, shopPage = 0;
+  const shopPer = () => (window.innerHeight >= 780 ? 6 : 4);
+  const noAdsCard = () => noAds || !!prices[NOADS.sku]; // only where it's on sale (the plain web has no ads to take away)
+  function shopItems(tab) {
+    // inside Toss with nothing on sale (no business registered yet, so no in-app purchases): leave it out, don't tease it
+    return Object.entries(HERO_SKINS).filter(([id, sk]) => SHOP_TABS[tab][1](sk) && !(sk.sku && !owned.has(id) && !prices[sk.sku] && platform().name !== "web"));
+  }
+  function shopPages(tab) { // (광고 제거 takes a whole row of the first 일반 page)
+    const items = shopItems(tab), per = shopPer(), first = tab === 0 && noAdsCard() ? per - 2 : per, pages = [items.slice(0, first)];
+    for (let i = first; i < items.length; i += per) pages.push(items.slice(i, i + per));
+    return pages;
+  }
+  function shopGoTo(id) { // open on the page that holds these clothes
+    const t = SHOP_TABS.findIndex(([, f]) => f(HERO_SKINS[id] || {}));
+    if (t < 0) return;
+    shopTab = t; shopPage = Math.max(0, shopPages(t).findIndex((pg) => pg.some(([k]) => k === id)));
+  }
   function renderShop() {
+    const tabs = $("shopTabs"); tabs.replaceChildren();
+    SHOP_TABS.forEach(([label], i) => {
+      const n = shopItems(i), got = n.filter(([id]) => owned.has(id)).length;
+      const b = document.createElement("button"); b.type = "button"; b.setAttribute("role", "tab");
+      b.setAttribute("aria-selected", String(i === shopTab)); b.textContent = label;
+      if (i === 4) { const s = document.createElement("small"); s.textContent = `${got}/${n.length}`; b.append(s); }
+      b.addEventListener("click", () => { shopTab = i; shopPage = 0; renderShop(); });
+      tabs.append(b);
+    });
+    const pages = shopPages(shopTab);
+    shopPage = clamp(shopPage, 0, pages.length - 1);
+    $("shopPager").hidden = pages.length <= 1;
+    $("shopPageNo").textContent = `${shopPage + 1} / ${pages.length}`;
+    $("shopPrev").disabled = shopPage === 0; $("shopNext").disabled = shopPage === pages.length - 1;
     const grid = $("shopGrid"); grid.replaceChildren();
-    if (noAds || prices[NOADS.sku]) { // only where it's on sale (the plain web has no ads to take away)
+    grid.style.minHeight = ""; // (set below: every page as tall as a full one, so the buttons under it stay put)
+    if (shopTab === 0 && shopPage === 0 && noAdsCard()) {
       const card = document.createElement("div"); card.className = "skin skin--wide";
       const name = document.createElement("b"); name.textContent = NOADS.name;
       const what = document.createElement("small"); what.textContent = "다섯 판마다 나오는 광고가 사라진다";
@@ -5941,9 +5999,7 @@ sdk.initializeAsync()
       else { b.textContent = prices[NOADS.sku]; b.addEventListener("click", () => buyNoAds(b)); }
       card.append(name, what, b); grid.append(card);
     }
-    for (const [id, sk] of Object.entries(HERO_SKINS).sort((a, b) => (a[1].boss != null) - (b[1].boss != null))) { // the bosses' clothes last
-      // inside Toss with nothing on sale (no business registered yet, so no in-app purchases): leave it out, don't tease it
-      if (sk.sku && !owned.has(id) && !prices[sk.sku] && platform().name !== "web") continue;
+    for (const [id, sk] of pages[shopPage]) {
       const card = document.createElement("div"); card.className = "skin" + (SKIN === sk ? " is-on" : "");
       const pv = document.createElement("canvas"); drawSkinPreview(pv, sk);
       const name = document.createElement("b"); name.textContent = sk.name;
@@ -5957,6 +6013,23 @@ sdk.initializeAsync()
       else { b.textContent = "토스 앱에서"; b.disabled = true; }
       card.append(pv, name, b); grid.append(card);
     }
+    if (pages.length > 1) { // a short last page keeps the height of a full one
+      const rows = shopPer() / 2, card = grid.querySelector(".skin:not(.skin--wide)");
+      if (card) grid.style.minHeight = `${rows * card.offsetHeight + (rows - 1) * 8}px`;
+    }
+  }
+  $("shopPrev").addEventListener("click", () => { shopPage--; renderShop(); });
+  $("shopNext").addEventListener("click", () => { shopPage++; renderShop(); });
+  { // a sideways swipe over the cards turns the page
+    let sx = null, sy = 0;
+    $("shopGrid").addEventListener("pointerdown", (e) => { sx = e.clientX; sy = e.clientY; });
+    $("shopGrid").addEventListener("pointerup", (e) => {
+      if (sx == null) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy; sx = null;
+      if (Math.abs(dx) < 50 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+      const n = shopPages(shopTab).length, to = clamp(shopPage + (dx < 0 ? 1 : -1), 0, n - 1);
+      if (to !== shopPage) { shopPage = to; renderShop(); }
+    });
   }
   async function buySkin(id, b) {
     const sk = HERO_SKINS[id];
@@ -5973,6 +6046,8 @@ sdk.initializeAsync()
     renderShop();
   }
   $("shopOpen").addEventListener("click", () => {
+    const fresh = store.get("skinNew", ""); // just won: open on it; otherwise on what's being worn
+    shopGoTo(fresh && HERO_SKINS[fresh] ? fresh : Object.keys(HERO_SKINS).find((k) => HERO_SKINS[k] === SKIN));
     $("start").hidden = true; $("shop").hidden = false;
     $("shopNote").textContent = "옷은 모양과 잔상만 바꾼다. 맞는 범위와 속도는 그대로다.";
     store.set("skinNew", ""); $("shopOpen").classList.remove("has-new");
