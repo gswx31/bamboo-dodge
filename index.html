@@ -241,7 +241,7 @@
       </div>
       <button class="link" id="storyNew" hidden>스토리모드 처음부터</button>
       <div class="lvl" id="stageLvl" role="group" aria-label="스테이지 난이도">
-        <span>스테이지 난이도</span><button type="button" data-lvl="normal" aria-pressed="true">일반</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
+        <span>스테이지 난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
       </div>
       <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
       <button class="link" id="devOpen" hidden>개발자 모드: 보스 비기 보기</button>
@@ -278,7 +278,7 @@
       <h2 class="shop-title">보스 비기</h2>
       <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓴다. 체력이 다하면 종전으로 더 센 비기에 종전 고유기와 섞는 공격까지 겹쳐 쓰고, 그걸 버티면 벤다 (32초).</p>
       <div class="lvl" id="devLvl" role="group" aria-label="보스 난이도">
-        <span>난이도</span><button type="button" data-lvl="normal" aria-pressed="true">일반</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
+        <span>난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">고수</button>
       </div>
       <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
@@ -1744,10 +1744,10 @@ sdk.initializeAsync()
     rain: "칼비", silk: "천잠사", triple: "삼연참", beam: "검기" };
   // the five stages of a 장: how long, and how far apart the attacks (× their usual wait)
   const STEPS = [ // thirty seconds each (the boss stage: the boss from the start, for BOSS_SECONDS)
-    { dur: 30, gap: 1.3 },
-    { dur: 30, gap: 1.2 },
-    { dur: 30, gap: 1.1 },
+    { dur: 30, gap: 1.05 }, // (11-06 tighter: "스테이지 보스 아닐 때가 너무 쉬운듯해"; was 1.3 1.2 1.1 1.0)
     { dur: 30, gap: 1.0 },
+    { dur: 30, gap: 0.92 },
+    { dur: 30, gap: 0.85 },
     { dur: 4, gap: 1.4 },
   ];
   const BOSS_SECONDS = 26;
@@ -1796,16 +1796,17 @@ sdk.initializeAsync()
   // and every boss fight runs at BOSS_PACE. Then, measured against a person's quarter-second thumb (11-05), the
   // middle and the end flattened once more: the clock tops out at 56.
   // 스테이지 모드's two difficulties, picked on the start screen, each with its own furthest stage. 11-06: what was 고수
-  // became 일반 ("하드를 일반으로 해주고"), and a new 고수 harder again; 개발자 모드 shows the bosses at either.
+  // became 보통 ("고수를 보통으로, 고수에서 더 어려운걸 고수로"), and a new 고수 harder again; 개발자 모드 shows the bosses at either.
   //   pace   how fast an ordinary stage runs (everything slower, every warning longer, below 1)
   //   base, slope  where the difficulty clock starts in 1-1, and its climb from 장 to 장 (squash)
   //   crowd  how much each kind of attack waits longer when several are mixed
-  //   bamboo its gap, and how far it may close up late on
+  //   bamboo its gap, and how far it may close up late on; gap: every stage's attacks closer together (× STEPS' gap)
   //   boss   how fast a boss fight runs; lv: how much stronger every boss's 비기 is; last: how much fiercer its 종전;
   //   layer  how often its other moves come on top in its 종전; breath: the least and the most it rests between 비기
+  // (11-06 later: the stages between bosses harder at both, "보스 아닐 때가 너무 쉬운듯해": base 12→22 and 20→34, gap)
   const STAGE_LEVELS = {
-    normal: { name: "일반", pace: 1.0, base: 12, slope: 0.33, crowd: 0.06, bamboo: 0.6, floor: 0.62, boss: 0.95, lv: 2.5, last: 4, layer: 1.6, breath: [1.0, 1.55], top: "stageTop" },
-    master: { name: "고수", pace: 1.1, base: 20, slope: 0.38, crowd: 0.03, bamboo: 0.55, floor: 0.55, boss: 1.05, lv: 4, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTopH" },
+    normal: { name: "보통", pace: 1.0, base: 22, slope: 0.36, crowd: 0.06, bamboo: 0.58, floor: 0.6, gap: 1, boss: 0.95, lv: 2.5, last: 4, layer: 1.6, breath: [1.0, 1.55], top: "stageTop" },
+    master: { name: "고수", pace: 1.1, base: 34, slope: 0.42, crowd: 0.03, bamboo: 0.52, floor: 0.52, gap: 0.85, boss: 1.05, lv: 4, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTopH" },
   };
   // (a new key: "stageLevel" may still say 고수 from when that meant what is 일반 now)
   let stageLevel = STAGE_LEVELS[store.get("stageLv", "normal")] ? store.get("stageLv", "normal") : "normal";
@@ -1826,15 +1827,15 @@ sdk.initializeAsync()
     const freshBig = BIG.some((b) => b.key === wd.fresh), lo = wd.diff[0], span = wd.diff[1] - wd.diff[0];
     const sub = w < STAGE_LINES.length ? STAGE_LINES[w][s] : ROAD_LINES[((w - STAGE_LINES.length) * 5 + s) % ROAD_LINES.length];
     const d = { i, w, s, label: `${w + 1}-${s + 1}`, world: wd, theme: wd.theme, dur: step.dur, sub,
-      gap: Math.max(0.8, step.gap - 0.05 * Math.max(0, wd.power - 1)), diff: [squash(lo + span * s / 5), squash(lo + span * (s + 1) / 5)],
-      pats: wd.pats, big: [], bigEvery: [6.5, 8.5], boss: s === 4 };
+      gap: Math.max(0.7, step.gap - 0.05 * Math.max(0, wd.power - 1)) * SL().gap, diff: [squash(lo + span * s / 5), squash(lo + span * (s + 1) / 5)],
+      pats: wd.pats, big: [], bigEvery: [5.5, 7], boss: s === 4 };
     d.bamboo = SL().bamboo * d.gap;
     if (s === 0) { // the new thing on its own, with the bamboo
       d.pats = wd.fresh && !freshBig ? [wd.fresh] : wd.fresh ? [wd.pats[0]] : wd.pats;
-      d.big = freshBig ? [wd.fresh] : wd.fresh ? [] : wd.big.slice(0, 1); d.bigEvery = [6, 7.5];
+      d.big = freshBig ? [wd.fresh] : wd.fresh ? [] : wd.big.slice(0, 1); d.bigEvery = [5, 6.5];
     }
-    if (s === 2) { d.big = wd.big.slice(0, 2); d.bigEvery = [7.5, 9.5]; }
-    if (s === 3) { d.big = wd.big; d.bigEvery = [6, 8]; }
+    if (s === 2) { d.big = wd.big.slice(0, 2); d.bigEvery = [6, 7.5]; }
+    if (s === 3) { d.big = wd.big; d.bigEvery = [4.8, 6.4]; }
     if (s === 4) {
       d.pats = [wd.pats[0]];
       // the boss: the 장's own attacks all through its fight, and its one 비기 (bossFight); harder the further in
@@ -2776,7 +2777,7 @@ sdk.initializeAsync()
   }
   // ---- 개발자 모드: pick a boss, watch its 비기 three times, hear its three lines
   const DEV = /[?&]dev\b/.test(location.search);
-  let devLevel = STAGE_LEVELS[store.get("devLv", "normal")] ? store.get("devLv", "normal") : "normal"; // 일반 or 고수, as in 스테이지 모드
+  let devLevel = STAGE_LEVELS[store.get("devLv", "normal")] ? store.get("devLv", "normal") : "normal"; // 보통 or 고수, as in 스테이지 모드
   function bossDefOf(d) {
     return { name: d.name, title: d.title, look: d.look, accent: d.accent, sig: d.sig, stage: d.stage, hp: 30, acts: [],
       intro: () => [{ who: d.name, text: withName(d.intro) }], down: () => [{ who: d.name, text: withName(d.down) }] };
