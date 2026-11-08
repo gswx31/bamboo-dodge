@@ -762,6 +762,9 @@ sdk.initializeAsync()
   // ------------------------------------------------------------------ sound (made on the spot)
   // Nothing is loaded: every sound is built here. Effects and music share one bus — a compressor so a rain of
   // blades never clips, and a little reverb for the air of the grove.
+  // sounds draw from the real generator, caught here before any fixed() swaps Math.random: a stage cell replays the same
+  // whether the sound is on or off (11-08: a warning's pluck used to eat the cell's seeded numbers, more on its first pitch)
+  const audioRandom = Math.random;
   let ac = null, muted = store.get("muted", "0") === "1";
   let paused = false, ringerSilent = false; // set from outside by a store wrapper: its pause, and the phone's silent switch
   let master = null, sfxBus = null, bgmBus = null, noiseBuf = null;
@@ -776,13 +779,13 @@ sdk.initializeAsync()
     sfxBus = ac.createGain(); sfxBus.connect(comp); sfxBus.connect(verb);
     bgmBus = ac.createGain(); bgmBus.gain.value = 0; bgmBus.connect(comp); bgmBus.connect(verb);
     noiseBuf = ac.createBuffer(1, ac.sampleRate * 2, ac.sampleRate);
-    const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = audioRandom() * 2 - 1;
     setInterval(bgmTick, 25);
     return ac;
   }
   function impulse(sec) { // a decaying hiss: the room the sound rings in
     const n = Math.floor(ac.sampleRate * sec), b = ac.createBuffer(2, n, ac.sampleRate);
-    for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
+    for (let c = 0; c < 2; c++) { const d = b.getChannelData(c); for (let i = 0; i < n; i++) d[i] = (audioRandom() * 2 - 1) * Math.pow(1 - i / n, 3.2); }
     return b;
   }
   function noise(dur, f0, f1, gain, type = "bandpass") {
@@ -791,7 +794,7 @@ sdk.initializeAsync()
     const f = a.createBiquadFilter(); f.type = type; f.Q.value = 1.2;
     f.frequency.setValueAtTime(f0, t); f.frequency.exponentialRampToValueAtTime(f1, t + dur);
     const g = a.createGain(); g.gain.setValueAtTime(gain, t); g.gain.linearRampToValueAtTime(0, t + dur);
-    src.connect(f).connect(g).connect(sfxBus); src.start(t, Math.random()); src.stop(t + dur + 0.02);
+    src.connect(f).connect(g).connect(sfxBus); src.start(t, audioRandom()); src.stop(t + dur + 0.02);
   }
   function tone(freq, dur, gain, type = "sine", to = freq) {
     const a = audio(); if (!a || muted) return;
@@ -806,14 +809,14 @@ sdk.initializeAsync()
     const s = ac.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
     const f = ac.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
     const g = ac.createGain(); g.gain.setValueAtTime(gain, t); g.gain.exponentialRampToValueAtTime(0.0001, t + len);
-    s.connect(f).connect(g).connect(bus); s.start(t, Math.random()); s.stop(t + len + 0.02);
+    s.connect(f).connect(g).connect(bus); s.start(t, audioRandom()); s.stop(t + len + 0.02);
   }
   const ksCache = new Map();
   function ksBuf(freq) { // a plucked string (Karplus–Strong): noise in a loop that softens every time round
     const key = Math.round(freq * 10); if (ksCache.has(key)) return ksCache.get(key);
     const sr = ac.sampleRate, n = Math.floor(sr * 1.6), p = Math.max(2, Math.round(sr / freq));
     const k = 0.5 * Math.pow(0.12, 1 / freq); // the same ring-out time whatever the pitch
-    const ring = new Float32Array(p); for (let i = 0; i < p; i++) ring[i] = Math.random() * 2 - 1;
+    const ring = new Float32Array(p); for (let i = 0; i < p; i++) ring[i] = audioRandom() * 2 - 1;
     const buf = ac.createBuffer(1, n, sr), d = buf.getChannelData(0);
     for (let i = 0, j = 0; i < n; i++, j = (j + 1) % p) { const v = ring[j]; d[i] = v; ring[j] = k * (v + ring[(j + 1) % p]); }
     ksCache.set(key, buf); return buf;
@@ -885,19 +888,19 @@ sdk.initializeAsync()
     const g = ac.createGain(), lfo = ac.createOscillator(), dep = ac.createGain();
     g.gain.setValueAtTime(0.05, t); g.gain.linearRampToValueAtTime(0, t + len);
     lfo.frequency.value = vr(26, 0.2); dep.gain.value = 0.045; lfo.connect(dep).connect(g.gain);
-    s.connect(f).connect(g).connect(sfxBus); s.start(t, Math.random()); s.stop(t + len); lfo.start(t); lfo.stop(t + len);
+    s.connect(f).connect(g).connect(sfxBus); s.start(t, audioRandom()); s.stop(t + len); lfo.start(t); lfo.stop(t + len);
   }
 
   // ---- effects: never quite the same twice, and never piled up in the same instant
   const lastAt = {};
   const spaced = (k, ms) => { const n = performance.now(); if (n - (lastAt[k] || 0) < ms) return false; lastAt[k] = n; return true; };
-  const vr = (v, r = 0.1) => v * (1 + (Math.random() * 2 - 1) * r);
+  const vr = (v, r = 0.1) => v * (1 + (audioRandom() * 2 - 1) * r);
   const sound = (f) => () => { const a = audio(); if (a && !muted) f(a.currentTime); };
   const PENTA = [0, 3, 5, 7, 10, 12, 15, 17, 19, 22]; // 간발 after 간발 climbs the scale
   const sfx = {
     whoosh: sound((t) => { if (!spaced("whoosh", 28)) return;
       const d = vr(0.17, 0.25); noise(d, vr(2000, 0.2), vr(520, 0.2), vr(0.12, 0.2));
-      if (Math.random() < 0.35) whirr(t, d * 1.3); }),
+      if (audioRandom() < 0.35) whirr(t, d * 1.3); }),
     warn: sound((t) => { if (spaced("warn", 45)) clap(t, vr(0.2, 0.15), sfxBus, vr(1, 0.06)); }),
     slash: sound(() => { noise(0.24, 7000, 900, 0.32, "highpass"); tone(200, 0.28, 0.09, "sawtooth", 70);
       const b = vr(1250, 0.05); tone(b, 0.5, 0.05, "sine", b * 0.95); tone(b * 2.71, 0.35, 0.03, "sine", b * 2.6); }),
@@ -989,7 +992,7 @@ sdk.initializeAsync()
       drone(t, SC[5 + off] / 4, sp * 17, 0.05, bgmBus);
       if (M.up) { gong(t, 0.08 + 0.03 * lvl, bgmBus); M.up = false; }
       else if (lvl >= 2 && bar % 4 === 0 && bar > 0) gong(t, 0.06, bgmBus, 700, 1.2);
-      if (bar % 2 === 0) M.mel = (lvl === 0 ? bar % 4 === 0 : Math.random() < 0.82) ? MEL[(Math.random() * MEL.length) | 0] : null;
+      if (bar % 2 === 0) M.mel = (lvl === 0 ? bar % 4 === 0 : audioRandom() < 0.82) ? MEL[(audioRandom() * MEL.length) | 0] : null;
     }
     const o = OST[lvl >= 2 ? 1 : 0][s];
     if (o >= 0 && (lvl > 0 || s % 4 === 0)) pluck(t, SC[o + off], lvl >= 2 ? 0.16 : 0.2, bgmBus, lvl >= 2 ? 0.6 : 1.2);
@@ -1045,7 +1048,7 @@ sdk.initializeAsync()
     if (s === 0) {
       drone(t, note(0) / (m.low ? 4 : 2), sp * 17, m.low ? 0.07 : 0.045, bgmBus);
       if (m.gongEvery && bar % m.gongEvery === 0 && bar > 0) gong(t, 0.06, bgmBus, m.gongHz || 560, 1.4);
-      if (bar % 2 === 0) M.mel = m.mel === false ? null : MEL[(Math.random() * MEL.length) | 0];
+      if (bar % 2 === 0) M.mel = m.mel === false ? null : MEL[(audioRandom() * MEL.length) | 0];
     }
     const o = m.ost[s];
     if (o >= 0) {
@@ -1874,7 +1877,7 @@ sdk.initializeAsync()
   // The line on each stage's card. X-1 is something the 사부 once said, about the attack that comes in now (in quotes);
   // X-2 to X-4 are what the 강호 says about the 장's master, nearer the truth each time; X-5 is the hush before it.
   const STAGE_LINES = [
-    ["“붉은 줄이 그어지면 칼이 그 길로 온다”", "숲에서 쓰러진 자들은 상처가 꼭 둘이었다", "발소리는 하나인데 칼은 두 번 온다", "흑월교 척후 쌍영, 둘이서 한 사람을 벤다", "대숲이 갑자기 조용해졌다"],
+    ["“붉은 줄이 그어지면 칼이 그 길로 온다”", "숲에서 쓰러진 자들은 상처가 꼭 둘이었다", "발소리는 하나인데 칼은 두 번 온다", "흑월교 척후 쌍영, 둘을 본 자는 살아남지 못했다", "대숲이 갑자기 조용해졌다"],
     ["“발밑에 붉은 띠가 깔리면 띠 밖으로 나가라”", "달 뜨는 밤엔 물소리가 칼 소리로 들린다", "물 위를 걷는 여인을 봤다는 뱃사공이 있다", "수류검 연화, 벤 자리에 물자국만 남긴다", "물안개 사이로 연꽃 향이 난다"],
     ["“그림자는 네가 서 있던 자리로 달려든다”", "불탄 절의 종이 밤마다 혼자 운다", "파계한 중 하나가 아직 절을 지킨다고 한다", "적염 대사, 제 손으로 절에 불을 지른 자", "염불 소리가 들린다"],
     ["“따라오는 칼은 크게 돌면 빗나간다”", "고개를 넘던 상인들은 봄이 되어서야 발견됐다", "눈 위에 발자국은 없고 칼자국만 있다", "머리가 하얗게 센 검귀가 산다고 한다", "눈보라가 멎었다"],
@@ -1901,7 +1904,7 @@ sdk.initializeAsync()
     "길이 끝나지 않는다. 너도 멈추지 않는다", "고수들이 줄을 서서 너를 기다린다", "이제 네가 소문이 되었다", "어디선가 사부가 웃고 있을 것이다"];
   // what the 강호 calls you once a 장 is behind you (the n-th 장's), then the road's own names, the last one for good
   const TITLES = ["죽림의 생존자", "월하의 객", "불을 건넌 자", "설령의 칼", "흑월을 벤 검객", "범을 넘은 자", "보이지 않는 칼을 본 자", "장단을 빼앗은 자", "얼음 거울을 깬 자", "비를 가른 자",
-    "만검의 주인", "세월을 앞지른 자", "번개를 피한 자", "저승길을 되돌아온 자", "나비 꿈에서 깬 자", "불바퀴를 넘은 자", "쇠공을 비켜 간 자", "장승을 눕힌 자", "하늘의 눈을 속인 자", "천하제일"];
+    "만검의 주인", "세월을 앞지른 자", "번개를 피한 자", "명부에서 지워진 자", "나비 꿈에서 깬 자", "불바퀴를 넘은 자", "쇠공을 비켜 간 자", "장승을 눕힌 자", "하늘의 눈을 속인 자", "천하제일"];
   const ROAD_TITLES = ["무명검성"];
   const titleOf = (w) => (w < TITLES.length ? TITLES[w] : ROAD_TITLES[Math.min(w - TITLES.length, ROAD_TITLES.length - 1)]);
   function worldOf(w) {
@@ -2167,7 +2170,7 @@ sdk.initializeAsync()
       intro: "얼굴은 버렸다. 이름도, 그림자도.", sigLine: "다 비우고 나니, 못 갈 곳이 없더군.", down: "다 비운 줄 알았는데… 아픈 건 남았군." },
     { stage: "8-5", name: "뇌음", title: "雷音 · 북 치는 승려", look: "drum", accent: "#a33b26", theme: "temple", sig: "drum", sigName: ["雷音", "뇌음"],
       what: "북이 울릴 때마다 발밑에 붉은 띠가 깔렸다가 칼이 떨어진다. 넷째 박에는 엇갈린 띠가 두 개.",
-      intro: "새벽마다 산을 깨운 북이다. 오늘은 너를 재우마.", sigLine: "장단은 내가 친다. 너는 춤이나 춰라.", down: "마지막 박자는… 네 것이었다." },
+      intro: "새벽마다 산을 깨웠다. 오늘은 너를 재우마.", sigLine: "장단은 내가 친다. 너는 춤이나 춰라.", down: "마지막 박자는… 네 것이었다." },
     { stage: "9-5", name: "빙경", title: "氷鏡 · 얼음 거울", look: "mirror", accent: "#7fb6d4", theme: "snow", sig: "mirror", sigName: ["氷鏡", "빙경"],
       what: "얼음 거울 넉 장이 땅에 선다. 보스가 거울에 고드름을 던지면 거울에서 꺾여 나에게 날아온다. 꺾이는 길이 먼저 빛줄기로 보인다. 갈수록 두 장이 한꺼번에 나를 겨눈다.",
       intro: "얼음 거울은 거짓을 비추지 않는다.", sigLine: "녹아 본 적이 없다. 얼음도, 이 마음도.", down: "깨진 거울엔 아무것도 비치지 않지." },
@@ -2179,7 +2182,7 @@ sdk.initializeAsync()
       intro: "여기 묻힌 칼이 만 자루다. 오늘 모두 깨운다.", sigLine: "이 칼들의 주인은 모두 내 손에 죽었다.", down: "칼들이… 너를 주인으로 아는구나." },
     { stage: "12-5", name: "광음", title: "光陰 · 시간을 쥔 노인", look: "time", accent: "#b08d4a", theme: "gorge", sig: "time", sigName: ["光陰", "광음"],
       what: "세상이 느려졌다 빨라졌다를 되풀이한다. 내 몸만 제 속도라서, 느릴 때 자리를 잡아 두어야 빠를 때 산다.",
-      intro: "내일을 먼저 다녀왔다. 거기에 너는 없더구나.", sigLine: "세월을 붙잡으려다 세월에 붙잡혔지.", down: "시간이… 네 편이었군." },
+      intro: "내일을 먼저 다녀왔다. 거기에 너는 없더구나.", sigLine: "세월을 붙잡으려다 세월에 붙잡혔지.", down: "내가 본 내일이… 틀렸구나." },
     { stage: "13-5", name: "벽력", title: "霹靂 · 번개를 부르는 도사", look: "thunder", accent: "#d9b23a", theme: "moon", sig: "thunder", sigName: ["天雷", "천뢰"],
       what: "내가 선 자리에 번개 자국이 생기고, 0.85초 뒤 하늘에서 번개가 떨어진다. 갈수록 잦아지고, 세 개가 나란히 떨어지기도 한다.",
       intro: "내가 부적을 쓰면, 하늘이 답한다.", sigLine: "하늘도 사십 년을 길들이면 말을 듣는다.", down: "하늘도… 너는 맞히지 못하는구나." },
@@ -2200,7 +2203,7 @@ sdk.initializeAsync()
       intro: "잡귀는 못 넘는 어귀다. 너는 무엇이냐.", sigLine: "밤마다 마을의 잠을 지켰다. 오늘 밤도 그렇다.", down: "천 년을 서 있었더니… 이제야 눕는구나." },
     { stage: "19-5", name: "천안", title: "天眼 · 하늘의 눈", look: "eye", accent: "#c9a227", theme: "snow", sig: "glare", sigName: ["天眼光", "천안광"],
       what: "눈이 뜨이면 붉은 눈빛이 나를 따라 돈다. 나보다 느리지만 멈추면 닿는다. 눈빛이 깜빡이는 동안만 건널 수 있고, 그 사이 가장자리에서 칼이 날아온다.",
-      intro: "하늘에서 보면 모두 작다. 너도.", sigLine: "세상의 죄를 다 보아 왔다. 네 것도 보인다.", down: "보지 못했다… 처음으로." },
+      intro: "하늘에서 내려다보면, 모든 것이 작다. 너도.", sigLine: "세상의 죄를 다 보아 왔다. 네 것도 보인다.", down: "보지 못했다… 처음으로." },
     { stage: "20-5", name: "무명", title: "無名 · 이름 없는 고수", look: "final", accent: "#b8912a", theme: "grove", sig: "final", sigName: ["天下", "천하"],
       what: "칼이 곧 붓이다. 내가 선 자리 위에 天下第一을 한 글자씩 쓴다(더 셀수록 天下第一人, 天上天下第一). 한 글자의 획이 모두 한꺼번에 흐린 선으로 보이고, 곧 먹이 한 번에 벤다. 다음 글자는 앞 글자가 베이기 전에 벌써 보이고, 갈수록 빨라진다. 마지막은 온 땅을 가르는 한 획, 一劍(가장 셀 때는 엇갈려 두 번).",
       intro: "이름 없는 검객이 여기까지 왔군. 나도 이름이 없다.", sigLine: "눈을 감은 지 오래다. 글씨는 손이 기억한다.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
@@ -3927,14 +3930,14 @@ sdk.initializeAsync()
   const LAST_LINES = {
     twin: "둘이 하나가 된다. 이것이 마지막 그림자다.", lotus: "연못이 마르기 전에, 마지막 꽃을 피우마.",
     fire: "남은 업을 모두 태우겠다. 너와 함께.", frost: "백 년 쌓인 눈이다. 네 발자국도 덮어 주마.",
-    void: "달이 지기 전에 너를 묻는다.", charge: "이제 범이 문다.",
+    void: "달이 지기 전에 너를 묻는다.", charge: "이번엔 범이 진짜로 문다.",
     veil: "얼굴 없는 자의 마지막 춤이다.", drum: "북이 찢어질 때까지 치겠다.",
     mirror: "거울이 깨지기 전에 너부터 깨뜨린다.", rain: "그 사람을 보낸 날도 이런 비가 왔다.",
-    swords: "네 칼도 여기 묻힌다.", time: "남은 세월을 한 번에 쓰마.",
+    swords: "네 칼도 여기 묻힌다.", time: "아껴 둔 세월, 한 번에 쓰마.",
     thunder: "남은 부적을 전부 태운다. 하늘아, 답해라.", shadow: "명부를 덮기 전에, 네 이름부터 지운다.",
     swarm: "꿈은 이제부터야.", wheel: "불 꺼지기 전에, 한 바퀴만 더!",
     pendulum: "공깃돌 놀이는 끝났다.", crumble: "천 년을 버틴 땅이다. 쉽게 내주지 않는다.",
-    glare: "눈을 감기 전에 한 번 더 보마.", final: "이름 없는 검의 마지막 초식이다.",
+    glare: "눈을 감기 전에 한 번 더 보마.", final: "눈을 뜨마. 너는 볼 만하다.",
   };
   // its life is gone: the field falls quiet for its last words (not on a retry: they were heard), then it gathers itself
   function startLast(b, f, wl, d) {
@@ -4594,7 +4597,7 @@ sdk.initializeAsync()
     G.killer = cause || {}; G.killerY = y;
     // its name, if it was one with a name: a boss's 비기 under way, or a great move just called
     const c = G.callout, ago = c ? (performance.now() - c.at) / 1000 : Infinity;
-    G.killedBy = c && c.castAt && G.fight && G.fight.busy > 0 ? c.k : c && !G.boss && !c.wind && ago < 5 ? c.k : cause && cause.boss ? "보스의 호신강기" : "";
+    G.killedBy = c && c.castAt && G.fight && G.fight.busy > 0 ? c.k : c && !G.boss && !c.wind && ago < 5 ? c.k : cause && cause.boss ? `${G.boss ? G.boss.def.name : "보스"}의 호신강기` : "";
   }
 
   // ---- the strokes that make it feel like a fight
@@ -6938,7 +6941,7 @@ sdk.initializeAsync()
     drill = { day, ids: pickDrills(day), prog: {}, done: {} };
     store.set("drill", JSON.stringify(drill));
     addCoins(ECON.daily);
-    $("drillNote").textContent = `오늘 첫 출석. 엽전 +${ECON.daily}`; $("drillNote").hidden = false;
+    $("drillNote").textContent = `오늘의 첫걸음 · 엽전 +${ECON.daily}`; $("drillNote").hidden = false;
     renderDrills();
   }
   function drillProgress(id, value, add = false) { // returns the reward when this finishes it
