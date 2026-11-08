@@ -1241,7 +1241,11 @@ sdk.initializeAsync()
       const ang = Math.atan2(ty - y + rnd(-S * 0.12, S * 0.12) * i, tx - x + rnd(-S * 0.12, S * 0.12) * i);
       const dur = 0.85 - Math.min(0.25, G.t / 400);
       G.warns.push({ kind: "line", x, y, ang, t: 0, dur, delay: i * 0.18, fire() {
-        for (let k = 0; k < 3; k++) setTimeout(() => G.mode === "play" && shoot("star", x, y, ang, S * 1.55, { spin: 18, r: S * 0.016 }), k * 70);
+        // three down the line; the second and third on the game's own clock, so a field cleared in between (종전, the last
+        // stroke, a boss arriving) takes them too (11-08 "보스 대사가 끝나기도 전에 뭐가 날아와서 죽는데": they were on
+        // setTimeout and came out after 종전 had cleared the field, under its line)
+        shoot("star", x, y, ang, S * 1.55, { spin: 18, r: S * 0.016 });
+        for (let k = 1; k < 3; k++) later(k * 0.07, () => shoot("star", x, y, ang, S * 1.55, { spin: 18, r: S * 0.016 }));
         sfx.whoosh();
       } });
       thrower(x, y, ang, i * 0.18, dur);
@@ -3945,6 +3949,7 @@ sdk.initializeAsync()
     b.tx = b.x; b.ty = b.y; b.next = null;
     for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
     G.warns = []; G.hazards = []; G.timeK = 1; G.freezeT = 0;
+    for (const c of G.cuts) c.checked = true; // a slash landing this very moment breaks with the rest: its line comes up over a quiet field (11-08, caught on 14-5)
     if (f.retry || !LAST_LINES[d.sig]) return gatherLast(b, f, wl);
     say([{ who: d.name, text: withName(LAST_LINES[d.sig]) }], () => gatherLast(b, f, wl));
   }
@@ -6897,14 +6902,18 @@ sdk.initializeAsync()
   // 엽전 are earned by playing and spent on clothes, and they are only ever earned. Selling them for money would need
   // a server: a bought coin is used up, so Toss can't hand it back after a reinstall the way it does a bought skin.
   // Every number of the economy is in ECON, to tune in one place.
+  // (11-08 제작자: "신화 30만 엽전을 어느 세월에 모으냐… 매일 삼십 분씩 한 달만 해도 얻을 수 있게", and pay the 간발.
+  // Everything earned went up about four to five times, the 간발 five: half an hour a day — some 25 minutes of play, a 간발
+  // every 15 s or so, a dozen stages, two boss stages, the daily visit and its three 수련 — comes to about 10,000, so 검성
+  // (300,000) in about four weeks, half that with the 엽전 두 배 that comes with 광고 제거. Prices are unchanged.)
   const ECON = {
-    perSecond: 1,   // for every second survived (a 30-second run with a few 간발 pays about 40)
-    perNear: 2,     // for every 간발
+    perSecond: 5,   // for every second survived (a 30-second run with a few 간발 pays about 180)
+    perNear: 10,    // for every 간발: a close dodge is worth two seconds' pay
     hard: 1.5,      // 하드모드 pays half again
-    chapter: 30,    // each story chapter passed, and each boss stage of 스테이지 모드
-    stage: 8,       // each other stage of 스테이지 모드
-    daily: 30,      // the first visit of a day
-    drill: 60,      // each of the day's three 수련
+    chapter: 150,   // each story chapter passed, and each boss stage of 스테이지 모드
+    stage: 30,      // each other stage of 스테이지 모드
+    daily: 300,     // the first visit of a day
+    drill: 400,     // each of the day's three 수련
   };
   let coins = Number(store.get("coins", "0")) || 0;
   const fmt = (n) => Math.round(n).toLocaleString("ko-KR");
