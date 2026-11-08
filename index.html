@@ -1950,14 +1950,15 @@ sdk.initializeAsync()
   // plays 보통; its numbers stay only so its old record still counts for 보스전 (furthest).
   // (11-08 night: "1장은 80초에서 1초씩 올려줘", "난이도가 확 늘어나는 것보다는 신박한 패턴으로 승부") Each stage now stands
   // where 죽림 수련 stands at so many seconds: 보통 1-1 at 80 s and every 장 one second on (20장 at 99 s), X-1 to X-5
-  // creeping up to the next 장's start (stageClock); 어려움 the same 15 s on (95 s → 114 s). In X-1 the bamboo comes as
+  // creeping up to the next 장's start (stageClock); 어려움 the same 15 s on (100 s → 119 s). (11-09 제작자: "시작 난이도를
+  // +5초 정도 해서 살짝만 더 어렵게": 1-1 starts at 죽림 수련's 85 s, not 80, and 어려움 at 100.) In X-1 the bamboo comes as
   // often as in 죽림 수련 at that second (0.7 × pace() s: bamboo 0.58→0.99 and 0.5→1.16), closing a little to X-4 as ever
   // (STEPS' gap). 광란 and the third line come in on a slope (frenzyRamp); a 보스전's shared attacks run at its 장's clock.
   // What grows from 장 to 장 is mostly what is new in it, not how thick it comes. The boss numbers are untouched.
   const STAGE_LEVELS = {
     easy: { name: "쉬움", pace: 0.82, clock: 65, crowd: 0.15, bamboo: 0.85, floor: 0.4, gap: 1.25, boss: 0.76, lv: 0, last: 2, layer: 2.6, breath: [1.6, 2.3], top: "stageTopE" },
-    normal: { name: "보통", pace: 1.16, clock: 80, crowd: 0.02, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.08, lv: 5, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTop" },
-    master: { name: "어려움", pace: 1.22, clock: 95, crowd: 0.01, bamboo: 1.16, floor: 0.2, gap: 0.7, boss: 1.15, lv: 7, last: 6, layer: 1.1, breath: [0.58, 1.3], top: "stageTopH" },
+    normal: { name: "보통", pace: 1.16, clock: 85, crowd: 0.02, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.08, lv: 5, last: 5, layer: 1.3, breath: [0.85, 1.4], top: "stageTop" },
+    master: { name: "어려움", pace: 1.22, clock: 100, crowd: 0.01, bamboo: 1.16, floor: 0.2, gap: 0.7, boss: 1.15, lv: 7, last: 6, layer: 1.1, breath: [0.58, 1.3], top: "stageTopH" },
   };
   const LEVELS = ["normal", "master"]; // the ones a player can pick (쉬움 is not among them)
   { // the furthest stage reached at 일반: the old 고수 record carries over to it (they were the same difficulty)
