@@ -152,7 +152,7 @@
   .result__label { font-family: var(--font-mark); font-weight: 700; font-size: 14px; letter-spacing: .3em; color: var(--ink-soft); }
   .result__time { font-family: var(--font-brush); font-size: 84px; line-height: .9; font-variant-numeric: tabular-nums; }
   .result__time small { font-size: .4em; color: var(--ink-soft); }
-  .result__meta { font-size: 14px; color: var(--ink-soft); }
+  .result__meta { font-size: 14px; color: var(--ink-soft); word-break: keep-all; }
   .result__best { color: var(--seal); font-family: var(--font-mark); font-weight: 900; }
 
   .rank h2 { margin: 0 0 6px; font-family: var(--font-mark); font-weight: 900; font-size: 15px; letter-spacing: .2em; }
@@ -233,7 +233,7 @@
   .skin--epic { border-color: #6a3fae; } .skin--myth { border-color: #b8902e; box-shadow: inset 0 0 0 1px #e8c66a; }
   .skin button { font: inherit; font-size: 13px; width: 100%; padding: 6px 4px; cursor: pointer; border-radius: 0; border: 1.5px solid var(--ink); background: var(--ink); color: var(--slip); }
   .skin button:disabled { background: transparent; color: var(--ink-soft); border-color: var(--ink-soft); cursor: default; }
-  .shop-note { margin: 0; font-size: 13px; color: var(--ink-soft); }
+  .shop-note { margin: 0; font-size: 13px; color: var(--ink-soft); word-break: keep-all; }
   .shop-open:focus-visible, .skin button:focus-visible { outline: 3px solid var(--seal); outline-offset: 2px; }
   .purse { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
   .coins { display: inline-flex; align-items: center; gap: 6px; font-family: var(--font-mark); font-weight: 900; font-size: 16px; font-variant-numeric: tabular-nums; }
@@ -325,7 +325,7 @@
         <canvas id="shopAskPv"></canvas>
         <p id="shopAskQ"></p>
         <p class="shop-ask__sub" id="shopAskSub"></p>
-        <div class="shop-ask__row"><button type="button" class="btn btn--ghost" id="shopAskNo">그만두기</button><button type="button" class="btn" id="shopAskYes">사기</button></div>
+        <div class="shop-ask__row"><button type="button" class="btn btn--ghost" id="shopAskNo">그만두기</button><button type="button" class="btn" id="shopAskYes">구매하기</button></div>
       </div>
     </div>
   </div>
@@ -333,7 +333,7 @@
   <div class="screen" id="dev" hidden>
     <section class="slip" data-seal="試">
       <h2 class="shop-title">보스 비기</h2>
-      <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓴다. 체력이 다하면 종전으로 더 센 비기에 종전 고유기와 섞는 공격까지 겹쳐 쓰고, 그걸 버티면 벤다 (20초 뒤 종전).</p>
+      <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓰다가 20초 뒤 종전에 든다. 종전에는 더 센 비기에 종전 고유기와 섞는 공격이 겹치고, 그것까지 버티면 벤다.</p>
       <div class="lvl" id="devLvl" role="group" aria-label="보스 난이도">
         <span>난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
@@ -354,7 +354,7 @@
   <div class="screen" id="boss" hidden>
     <section class="slip" data-seal="戰">
       <h2 class="shop-title">보스전</h2>
-      <p class="shop-note" id="bossNote">스테이지에서 만난 보스와 다시 겨룬다.</p>
+      <p class="shop-note" id="bossNote">스테이지에서 만난 보스와 다시 겨룬다. 베면 엽전을 받는다.</p>
       <div class="lvl" id="bossLvl" role="group" aria-label="보스전 난이도">
         <span>난이도</span><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
@@ -438,16 +438,16 @@ async function showRewardAd() {
   sdk.ads.loadRewarded({ placementId: AD.rewarded });
   if (r.status !== "rewarded") { // closed early, or no ad to show: nothing is owed
     if (r.reason === "timeout") rewardRestUntil = Date.now() + 60_000;
-    missNote = r.status === "dismissed" ? "광고를 끝까지 봐야 받을 수 있어요"
-      : r.reason === "no_fill" ? "지금은 볼 수 있는 광고가 없어요"
-      : r.reason === "already_showing" ? null : "광고를 불러오지 못했어요";
+    missNote = r.status === "dismissed" ? "광고를 끝까지 봐야 받는다"
+      : r.reason === "no_fill" ? "지금은 볼 수 있는 광고가 없다"
+      : r.reason === "already_showing" ? null : "광고를 불러오지 못했다";
     return false;
   }
   for (let i = 0; i < 20; i++) {
     try { if ((await server(`/onestore/reward/${requestId}`)).body.ok) return true; } catch { /* the network blinked: ask again */ }
     await wait(600);
   }
-  missNote = "보상이 확인되지 않았어요";
+  missNote = "보상을 확인하지 못했다";
   return false;
 }
 
@@ -1094,7 +1094,8 @@ sdk.initializeAsync()
   }
   function stageInfo(i) {
     if (i < STAGES.length) return STAGES[i];
-    return { name: `${han(i + 1)}段 · 무한` };
+    const REALMS = ["절정", "초절정", "화경", "현경", "생사경", "자연경"]; // past 광란 the 段 climb the 무협 ladder of mastery, then 무한
+    return { name: `${han(i + 1)}段 · ${REALMS[i - STAGES.length] || "무한"}` };
   }
   // past 120 s everything keeps getting quicker, without end
   const endless = () => Math.max(0, G.t - ENDLESS_FROM) / ENDLESS_EVERY;
@@ -1565,7 +1566,7 @@ sdk.initializeAsync()
     { name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", hp: 20, acts: ["icicles", "ring", "homing", "fan"],
       intro: () => [{ who: "설귀", text: "이 고개를 넘은 자는 없다." }],
       down: () => [{ who: "설귀", text: "이 고개를… 넘는 자가 있었군." }] },
-    { name: "흑월교주", title: "黑月 · 흑월교주", look: "lord", accent: "#8b1a12", hp: 30, acts: ["fan", "twin", "spiral", "beam", "pillars", "ring", "icicles", "staff", "palm", "roar"],
+    { name: "흑월교주", title: "黑月 · 검은 달의 교주", look: "lord", accent: "#8b1a12", hp: 30, acts: ["fan", "twin", "spiral", "beam", "pillars", "ring", "icicles", "staff", "palm", "roar"],
       intro: () => [{ who: "흑월교주", text: `${me()}. 네 사부도 그 검으로는 나를 막지 못했다.` }],
       mid: () => [{ who: "흑월교주", text: "…그 검로. 그 늙은이의 것이로구나." }],
       down: () => [{ who: "흑월교주", text: "결국… 그 늙은이의 검이었나." }] },
@@ -1881,13 +1882,13 @@ sdk.initializeAsync()
     ["“띠가 엇갈려 깔리면 둘 다 벗어나라”", "타다 남은 대숲이 한 줄로 길게 쓰러져 있다", "범을 맨손으로 때려잡았다는 사내가 있다고 한다", "맹호, 대숲을 몸으로 뚫고 다니는 자", "땅이 쿵쿵 울린다"],
     ["“검기가 닿지 않는 자리는 미리 비어 보인다”", "안개가 걷히지 않는 계곡이 생겼다", "베인 자들은 칼을 보지 못했다고 한다", "무영, 그림자도 소리도 없는 자객", "안개 속에서 칼끝이 반짝였다"],
     ["“칼이 사방으로 터지면 줄과 줄 사이에 서라”", "버려진 절에서 밤마다 북소리가 난다", "북이 울릴 때마다 땅에 칼자국이 생긴다고 한다", "뇌음, 북 한 번에 칼 한 자루를 떨어뜨리는 승려", "목탁 소리가 멎고 북소리가 시작됐다"],
-    ["“칼이 너를 둘러싸면 비어 있는 쪽으로 빠져라”","고개 위의 눈이 한여름에도 녹지 않는다", "얼음 벽에 비친 칼이 진짜 칼보다 빠르다고 한다", "빙경, 받은 칼을 그대로 돌려보내는 여인", "얼음 벽마다 네 얼굴이 비친다"],
-    ["“이제 네게 가르칠 것이 없다”", "그 고개엔 비가 그친 날이 없다고 한다", "비를 맞은 나그네는 모두 베여 있었다", "청우, 우산 하나로 비를 부리는 검객", "빗소리가 칼 소리로 바뀌었다"],
+    ["“칼이 너를 둘러싸면 비어 있는 쪽으로 빠져라”","고개 위의 눈이 한여름에도 녹지 않는다", "얼음 거울에 비친 칼이 진짜 칼보다 빠르다고 한다", "빙경, 받은 칼을 그대로 돌려보내는 여인", "얼음 벽마다 네 얼굴이 비친다"],
+    ["“네 검이 나를 닮아 가는구나”", "그 고개엔 비가 그친 날이 없다고 한다", "비를 맞은 나그네는 모두 베여 있었다", "청우, 우산 하나로 비를 부리는 검객", "빗소리가 칼 소리로 바뀌었다"],
     ["“실이 팽팽해지면 그 줄에 닿지 마라”", "주인을 잃은 칼들이 묻힌 골짜기가 있다", "밤이면 칼무덤에서 쇠 우는 소리가 난다", "검총주, 만 자루 칼을 거느린 자", "하늘에 칼이 걸렸다"],
-    ["“조준선이 번쩍이면 이미 늦다. 미리 움직여라”", "골짜기에 들어간 사람이 하루 만에 백발이 되어 나왔다", "그 안에선 해가 빨리 졌다가 늦게 뜬다고 한다", "광음, 시간을 손에 쥔 노인", "물방울이 공중에서 멈췄다"],
+    ["“줄이 번쩍이면 이미 늦다. 미리 움직여라”", "골짜기에 들어간 사람이 하루 만에 백발이 되어 나왔다", "그 안에선 해가 빨리 졌다가 늦게 뜬다고 한다", "광음, 시간을 손에 쥔 노인", "물방울이 공중에서 멈췄다"],
     ["“사자후는 틈이 하나다. 그 틈으로 빠져나가라”", "맑은 날에도 봉우리 위로 천둥이 운다", "번개는 사람이 선 자리를 노린다고 한다", "벽력, 하늘을 부리는 도사", "발밑에 그을린 자국이 번진다"],
     ["“세 번 벤다. 세 번 다 자리를 옮겨라”", "이 길을 걸으면 발소리가 하나 더 들린다", "돌아본 자는 모두 제 그림자에 베였다", "추혼, 지나온 길을 칼로 바꾸는 자", "뒤에서 누가 따라온다"],
-    ["“둘러싼 것이 겨누면 그 줄에서만 비켜라”","골짜기의 꽃이 한철 내내 지지 않는다", "나비를 쫓아간 아이들이 돌아오지 않았다", "호접, 나비 떼를 부리는 여인", "보랏빛 가루가 날린다"],
+    ["“둘러싼 것이 겨누면 그 줄에서만 비켜라”","골짜기의 꽃이 사철 내내 지지 않는다", "나비를 쫓아간 아이들이 돌아오지 않았다", "호접, 나비 떼를 부리는 여인", "보랏빛 가루가 날린다"],
     ["“불길은 금방 꺼진다. 꺼진 자리로 건너라”", "들판에 바퀴 자국 모양으로 풀이 탔다", "밤마다 불덩이가 들판을 굴러다닌다고 한다", "화륜, 불바퀴를 타고 달리는 소년", "멀리서 바퀴 구르는 소리가 난다"],
     ["“흔들리는 것은 끝에서 잠깐 멈춘다”", "광산 마을에서 쇠 부딪는 소리가 끊이지 않는다", "한 손에 만 근을 든다는 장사가 있다고 한다", "철추, 쇠공 둘을 매달고 다니는 장사", "머리 위에서 쇠사슬이 운다"],
     ["“한자리에 오래 서지 마라. 땅도 지친다”", "마을 어귀의 장승이 하룻밤 새 자리를 옮겼다", "장승 앞을 지난 자는 땅이 꺼져 사라졌다고 한다", "장승, 천 년을 선 채로 마을을 지킨 수호신", "발밑에 금이 간다"],
@@ -1899,8 +1900,8 @@ sdk.initializeAsync()
     "또 한 명의 고수가 길을 막는다", "네 이름을 걸고 내기를 하는 자들이 있다", "강호에 너보다 오래 버틴 자는 없다", "누가 네 앞에서 칼을 뽑겠는가",
     "길이 끝나지 않는다. 너도 멈추지 않는다", "고수들이 줄을 서서 너를 기다린다", "이제 네가 소문이 되었다", "어디선가 사부가 웃고 있을 것이다"];
   // what the 강호 calls you once a 장 is behind you (the n-th 장's), then the road's own names, the last one for good
-  const TITLES = ["죽림의 생존자", "월하의 객", "불을 건넌 자", "설령의 칼", "흑월을 벤 검객", "범을 넘은 자", "보이지 않는 칼을 본 자", "북소리를 넘은 자", "얼음 거울을 깬 자", "비를 가른 자",
-    "만검의 주인", "시간을 넘은 자", "번개를 피한 자", "그림자를 이긴 자", "나비 꿈에서 깬 자", "불바퀴를 넘은 자", "쇠공을 비켜 간 자", "땅 위를 걷는 자", "하늘의 눈을 속인 자", "천하제일"];
+  const TITLES = ["죽림의 생존자", "월하의 객", "불을 건넌 자", "설령의 칼", "흑월을 벤 검객", "범을 넘은 자", "보이지 않는 칼을 본 자", "장단을 빼앗은 자", "얼음 거울을 깬 자", "비를 가른 자",
+    "만검의 주인", "세월을 앞지른 자", "번개를 피한 자", "저승길을 되돌아온 자", "나비 꿈에서 깬 자", "불바퀴를 넘은 자", "쇠공을 비켜 간 자", "장승을 눕힌 자", "하늘의 눈을 속인 자", "천하제일"];
   const ROAD_TITLES = ["무명검성"];
   const titleOf = (w) => (w < TITLES.length ? TITLES[w] : ROAD_TITLES[Math.min(w - TITLES.length, ROAD_TITLES.length - 1)]);
   function worldOf(w) {
@@ -2129,8 +2130,8 @@ sdk.initializeAsync()
     const sd = stageDef(G.sg), time = Math.round((G.st + G.bonus) * 100) / 100, top = stageTop();
     $("overSlip").dataset.seal = "敗"; $("overLabel").textContent = "쓰러진 곳";
     $("score").textContent = sd.label; $("scoreUnit").hidden = true;
-    $("meta").textContent = `${SL().name}. ${sd.world.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. ${time.toFixed(2)}초 버텼다. 간발 ${G.near}번${G.killedBy ? `. ${G.killedBy}에 베였다` : ""}`;
-    const title = Number(store.get("stageTitle", "-1")), named = title >= 0 ? `. 별호 ${titleOf(title)}` : "";
+    $("meta").textContent = `${sd.world.name}${G.boss ? ` · ${G.boss.def.name}` : ""} · ${SL().name}. ${time.toFixed(2)}초 버텼다. 간발 ${G.near}번${G.killedBy ? `. ${G.killedBy}에 쓰러졌다` : ""}`;
+    const title = Number(store.get("stageTitle", "-1")), named = title >= 0 ? ` · 별호 ${titleOf(title)}` : "";
     $("best").textContent = (G.sg > G.stageTop0 ? "새 최고 기록" : `최고 기록 ${stageDef(top).label}`) + named;
     $("again").textContent = `${sd.label} 다시`; // the stage you fell in, from its start
     $("hud").hidden = true; $("over").hidden = false;
@@ -2144,8 +2145,8 @@ sdk.initializeAsync()
   // (open the page with ?dev): pick a boss, and it does nothing but its 비기, three times over.
   const BOSS_SET = [
     { stage: "1-5", name: "쌍영", title: "雙影 · 흑월교 척후", look: "twins", accent: "#c8321f", theme: "grove", sig: "twin", sigName: ["雙影斬", "쌍영참"],
-      what: "양쪽 벽에서 그림자 둘이 서로 거울처럼 대칭으로 달려든다. 네 번.",
-      intro: "둘이서 하나를 벤다. 그것이 우리의 검이다.", sigLine: "한 배에서 났으니, 칼도 한 호흡에 뽑는다.", down: "둘이 아니면… 그림자도 아니었군." },
+      what: "그림자 둘이 거울처럼 마주 보며 달려든다. 양쪽 벽에서, 위아래에서 번갈아 일곱 번 넘게, 갈수록 촘촘하게. 마지막엔 두 쌍이 한꺼번에 열십자로.",
+      intro: "둘이서 하나를 벤다. 그것이 우리의 검이다.", sigLine: "한 배에서 났으니, 칼도 한 호흡에 뽑는다.", down: "둘이서도… 하나를 못 베었군." },
     { stage: "2-5", name: "연화", title: "蓮華 · 수류검", look: "lotus", accent: "#3d6a8a", theme: "gorge", sig: "lotus", sigName: ["蓮華歸", "연화귀"],
       what: "보스 둘레로 표창이 꽃잎처럼 퍼져 나갔다가 멈추고, 다시 보스에게 돌아온다. 나갈 때와 돌아올 때 두 번 피해야 한다.",
       intro: "물을 벤 자는 있어도, 물을 이긴 자는 없다.", sigLine: "진흙 속에서 피었다. 꺾이는 법은 모른다.", down: "돌아오지 못하는 물도… 있었구나." },
@@ -2154,19 +2155,19 @@ sdk.initializeAsync()
       intro: "아미타불. 이 불은 내가 지은 업이다.", sigLine: "염불은 잊었다. 불 지피는 법만 남았지.", down: "불은 꺼진다. 업은 남는다." },
     { stage: "4-5", name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", theme: "snow", sig: "frost", sigName: ["氷花亂舞", "빙화난무"],
       what: "백발을 휘날리며 도는 팔을 따라 얼음꽃을 흩뿌린다. 얼음꽃은 천천히 돌며 흘러가다가, 하얗게 깜빡이며 여섯 갈래 빛줄기를 보인 뒤 그 길로 얼음 바늘 여섯 개가 되어 터진다. 처음엔 듬성듬성, 갈수록 촘촘하고 빠르게. 마지막엔 보스 앞의 큰 얼음꽃이 작은 꽃 여섯으로, 그 꽃들이 다시 바늘로 두 번 갈라진다. 꽃 사이를 비집고, 터질 꽃에서 비켜 바늘 사이 틈으로 빠져야 한다.",
-      intro: "이 고개를 넘은 자는 없다.", sigLine: "백 년을 기다렸다. 조금 더 기다리는 것쯤이야.", down: "녹는구나… 백 년 만에." },
-    { stage: "5-5", name: "흑월교주", title: "黑月 · 흑월교주", look: "lord", accent: "#8b1a12", theme: "moon", sig: "void", sigName: ["黑月墜", "흑월추"],
-      what: "내가 선 자리에 검은 달의 그림자가 드리우고, 1초 뒤 달이 내려앉아 잠시 땅에 박혀 있는다. 달은 쉬지 않고 나를 따라 떨어져 설 곳이 점점 줄고, 그 사이 교주가 나를 가로질러 칼을 긋는다.",
-      intro: "{me}. 네 사부도 그 검으로는 나를 막지 못했다.", sigLine: "청죽문을 태운 밤에도 달은 검었다.", down: "결국… 그 늙은이의 검이었나." },
+      intro: "이 고개를 넘은 자는 없다.", sigLine: "백 년을 기다렸다. 오늘은 꽃이 피겠군.", down: "녹는구나… 백 년 만에." },
+    { stage: "5-5", name: "흑월교주", title: "黑月 · 검은 달의 교주", look: "lord", accent: "#8b1a12", theme: "moon", sig: "void", sigName: ["黑月墜", "흑월추"],
+      what: "내가 선 자리에 검은 달의 그림자가 드리우고, 1초 뒤 달이 내려앉아 잠시 땅에 박혀 있다. 달은 쉬지 않고 나를 따라 떨어져 설 곳이 점점 줄고, 그 사이 교주가 나를 가로질러 칼을 긋는다.",
+      intro: "{me}. 네 사부도 그 검으로는 나를 막지 못했다.", sigLine: "청죽문을 태운 밤에도, 달은 검었다.", down: "결국… 그 늙은이의 검이었나." },
     { stage: "6-5", name: "맹호", title: "猛虎 · 대숲을 뚫는 사내", look: "tiger", accent: "#c7782a", theme: "grove", sig: "charge", sigName: ["猛虎衝", "맹호충"],
       what: "세 가지를 섞어 쓴다. 붉은 길을 깔고 몸째 돌진하고, 내가 선 자리를 덮쳐 땅을 깨뜨리고, 발톱으로 나란한 세 줄을 긋는다.",
-      intro: "대숲에 길이 없다고? 내가 지나가면 길이다.", sigLine: "산에서 범을 맨손으로 잡았다. 그날부터 내가 범이다.", down: "범도… 넘어질 때가 있군." },
+      intro: "대숲에 길이 없다고? 내가 지나가면 길이다.", sigLine: "범을 맨손으로 잡았다. 그날부터 내가 범이다.", down: "범도… 넘어질 때가 있군." },
     { stage: "7-5", name: "무영", title: "無影 · 그림자 없는 자", look: "veil", accent: "#55525c", theme: "gorge", sig: "veil", sigName: ["無影劍", "무영검"],
       what: "무영이 사라졌다가 가장자리 곳곳에서 나타나며 나를 가로질러 벤다. 나타날 자리와 벨 길은 먹물 잔상으로 먼저 보인다. 마지막엔 잔상 넷이 한꺼번에 엇갈려 벤다.",
       intro: "얼굴은 버렸다. 이름도, 그림자도.", sigLine: "다 비우고 나니, 못 갈 곳이 없더군.", down: "다 비운 줄 알았는데… 아픈 건 남았군." },
     { stage: "8-5", name: "뇌음", title: "雷音 · 북 치는 승려", look: "drum", accent: "#a33b26", theme: "temple", sig: "drum", sigName: ["雷音", "뇌음"],
       what: "북이 울릴 때마다 발밑에 붉은 띠가 깔렸다가 칼이 떨어진다. 넷째 박에는 엇갈린 띠가 두 개.",
-      intro: "새벽마다 이 북으로 산을 깨웠다. 오늘은 너를 재우마.", sigLine: "장단은 내가 친다. 너는 춤이나 춰라.", down: "마지막 박자는… 네 것이었다." },
+      intro: "새벽마다 산을 깨운 북이다. 오늘은 너를 재우마.", sigLine: "장단은 내가 친다. 너는 춤이나 춰라.", down: "마지막 박자는… 네 것이었다." },
     { stage: "9-5", name: "빙경", title: "氷鏡 · 얼음 거울", look: "mirror", accent: "#7fb6d4", theme: "snow", sig: "mirror", sigName: ["氷鏡", "빙경"],
       what: "얼음 거울 넉 장이 땅에 선다. 보스가 거울에 고드름을 던지면 거울에서 꺾여 나에게 날아온다. 꺾이는 길이 먼저 빛줄기로 보인다. 갈수록 두 장이 한꺼번에 나를 겨눈다.",
       intro: "얼음 거울은 거짓을 비추지 않는다.", sigLine: "녹아 본 적이 없다. 얼음도, 이 마음도.", down: "깨진 거울엔 아무것도 비치지 않지." },
@@ -2178,7 +2179,7 @@ sdk.initializeAsync()
       intro: "여기 묻힌 칼이 만 자루다. 오늘 모두 깨운다.", sigLine: "이 칼들의 주인은 모두 내 손에 죽었다.", down: "칼들이… 너를 주인으로 아는구나." },
     { stage: "12-5", name: "광음", title: "光陰 · 시간을 쥔 노인", look: "time", accent: "#b08d4a", theme: "gorge", sig: "time", sigName: ["光陰", "광음"],
       what: "세상이 느려졌다 빨라졌다를 되풀이한다. 내 몸만 제 속도라서, 느릴 때 자리를 잡아 두어야 빠를 때 산다.",
-      intro: "내일을 먼저 다녀왔다. 거기에 너는 없더구나.", sigLine: "세월을 붙잡으려다 세월에 붙잡혔지.", down: "시간이… 너의 편이었군." },
+      intro: "내일을 먼저 다녀왔다. 거기에 너는 없더구나.", sigLine: "세월을 붙잡으려다 세월에 붙잡혔지.", down: "시간이… 네 편이었군." },
     { stage: "13-5", name: "벽력", title: "霹靂 · 번개를 부르는 도사", look: "thunder", accent: "#d9b23a", theme: "moon", sig: "thunder", sigName: ["天雷", "천뢰"],
       what: "내가 선 자리에 번개 자국이 생기고, 0.85초 뒤 하늘에서 번개가 떨어진다. 갈수록 잦아지고, 세 개가 나란히 떨어지기도 한다.",
       intro: "내가 부적을 쓰면, 하늘이 답한다.", sigLine: "하늘도 사십 년을 길들이면 말을 듣는다.", down: "하늘도… 너는 맞히지 못하는구나." },
@@ -2190,18 +2191,18 @@ sdk.initializeAsync()
       intro: "예쁘지? 다들 넋을 놓고 보다가 갔어.", sigLine: "이 아이들은 내 피를 먹고 자랐어.", down: "나비는… 하룻밤이면 족하지." },
     { stage: "16-5", name: "화륜", title: "火輪 · 불바퀴를 탄 소년", look: "wheel", accent: "#e0531f", theme: "moon", sig: "wheel", sigName: ["風火輪", "풍화륜"],
       what: "불바퀴 둘이 벽에 튕기며 굴러다니고, 지나간 자리에 불길이 2초 남짓 남는다. 불길 사이로 길을 찾아야 한다.",
-      intro: "사부님이 철들 때까지 내리지 말래. 아직 멀었어.", sigLine: "불장난이 세상에서 제일 재밌어!", down: "바퀴가… 멈췄네." },
+      intro: "사부님이 철들 때까지 내리지 말래. 아직 멀었어.", sigLine: "불장난이 세상에서 제일 재밌어!", down: "바퀴가… 멈췄네. 사부님한테 혼나겠다." },
     { stage: "17-5", name: "철추", title: "鐵錘 · 만 근 쇠공의 장사", look: "chain", accent: "#6d6a63", theme: "temple", sig: "pendulum", sigName: ["萬斤錘", "만근추"],
       what: "하늘에 매달린 쇠공 둘이 시계추처럼 흔들린다. 끝에 닿을 때마다 줄 길이를 바꿔 내가 선 자리를 지나가게 한다. 지나갈 길은 붉게 보인다.",
       intro: "만 근 쇠공을 공깃돌 삼아 자랐다.", sigLine: "힘으로 안 되는 건 없다. 더 큰 힘이면 된다.", down: "줄이… 끊어졌군." },
     { stage: "18-5", name: "장승", title: "長丞 · 마을 어귀의 수호신", look: "totem", accent: "#9b4a2c", theme: "grove", sig: "crumble", sigName: ["地陷", "지함"],
       what: "땅이 칸으로 나뉜다. 한 칸에 오래 서 있으면 금이 가고 무너져 3초 동안 구멍이 된다. 장승이 발을 구르면 내 둘레가 열십자로 갈라진다.",
-      intro: "잡귀는 이 어귀를 못 넘는다. 너는 무엇이냐.", sigLine: "밤마다 이 마을의 잠을 지켰다. 오늘 밤도 그렇다.", down: "천 년을 서 있었더니… 이제야 눕는구나." },
+      intro: "잡귀는 못 넘는 어귀다. 너는 무엇이냐.", sigLine: "밤마다 마을의 잠을 지켰다. 오늘 밤도 그렇다.", down: "천 년을 서 있었더니… 이제야 눕는구나." },
     { stage: "19-5", name: "천안", title: "天眼 · 하늘의 눈", look: "eye", accent: "#c9a227", theme: "snow", sig: "glare", sigName: ["天眼光", "천안광"],
       what: "눈이 뜨이면 붉은 눈빛이 나를 따라 돈다. 나보다 느리지만 멈추면 닿는다. 눈빛이 깜빡이는 동안만 건널 수 있고, 그 사이 가장자리에서 칼이 날아온다.",
-      intro: "하늘에서 내려다보면 모든 것이 작다. 너도.", sigLine: "세상의 죄를 다 보아 왔다. 네 것도 보인다.", down: "보지 못했다… 처음으로." },
+      intro: "하늘에서 보면 모두 작다. 너도.", sigLine: "세상의 죄를 다 보아 왔다. 네 것도 보인다.", down: "보지 못했다… 처음으로." },
     { stage: "20-5", name: "무명", title: "無名 · 이름 없는 고수", look: "final", accent: "#b8912a", theme: "grove", sig: "final", sigName: ["天下", "천하"],
-      what: "칼이 곧 붓이다. 내가 선 자리 위에 天下第一을 한 글자씩 쓴다. 한 글자의 획이 모두 한꺼번에 흐린 선으로 보이고, 곧 먹이 한 번에 벤다. 다음 글자는 앞 글자가 베이기 전에 벌써 보이고, 갈수록 빨라진다. 마지막은 온 땅을 가르는 한 획, 一劍.",
+      what: "칼이 곧 붓이다. 내가 선 자리 위에 天下第一을 한 글자씩 쓴다(더 셀수록 天下第一人, 天上天下第一). 한 글자의 획이 모두 한꺼번에 흐린 선으로 보이고, 곧 먹이 한 번에 벤다. 다음 글자는 앞 글자가 베이기 전에 벌써 보이고, 갈수록 빨라진다. 마지막은 온 땅을 가르는 한 획, 一劍(가장 셀 때는 엇갈려 두 번).",
       intro: "이름 없는 검객이 여기까지 왔군. 나도 이름이 없다.", sigLine: "눈을 감은 지 오래다. 글씨는 손이 기억한다.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
   ];
   // what drifts across each boss's fight behind its 비기, unannounced, read as it comes: the boss's own element
@@ -3926,14 +3927,14 @@ sdk.initializeAsync()
   const LAST_LINES = {
     twin: "둘이 하나가 된다. 이것이 마지막 그림자다.", lotus: "연못이 마르기 전에, 마지막 꽃을 피우마.",
     fire: "남은 업을 모두 태우겠다. 너와 함께.", frost: "백 년 쌓인 눈이다. 네 발자국도 덮어 주마.",
-    void: "달이 지기 전에 너를 묻는다.", charge: "이번엔 범이 진짜로 문다.",
-    veil: "얼굴 없는 자의 마지막 춤이다.", drum: "마지막 장단이다. 끝까지 들어라.",
+    void: "달이 지기 전에 너를 묻는다.", charge: "이제 범이 문다.",
+    veil: "얼굴 없는 자의 마지막 춤이다.", drum: "북이 찢어질 때까지 치겠다.",
     mirror: "거울이 깨지기 전에 너부터 깨뜨린다.", rain: "그 사람을 보낸 날도 이런 비가 왔다.",
-    swords: "만 자루 칼이 아직 남았다.", time: "남은 시간을 전부 쓰겠다.",
+    swords: "네 칼도 여기 묻힌다.", time: "남은 세월을 한 번에 쓰마.",
     thunder: "남은 부적을 전부 태운다. 하늘아, 답해라.", shadow: "명부를 덮기 전에, 네 이름부터 지운다.",
-    swarm: "꿈은 이제부터야.", wheel: "불이 꺼지기 전에 한 바퀴만 더.",
-    pendulum: "줄이 끊어져도 쇠공은 간다.", crumble: "천 년을 버틴 땅이다. 쉽게 내주지 않는다.",
-    glare: "눈을 감기 전에 한 번만 더 보마.", final: "이름 없는 검의 마지막 초식이다.",
+    swarm: "꿈은 이제부터야.", wheel: "불 꺼지기 전에, 한 바퀴만 더!",
+    pendulum: "공깃돌 놀이는 끝났다.", crumble: "천 년을 버틴 땅이다. 쉽게 내주지 않는다.",
+    glare: "눈을 감기 전에 한 번 더 보마.", final: "이름 없는 검의 마지막 초식이다.",
   };
   // its life is gone: the field falls quiet for its last words (not on a retry: they were heard), then it gathers itself
   function startLast(b, f, wl, d) {
@@ -4004,7 +4005,7 @@ sdk.initializeAsync()
       head.append(who, sig);
       const what = document.createElement("p"); what.textContent = d.what;
       const lines = document.createElement("dl");
-      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["등장", d.intro], ["비기", d.sigLine], ["쓰러질 때", d.down]]) {
+      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["등장 대사", d.intro], ["비기 대사", d.sigLine], ["쓰러질 때", d.down]]) {
         const dt = document.createElement("dt"); dt.textContent = k;
         const dd = document.createElement("dd"); dd.textContent = withName(t);
         lines.append(dt, dd);
@@ -4593,7 +4594,7 @@ sdk.initializeAsync()
     G.killer = cause || {}; G.killerY = y;
     // its name, if it was one with a name: a boss's 비기 under way, or a great move just called
     const c = G.callout, ago = c ? (performance.now() - c.at) / 1000 : Infinity;
-    G.killedBy = c && c.castAt && G.fight && G.fight.busy > 0 ? c.k : c && !G.boss && !c.wind && ago < 5 ? c.k : cause && cause.boss ? "보스의 몸" : "";
+    G.killedBy = c && c.castAt && G.fight && G.fight.busy > 0 ? c.k : c && !G.boss && !c.wind && ago < 5 ? c.k : cause && cause.boss ? "보스의 호신강기" : "";
   }
 
   // ---- the strokes that make it feel like a fight
@@ -5399,7 +5400,11 @@ sdk.initializeAsync()
     const rows = []; let cur = "";
     for (const word of text.split(" ")) {
       const t = cur ? cur + " " + word : word;
-      if (cur && ctx.measureText(t).width > maxW) { rows.push(cur); cur = word; } else cur = t;
+      if (cur && ctx.measureText(t).width > maxW) { // (break after a sentence or a comma past the row's middle, not inside a phrase: "칼도 한 / 호흡에")
+        const k = Math.max(cur.lastIndexOf(". "), cur.lastIndexOf(", "), cur.lastIndexOf("… "), cur.lastIndexOf("? "), cur.lastIndexOf("! ")), tail = k > 0 ? cur.slice(k + 2) + " " + word : "";
+        if (k > 0 && ctx.measureText(cur.slice(0, k + 1)).width > maxW * 0.45 && ctx.measureText(tail).width <= maxW) { rows.push(cur.slice(0, k + 1)); cur = tail; }
+        else { rows.push(cur); cur = word; }
+      } else cur = t;
     }
     if (cur) rows.push(cur);
     return rows;
@@ -6148,7 +6153,7 @@ sdk.initializeAsync()
   const HERO_SKINS = {
     cheong: { name: "청죽", hat: "#b8975c", hatLine: "#6e5631", robe: "#1d1a17", band: "#2f6a62", eye: "#f7f0de", ghost: "29,26,23", ghostLife: 0.26, mote: "leaf" },
     jjok: { name: "쪽빛", coin: 1200, hat: "#b8975c", hatLine: "#6e5631", robe: "#2b3f66", band: "#e6dcc4", eye: "#f7f0de", ghost: "43,63,102", ghostLife: 0.26, mote: "leaf" },
-    mumyeong: { name: "무명", coin: 2400, hat: "#4a3d33", hatLine: "#a08356", robe: "#7a6650", band: "#2f2a24", eye: "#f3ead6", ghost: "90,72,52", ghostLife: 0.3, mote: "ink" },
+    mumyeong: { name: "갈옷", coin: 2400, hat: "#4a3d33", hatLine: "#a08356", robe: "#7a6650", band: "#2f2a24", eye: "#f3ead6", ghost: "90,72,52", ghostLife: 0.3, mote: "ink" },
     heuk: { name: "흑의", sku: "juklim_skin_heuk", hat: "#211e1a", hatLine: "#b08d4a", robe: "#14120f", band: "#8c949a", eye: "#dfe8ec", ghost: "14,12,10", ghostLife: 0.46, mote: null },
     mae: { name: "매화", sku: "juklim_skin_mae", hat: "#c4a56a", hatLine: "#6e5631", robe: "#4a2530", band: "#e2a1b1", eye: "#fbeef1", ghost: "74,37,48", ghostLife: 0.26, mote: "petal" },
     seol: { name: "설산", earn: "하드모드 60초", hat: "#dcdfdb", hatLine: "#5f7180", robe: "#334a5c", band: "#9fcde3", eye: "#e6f5fb", ghost: "51,74,92", ghostLife: 0.3, mote: "snow" },
@@ -6505,11 +6510,11 @@ sdk.initializeAsync()
     $("overSlip").dataset.seal = "敗"; $("overLabel").textContent = "버틴 시간"; $("again").textContent = "다 시";
     $("score").textContent = score.toFixed(2);
     $("meta").textContent = G.kind === "mon"
-      ? `요괴 ${G.seen.size}종을 만났다. 간발 ${G.near}번 (+${G.bonus.toFixed(2)}초)`
-      : `${stageInfo(G.stage).name}에서 쓰러졌다. 간발 ${G.near}번 (+${G.bonus.toFixed(2)}초)`;
+      ? `요괴 ${G.seen.size}종을 만났다. 간발 ${G.near}번${G.bonus > 0 ? ` (+${G.bonus.toFixed(2)}초)` : ""}`
+      : `${stageInfo(G.stage).name}에서 쓰러졌다. 간발 ${G.near}번${G.bonus > 0 ? ` (+${G.bonus.toFixed(2)}초)` : ""}`;
     const myBest = Number(store.get(bestKey(G.kind), "0")) || 0, isBest = score > myBest;
     if (isBest) store.set(bestKey(G.kind), score);
-    $("best").textContent = isBest ? "새 최고 기록" : `내 최고 ${myBest.toFixed(2)}초`;
+    $("best").textContent = isBest ? "새 최고 기록" : `최고 기록 ${myBest.toFixed(2)}초`;
     $("hud").hidden = true; $("over").hidden = false;
     syncRevive(); showGain(payRun()); syncDouble();
     shown = G.kind; renderRank();
@@ -6521,7 +6526,7 @@ sdk.initializeAsync()
     $("overSlip").dataset.seal = cleared ? "完" : "敗";
     $("overLabel").textContent = cleared ? "걸린 시간" : "버틴 시간";
     $("score").textContent = score.toFixed(2);
-    $("meta").textContent = cleared ? `흑월을 베었다. 간발 ${G.near}번` : `${ch.num} ${ch.name}${G.boss ? ` ${G.boss.def.name}전` : ""}. 간발 ${G.near}번`;
+    $("meta").textContent = cleared ? `흑월을 베었다. 간발 ${G.near}번` : `${ch.num} ${ch.name}${G.boss ? ` · ${G.boss.def.name}` : ""}. 간발 ${G.near}번`;
     $("best").textContent = cleared ? `지금까지 ${Number(store.get("storyClears", "1")) || 1}번 마쳤다` : "";
     $("again").textContent = cleared ? "처음부터" : "이 장 다시";
     $("hud").hidden = true; $("over").hidden = false; $("revive").hidden = true; // the story gives a chapter back for free
@@ -6592,7 +6597,7 @@ sdk.initializeAsync()
       }
       const won = LEVELS.filter((k) => (bossWins[k] || []).includes(i)).map((k) => STAGE_LEVELS[k].name);
       name.textContent = `${d.stage} ${d.name}`;
-      sub.textContent = d.sigName[1] + (won.length ? ` (${won.join(", ")} 깸)` : "");
+      sub.textContent = d.sigName[1] + (won.length ? ` (${won.join(", ")} 격파)` : "");
       const go = document.createElement("button"); go.type = "button"; go.textContent = "도전";
       go.addEventListener("click", () => startDevBoss(i, true));
       li.append(name, sub, go); list.append(li);
@@ -6607,8 +6612,8 @@ sdk.initializeAsync()
       const w = bossWins[dv.lvl] || (bossWins[dv.lvl] = []);
       if (!w.includes(dv.i)) { w.push(dv.i); store.set("bossWins", JSON.stringify(bossWins)); renderBoss(); }
       const ns = dv.newSkin && HERO_SKINS[dv.newSkin];
-      $("bossNote").textContent = `${d.name}${josa(d.name, "을", "를")} 베었다. 엽전 +${pay}` + (ns ? `, ${ns.name}${josa(ns.name, "을", "를")} 얻었다.` : "");
-    } else $("bossNote").textContent = dv.quit ? BOSS_NOTE : `${d.name}에게 베였다. ${lasted.toFixed(1)}초 버텼다.`;
+      $("bossNote").textContent = `${d.name}${josa(d.name, "을", "를")} 베었다.` + (ns ? ` ${ns.name}${josa(ns.name, "을", "를")} 얻었다.` : "") + ` 엽전 +${pay}`;
+    } else $("bossNote").textContent = dv.quit ? BOSS_NOTE : `${d.name}에게 베였다. ${lasted.toFixed(2)}초 버텼다.`;
   }
   const bossLabels = () => {
     if (bossLevel === "master" && !masterOpen()) { bossLevel = "normal"; store.set("bossLv", bossLevel); }
@@ -6639,7 +6644,7 @@ sdk.initializeAsync()
   }));
   storyLabels();
   $("mute").addEventListener("click", () => {
-    muted = !muted; store.set("muted", muted ? "1" : "0"); $("mute").textContent = muted ? "×" : "♪";
+    muted = !muted; store.set("muted", muted ? "1" : "0"); $("mute").textContent = muted ? "×" : "♪"; $("mute").setAttribute("aria-label", muted ? "소리 켜기" : "소리 끄기");
     if (master) master.gain.setTargetAtTime(muted || ringerSilent ? 0 : 1, ac.currentTime, 0.05);
     if (!muted) { audio(); if (ac && ac.state === "suspended") ac.resume(); }
   });
@@ -6662,7 +6667,7 @@ sdk.initializeAsync()
     save() { /* every change is stored the moment it happens: nothing is left to write */ },
     setInsets(a) { const s = document.documentElement.style; for (const k of ["top", "right", "bottom", "left"]) s.setProperty(`--sa-${k}`, `${Math.max(0, Number(a?.[k]) || 0)}px`); },
   };
-  $("mute").textContent = muted ? "×" : "♪";
+  $("mute").textContent = muted ? "×" : "♪"; $("mute").setAttribute("aria-label", muted ? "소리 켜기" : "소리 끄기");
   $("nick").value = store.get("nick", "");
   // ---- the swordsman's name (11-06: "처음 들어오면 닉네임 설정"): asked once on the first visit, a name already in
   // the box to take with one tap; after that shown on the start screen with a way to change it
@@ -6909,8 +6914,8 @@ sdk.initializeAsync()
     { id: "near", text: "한 판에 간발 10번", goal: 10, of: (r) => r.near },
     { id: "live", text: "한 판에 60초 버티기", goal: 60, of: (r) => r.time },
     { id: "combo", text: "간발 5연속", goal: 5, of: (r) => r.combo },
-    { id: "red", text: "특수 효과만 30초", goal: 30, of: (r) => (r.kind === "red" ? r.time : 0) },
-    { id: "hard", text: "하드모드 30초", goal: 30, of: (r) => (r.kind === "hard" ? r.time : 0) },
+    { id: "red", text: "특수 효과만 30초 버티기", goal: 30, of: (r) => (r.kind === "red" ? r.time : 0) },
+    { id: "hard", text: "하드모드 30초 버티기", goal: 30, of: (r) => (r.kind === "hard" ? r.time : 0) },
     { id: "stage", text: "스테이지 세 개 깨기", goal: 3, add: true },
   ];
   const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
@@ -6933,7 +6938,7 @@ sdk.initializeAsync()
     drill = { day, ids: pickDrills(day), prog: {}, done: {} };
     store.set("drill", JSON.stringify(drill));
     addCoins(ECON.daily);
-    $("drillNote").textContent = `오늘 처음 왔다. 엽전 +${ECON.daily}`; $("drillNote").hidden = false;
+    $("drillNote").textContent = `오늘 첫 출석. 엽전 +${ECON.daily}`; $("drillNote").hidden = false;
     renderDrills();
   }
   function drillProgress(id, value, add = false) { // returns the reward when this finishes it
@@ -7020,7 +7025,7 @@ sdk.initializeAsync()
     if (!sk.coin || owned.has(id)) return;
     const short = coins < sk.coin;
     drawSkinPreview($("shopAskPv"), sk);
-    $("shopAskQ").textContent = short ? `엽전이 ${fmt(sk.coin - coins)}개 모자라요` : `${sk.name}${josa(sk.name, "을", "를")} 살까요?`;
+    $("shopAskQ").textContent = short ? `엽전이 ${fmt(sk.coin - coins)}개 모자라다` : `${sk.name}${josa(sk.name, "을", "를")} 살까?`;
     $("shopAskSub").textContent = `필요한 엽전 ${fmt(sk.coin)}개, 가진 엽전 ${fmt(coins)}개`;
     $("shopAskYes").hidden = short; $("shopAskNo").textContent = short ? "확인" : "그만두기";
     askingFor = short ? null : id;
