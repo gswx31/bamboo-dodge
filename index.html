@@ -1518,32 +1518,7 @@ sdk.initializeAsync()
       fire(w) { shoot("pellet", w.x, w.y, w.ang, S * 2.3, { r: S * 0.009 }); sfx.tick(); } });
   }
 
-  // ---- 사자후's rings (no longer an attack of its own, 11-10; 맹호's 호포 and 뇌음's 뇌고 and 북소리 still roar): three rings
-  // of force spread out, each with one gap to slip through
-  function roarAt(x, y) {
-    // the gaps follow on from one another: the first opens on your side, each next one a little round from the last,
-    // so there is always one way out that runs through all three (left to chance, some throws had none)
-    let g = Math.atan2(P.y - y, P.x - x) + rnd(-1.2, 1.2);
-    const rings = [0, 0.5, 1.0].map((delay, i) => ({ delay, gapA: i ? (g += rnd(-0.95, 0.95)) : g, gapW: 0.95 }));
-    G.warns.push({ kind: "roar", x, y, rings, t: 0, dur: 0.8, delay: 0, fire(w) {
-      const v = S * 0.75;
-      G.hazards.push({ kind: "roar", x: w.x, y: w.y, rings: w.rings, v, th: S * 0.035, t: 0, dur: 1.0 + Math.hypot(W, H) / v, best: Infinity, near: false,
-        dist() {
-          const dx = P.x - this.x, dy = P.y - this.y, d = Math.hypot(dx, dy), a = Math.atan2(dy, dx);
-          let m = Infinity;
-          for (const r of this.rings) {
-            const rad = (this.t - r.delay) * this.v;
-            if (rad <= 0) continue;
-            if (Math.abs(Math.atan2(Math.sin(a - r.gapA), Math.cos(a - r.gapA))) < r.gapW / 2) continue; // standing in its gap
-            m = Math.min(m, Math.max(0, Math.abs(d - rad) - this.th / 2));
-          }
-          return m;
-        },
-        draw: drawRoar });
-      G.shake = Math.max(G.shake, reduced ? 0 : 16); flash("29,26,23", 0.05); sfx.roar(); buzz([40, 20, 40]);
-    } });
-    sfx.warn();
-  }
+  // (사자후, three rings of force each with one gap, is gone from the whole game: 11-10)
 
   // ---- 천잠사: silk wires drawn taut across the grove — faint first, then for three seconds they cut whatever touches them
   function bigSilk() {
@@ -3809,26 +3784,27 @@ sdk.initializeAsync()
       const moon = () => { const R = S * 0.16; blackMoon(clamp(P.x, R * 0.6, W - R * 0.6), clamp(P.y, H * 0.16, H - R * 0.6), R, 0.95, 1.8); }, cut = () => bandsAt([rnd(0, Math.PI)]);
       return steps(0.8, moon, cut, moon, () => SUBS.void.run(), moon, cut, moon, () => SUBS.void.run());
     } },
-    charge: { name: ["虎咆", "호포"], run() { // its roar, and at once it comes down the road through you
+    // (11-10: no 사자후 anywhere, "게임 전체적으로 빼버려" — 맹호 rakes its claws across you before it charges, 뇌음 lays its
+    // paths on the beat with no rings first, and 뇌음's 북소리 is its three paths on the beat)
+    charge: { name: ["虎咆", "호포"], run() { // its claws across you, and at once it comes down the road through you (was its roar)
       // (11-08 "6-5 어려움도 너무 쉬워": faster down its road as it grows; its pounce lands straight into its claws, and
       // higher it pounces once more at the end)
       const L = lvl(), v = 2.0 + clamp((L - 6) * 0.12, 0, 0.8), leap = () => pounce(0.85, L >= 8 ? () => tigerRake(0.75) : null);
       const run = () => { const b = G.boss, u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x); G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: u * 2.3, t: 0, dur: 0.85, delay: 0, fire(w) { runAt(ang, w.x, w.y - u * 0.8, v); } }); sfx.warn(); };
       G.boss.tx = G.boss.x; G.boss.ty = G.boss.y;
-      const roarRun = () => { const [x, y] = bossAt(); roarAt(x, y); later(1.0, () => G.boss && run()); };
-      const t = L >= 10 ? steps(2.0, roarRun, leap, roarRun, leap) : steps(2.0, roarRun, leap, roarRun);
+      const rakeRun = () => { tigerRake(0.75); later(1.0, () => G.boss && run()); };
+      const t = L >= 10 ? steps(2.0, rakeRun, leap, rakeRun, leap) : steps(2.0, rakeRun, leap, rakeRun);
       later(t - 0.3, () => { if (G.boss && !G.boss.dash) G.boss.home = 1.0; });
       return t;
     } },
     veil: { name: ["暗殺", "암살"], run() { const stab = () => bandsAt([rnd(0, Math.PI)], S * 0.08, 0.65), v = () => SUBS.veil.run(); return steps(0.75, v, stab, stab, v, stab, stab, v, stab); } },
-    drum: { name: ["雷鼓", "뇌고"], run() { // a roar off the drum; once its rings have gone by, three paths side by side on the beat
-      // (never the two together: a ring's gap and a gap between paths at once could leave nowhere to stand)
+    drum: { name: ["雷鼓", "뇌고"], run() { // three paths side by side on the beat, five times over
       const beat = drumBeat(), three = (g) => { const nx = Math.cos(g + Math.PI / 2), ny = Math.sin(g + Math.PI / 2); for (const o of [-1, 0, 1]) G.warns.push({ kind: "band", x: P.x + nx * S * 0.2 * o, y: P.y + ny * S * 0.2 * o, ang: g, w: S * 0.07, t: 0, dur: beat * 1.5, delay: 0, beat: true, fire(v) { landCut(v); } }); sfx.taiko(); };
       // (11-08 "빠르게 빠르게": three sets two beats apart then; now four, one on each beat, the next shown before the
-      // last has struck, after the same wait for the rings)
-      const [x, y] = bossAt(), g = rnd(0, Math.PI); roarAt(x, y);
-      [0, Math.PI / 2, Math.PI / 4, Math.PI * 3 / 4].forEach((a, k) => later((7 + k) * beat, () => G.boss && three(g + a)));
-      return (10 + 1.5) * beat + 0.6;
+      // last has struck; 11-10, with no rings to wait for: five sets from the second beat)
+      const g = rnd(0, Math.PI);
+      [0, Math.PI / 2, Math.PI / 4, Math.PI * 3 / 4, Math.PI / 3].forEach((a, k) => later((2 + k) * beat, () => G.boss && three(g + a)));
+      return (6 + 1.5) * beat + 0.6;
     } },
     mirror: { name: ["三面鏡", "삼면경"], run() { // three panes turn on you at once: three icicles off them, meeting where you stand; a wall of ice between
       const h = icePanes(7.6), three = () => { for (let i = 0; i < 3; i++) mirrorShot(h, 0.85); };
@@ -3932,7 +3908,7 @@ sdk.initializeAsync()
         place(w) { const a = rnd(0, Math.PI * 2), d = S * 0.4; w.x = clamp(P.x + Math.cos(a) * d, S * 0.04, W - S * 0.04); w.y = clamp(P.y + Math.sin(a) * d, S * 0.04, H - S * 0.04); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
         fire(w) { cloneDash(w.x, w.y, w.ang); } });
     } },
-    drum: { name: "북소리", run() { const [x, y] = bossAt(); roarAt(x, y); } },
+    drum: { name: "북소리", run() { FORESHADOW.drum(); } }, // three paths on the beat across you (was 사자후's rings off the drum)
     mirror: { name: "반조", run() { // 返照: two panes beside you, one icicle off the one and the other at you, then one back the
       // other way; late on two at first, crossing between the panes (was 빙벽, a wall of swords with one gap: 11-08 19:45)
       const h = twinPanes(), i = Math.random() < 0.5 ? 0 : 1;
@@ -4578,6 +4554,10 @@ sdk.initializeAsync()
         if (w.kind !== "none" && w.dur > 0 && w.dur / k < WARN_MIN) w.dur = WARN_MIN * k;
       }
       w.t += dt * (hard() && !w.quick ? HARD.warn : 1); // 아수라 gives you less time to read them (not those already short)
+      // and however time bends meanwhile (광음 quickens it partway through a warning), none goes off before it has been up
+      // WARN_MIN by the wall clock: it holds at its last instant until then
+      w.wall = (w.wall || 0) + dt / ((G.slow || 1) * (G.timeK || 1) * (G.bossK || 1));
+      if (w.kind !== "none" && w.dur > 0 && w.t >= w.dur && w.wall < WARN_MIN) w.t = w.dur * 0.999;
       // a moment before a blade's band or a palm's lane goes, a dry click: your eyes are on your finger, your ears are free
       // (not on 뇌음's beat, which has its own drum)
       if (!w.locked && (w.kind === "band" || w.kind === "palm") && !w.beat && w.t >= w.dur - 0.1) { w.locked = true; sfx.lock(); }
