@@ -174,6 +174,7 @@
   .skin.is-on { background: color-mix(in srgb, var(--ink) 8%, transparent); }
   .skin canvas { width: 72px; height: 72px; }
   .dev-inv { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+  .dev-inv--start { justify-content: center; }
   .purse .shop-open + .shop-open { margin-left: 8px; margin-right: auto; }
   .boss-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
   .boss-list li { border: 1.5px solid var(--ink); padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px; row-gap: 2px; }
@@ -292,6 +293,7 @@
       </div>
       <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
       <button class="link" id="devOpen" hidden>개발자 모드: 보스 비기 보기</button>
+      <label class="dev-inv dev-inv--start" id="stageInvRow" hidden><input type="checkbox" id="stageInv" checked> 스테이지모드 무적 (보상 없음)</label>
       <div class="purse">
         <button class="shop-open" id="shopOpen">상점</button>
         <button class="shop-open" id="bossOpen">보스전</button>
@@ -1672,7 +1674,7 @@ sdk.initializeAsync()
     G.bonus += 3; // a boss felled is worth three seconds
     sfx.issen(); buzz([40, 30, 90]);
     if (G.dev) G.dev.won = true;
-    G.newSkin = bossSkinWon(); // told on the next card (스테이지 모드) or the 보스전 list
+    G.newSkin = G.stageRun && G.stageInv ? null : bossSkinWon(); // told on the next card (스테이지 모드) or the 보스전 list
     if (G.dev && G.newSkin) G.dev.newSkin = G.newSkin;
     say(b.def.down(), G.dev ? devBack : G.stageRun ? stageClear : nextChapter);
   }
@@ -2069,6 +2071,10 @@ sdk.initializeAsync()
   function startStage(i) {
     G.story = true; G.stageRun = true; G.dev = null; G.sg = i; G.ch = 0; reset(); G.mode = "play"; runStart();
     G.stageTop0 = stageTop();
+    // (11-10 제작자: "?dev 링크 붙으면 스테이지모드 무적") with ?dev and its box ticked, nothing in a stage or its boss can
+    // kill you. ?dev works on the live address for anyone, so such a run earns no 엽전 and no boss clothes (payRun,
+    // stageClear, bossDown); the stages it reaches still count, on this device only.
+    G.stageInv = DEV && $("stageInv").checked;
     setTheme(stageDef(i).theme, true);
     $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false;
     reachStage(i); enterStage();
@@ -2102,7 +2108,7 @@ sdk.initializeAsync()
   function stageClear() {
     const sd = stageDef(G.sg), pay = sd.boss ? ECON.chapter : ECON.stage;
     clearField(); G.boss = null;
-    addCoins(pay); G.chapCoins = (G.chapCoins || 0) + pay; drillProgress("stage", 1, true);
+    if (!G.stageInv) { addCoins(pay); G.chapCoins = (G.chapCoins || 0) + pay; drillProgress("stage", 1, true); }
     G.sg++; reachStage(G.sg);
     const next = stageDef(G.sg);
     if (next.s === 0) { setTheme(next.theme, true); sfx.taiko(); } // a new 장, a new place
@@ -2155,7 +2161,7 @@ sdk.initializeAsync()
       bossFight(dt, sd.bossSet, sd.lv, BOSS_SECONDS);
     }
     if (G.boss) moveBoss(realDt);
-    G.safe = G.phase !== "fight" && G.phase !== "boss";
+    G.safe = (G.phase !== "fight" && G.phase !== "boss") || G.stageInv;
   }
   function drawStageBar() { // 스테이지 모드, a stage without a boss: how much of it is left, across the top
     if (!G.stageRun || G.phase !== "fight") return;
@@ -6615,7 +6621,7 @@ sdk.initializeAsync()
   $("stageNew").addEventListener("click", () => { begin(); startStage(0); });
   stageLabels();
   // 개발자 모드: only with ?dev in the address
-  $("devOpen").hidden = !DEV;
+  $("devOpen").hidden = !DEV; $("stageInvRow").hidden = !DEV;
   $("devOpen").addEventListener("click", () => { renderDev(); $("start").hidden = true; $("dev").hidden = false; });
   const devLabels = () => { for (const b of document.querySelectorAll("#devLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === devLevel)); };
   for (const b of document.querySelectorAll("#devLvl button")) b.addEventListener("click", () => { devLevel = b.dataset.lvl; store.set("devLv", devLevel); devLabels(); });
@@ -7035,6 +7041,7 @@ sdk.initializeAsync()
   }
   // a run ends, or one stretch of it when it's carried on with an ad: pay only what wasn't paid already
   function payRun() {
+    if (G.stageRun && G.stageInv) { G.chapCoins = 0; G.lastPay = 0; return { earned: 0, drills: 0, chap: 0 }; } // (an unkillable ?dev stage run)
     const story = G.story, time = story ? G.st : G.rt, near = G.near;
     const dt = Math.max(0, time - (G.paidT || 0)), dn = Math.max(0, near - (G.paidN || 0));
     G.paidT = time; G.paidN = near;
