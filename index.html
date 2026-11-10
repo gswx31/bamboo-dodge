@@ -1095,6 +1095,7 @@ sdk.initializeAsync()
   // Each 段 brings one new thing. Warnings carry no words: red light, aim lines and cracks say it all.
   // Nothing flies in unannounced: every attack is lit red first.
   const FRENZY = 96;
+  const WARN_MIN = 0.57; // no warning shorter than this, in seconds by the wall clock (stepWorld; 0.55 and a frame to spare)
   const STAGES = [
     { at: 0, name: "一段 · 첫 칼" },
     { at: 8, name: "二段 · 발도" },
@@ -1290,9 +1291,16 @@ sdk.initializeAsync()
     sfx.warn();
   }
   // kunai burst out of a point in every direction: each of their lines is drawn first, so you stand between them
+  // (11-10 제작자: "플레이어 주변에서 그 표창 사방으로 터지는 그 패턴은 전체적으로 좀 개선… 플레이어 주변이 아니라 맵 랜덤으로
+  // 일정 거리에서 생겨야지") where a burst goes off: anywhere on the field below the bars, at least `min` from you. It was
+  // within 0.22 of the field of you (터지는 칼), or 0.12–0.28 (연화's 물결, 호접's 독 날개): kunai from right beside you.
+  function burstSpot(min = S * 0.32) {
+    let x, y, tries = 0;
+    do { x = rnd(S * 0.08, W - S * 0.08); y = rnd(H * 0.16, H - S * 0.08); } while (Math.hypot(x - P.x, y - P.y) < min && ++tries < 30);
+    return [x, y];
+  }
   function spawnBurst() {
-    const [tx, ty] = aimPoint();
-    const x = clamp(tx + rnd(-S * 0.22, S * 0.22), edge(), W - edge()), y = clamp(ty + rnd(-S * 0.22, S * 0.22), edge(), H - edge());
+    const [x, y] = burstSpot();
     burstAt(x, y, G.t >= 90 ? 16 : 12, Math.random() * Math.PI, 1.0, false);
     sfx.warn();
   }
@@ -1421,21 +1429,7 @@ sdk.initializeAsync()
     sfx.warn();
   }
 
-  // ---- 포위진: kunai ring you in, tremble, then close; one side is left open
-  function bigRing(skin) {
-    const n = 18, gapN = 2, R = S * 0.34, x = P.x, y = P.y, hold = 1.05;
-    const gapAt = Math.floor(Math.random() * n);
-    for (let i = 0; i < n; i++) {
-      if ((i - gapAt + n) % n < gapN) continue;
-      const a = (i / n) * Math.PI * 2, kx = x + Math.cos(a) * R, ky = y + Math.sin(a) * R;
-      // (11-06 "가운데로 모아지고 없애야지, 반대편으로도 이동하는 게 너무 어렵다": each one ends where they all meet)
-      shoot("kunai", kx, ky, a + Math.PI, 0, { r: S * 0.01, hold, go: S * 0.62, red: true, skin, range: R });
-      G.parts.push({ kind: "ink", x: kx, y: ky, vx: 0, vy: 0, r: S * 0.012, life: 0.35, t: 0 });
-    }
-    const gapA = ((gapAt + (gapN - 1) / 2) / n) * Math.PI * 2, gapW = ((gapN + 1) / n) * Math.PI * 2;
-    G.warns.push({ kind: "circle", x, y, r: R, gapA, gapW, t: 0, dur: hold, delay: 0, fire() { sfx.whoosh(); sfx.clang(); } });
-    sfx.warn();
-  }
+  // (포위진/천라지망, the ring of kunai closing on you with one side open, is gone from the whole game: 11-10)
 
   // ---- 검우: swords rain in, each one's lane lit a moment before
   function bigRain() {
@@ -1999,10 +1993,15 @@ sdk.initializeAsync()
   // 보통 기준 -25초") All three can be picked from the start. 쉬움 is back as 보통 with its clock 25 s lower (1-1 at 죽림
   // 수련's 30 s, the end of 20-4 at 60 s) and its bosses 4 levels lower, the same 25 s by 죽림 수련's own boss clock
   // (20 + 6 s a level); the rest as 보통. It keeps 쉬움's old key, so an old 쉬움 run picks up where it was.
+  // (Same day, later: "쉬움에도 불구하고 너무 어려워… 쉬움은 진짜 -20은 해야", "11-1과 11-4 차이가 엄청 큰 거 같은데") 쉬움's
+  // clock 20 s lower again (1-1 at 10 s, 20-4 at 40 s), its bosses at the old pace and level 0. And on 쉬움 and 보통 the
+  // more kinds a stage has, the longer each one waits (crowd 0.45 / 0.35, was 0.02): X-4 runs all of its 장's kinds,
+  // X-1 one, and five at full rate made X-4 nearly three times X-1; now X-2 to X-4 come about as thick, only more varied.
+  // 어려움 keeps its steep climb.
   const STAGE_LEVELS = {
-    easy: { name: "쉬움", pace: 1.16, clock: 30, climb: 1.5, crowd: 0.02, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.2, lv: 3, last: 5, layer: 1.2, breath: [0.8, 1.3], top: "stageTopE" },
-    normal: { name: "보통", pace: 1.16, clock: 55, climb: 1.5, crowd: 0.02, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.2, lv: 7, last: 5, layer: 1.2, breath: [0.8, 1.3], top: "stageTop" },
-    master: { name: "어려움", pace: 1.22, clock: 90, crowd: 0.01, bamboo: 1.16, floor: 0.2, gap: 0.7, boss: 1.25, lv: 9, last: 6, layer: 1.0, breath: [0.55, 1.2], top: "stageTopH" },
+    easy: { name: "쉬움", pace: 1.16, clock: 10, climb: 1.5, crowd: 0.45, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.12, lv: 1, last: 5, layer: 1.2, breath: [0.7, 1.15], top: "stageTopE" },
+    normal: { name: "보통", pace: 1.16, clock: 55, climb: 1.5, crowd: 0.35, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.17, lv: 9, last: 6, layer: 1.0, breath: [0.6, 1.0], top: "stageTop" },
+    master: { name: "어려움", pace: 1.22, clock: 90, crowd: 0.01, bamboo: 1.16, floor: 0.2, gap: 0.7, boss: 1.18, lv: 11, last: 7, layer: 0.85, breath: [0.45, 0.9], top: "stageTopH" },
   };
   const LEVELS = ["easy", "normal", "master"]; // the ones a player can pick, all of them from the start
   { // the furthest stage reached at 일반: the old 고수 record carries over to it (they were the same difficulty)
@@ -2023,9 +2022,13 @@ sdk.initializeAsync()
   const stageClock = (w, s) => SL().clock + (SL().climb || 1) * (w + s / 5); // (climb: how many seconds a 장 adds)
   // (11-10 제작자: "스테이지가 각 스테이지 보스보다 어렵다… 스테이지를 전체적으로 좀 더 쉽게, 보스는 좀 더 어렵게 전체적으로".
   // Measured by the human bot, hits a minute over 1장–20장: stages 13.1, bosses 8.5 — from 6장 on a stage was twice its
-  // boss.) Every boss fight quicker (boss 1.12→1.2, 어려움 1.17→1.25) and 1.5 levels up (lv), its shared attacks 10 s
-  // above its 장's last stage, not 5. The stages: stageDef.
-  const BOSS_LIFT = 10; // a boss fight's shared attacks, this many seconds harder than its 장's last stage (bossFight)
+  // boss.) Every boss up (lv +1.5), its shared attacks 10 s above its 장's last stage, not 5. The stages: stageDef.
+  // (Later the same day: "보스가 더 쉽고 보스 전 스테이지가 쉬운 느낌이 강하게 들어") harder again, but never by its pace:
+  // the shortest warning is 0.65 game-s and must stay ≥ 0.55 s by the wall clock, so boss ≤ 1.18 (it had been put at
+  // 1.2 / 1.25 that morning, 0.54 / 0.52 s: back to 1.17 / 1.18). Instead 보통 lv 9, 어려움 11 (+2), shorter breaths
+  // between 비기, a fiercer 종전 laying its other moves on more often (last +1, layer 1.0 / 0.85), and the shared attacks
+  // 15 s above the 장's last stage.
+  const BOSS_LIFT = 15; // a boss fight's shared attacks, this many seconds harder than its 장's last stage (bossFight)
   const bossWorld = (i) => Math.max(0, WORLDS.findIndex((wd) => wd.boss === i)); // the 장 a boss is master of
   const bossLv = (w) => 0.7 * (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
   const BOSS_PACE = 0.8; // (스토리 모드; 스테이지 모드 and 개발자 모드 take their level's)
@@ -3798,7 +3801,10 @@ sdk.initializeAsync()
     // its last 0.8 s, where they were under its last 1.2: no more at once than before)
     lotus: { name: ["蓮池", "연지"], run() { later(1.6,() => G.boss && beamAt(G.boss.x, G.boss.y, "water", 2.7)); SUBS.lotus.run(); later(4.3, () => G.boss && SUBS.lotus.run()); return 5.9; } },
     fire: { name: ["火龍", "화룡"], run() { const go = () => marchAt((w) => spikeErupt(w.x, w.y, w.r, "fire"), S * 0.08, 0.07, 9); return steps(0.7, go, go, go, go, go, go); } },
-    frost: { name: ["氷獄", "빙옥"], run() { return steps(1.5, () => bigRing(), () => SUBS.frost.run(), () => bigRing(), () => SUBS.frost.run()); } },
+    // (11-10 제작자: "천라지망 그 플레이어 주변에 사방으로 쿠나이 생기고 한 부분만 비어 있고 일정 시간 지나면 플레이어 쪽으로 날라오는
+    // 거 빼달라니까 아직 남아 있는 거 같은데") the ring of kunai is gone from these 비기 too: 설귀 crosses two cuts of ice
+    // over you, 광음 throws two aimed stars from the edges, 화륜 burns its wheel tracks through you
+    frost: { name: ["氷獄", "빙옥"], run() { const cross = () => { const g = rnd(0, Math.PI); bandsAt([g, g + Math.PI / 2]); }; return steps(1.5, cross, () => SUBS.frost.run(), cross, () => SUBS.frost.run()); } },
     void: { name: ["月蝕斬", "월식참"], run() { // a moon, a cut across you, a moon, a crossed cut
       const moon = () => { const R = S * 0.16; blackMoon(clamp(P.x, R * 0.6, W - R * 0.6), clamp(P.y, H * 0.16, H - R * 0.6), R, 0.95, 1.8); }, cut = () => bandsAt([rnd(0, Math.PI)]);
       return steps(0.8, moon, cut, moon, () => SUBS.void.run(), moon, cut, moon, () => SUBS.void.run());
@@ -3838,12 +3844,12 @@ sdk.initializeAsync()
     // apart, each shown before the last has flown, and a ring of 20, one of them at you)
     swords: { name: ["飛劍陣", "비검진"], run() { const v = () => SUBS.swords.run(); return steps(0.8, v, v, v, v, () => { const n = 20; G.warns.push({ kind: "ring", x: 0, y: 0, n, off: 0, t: 0, dur: 0.8, delay: 0, place(w) { [w.x, w.y] = bossAt(); w.off = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); }, fire(w) { for (let i = 0; i < n; i++) shoot("sword", w.x, w.y, w.off + (i / n) * Math.PI * 2, S * 0.95, { len: S * 0.11, r: S * 0.009 }); sfx.burst(); } }); }); } },
     // (11-08 제작자 19:23 "너무 쉬워": 광음·벽력·추혼·호접's second 비기 a third quicker from one move to the next, and longer)
-    time: { name: ["逆流", "역류"], run() { const two = () => { aimedLine(...edgePoint(), S * 0.9); aimedLine(...edgePoint(), S * 0.9); }; return steps(1.1, () => SUBS.time.run(), () => bigRing(), () => SUBS.time.run(), two, () => bigRing(), () => SUBS.time.run()); } },
+    time: { name: ["逆流", "역류"], run() { const two = () => { aimedLine(...edgePoint(), S * 0.9); aimedLine(...edgePoint(), S * 0.9); }; return steps(1.1, () => SUBS.time.run(), two, () => SUBS.time.run(), two, two, () => SUBS.time.run()); } },
     thunder: { name: ["雷網", "뇌망"], run() { const net = () => { const g = rnd(0, Math.PI); for (const ang of [g, g + Math.PI / 2]) G.warns.push({ kind: "band", x: P.x, y: P.y, ang, w: S * 0.07, t: 0, dur: 0.75, delay: 0, fire(v) { landCut({ ...v, tint: "#d9b23a" }); flash("255,248,214", 0.12); } }); sfx.warn(); }; return steps(0.8, net, () => SUBS.thunder.run(), net, net, () => SUBS.thunder.run(), net); } },
     shadow: { name: ["百鬼", "백귀"], run() { return steps(0.9, () => SUBS.shadow.run(), () => SUBS.veil.run(), () => SUBS.shadow.run(), () => SUBS.veil.run(), () => SUBS.shadow.run(), () => SUBS.veil.run()); } },
     swarm: { name: ["毒粉", "독분"], run() { return steps(0.72, () => SUBS.swarm.run(), () => SUBS.swarm.run(), () => SUBS.swarm.run(), () => SUBS.lotus.run(), () => SUBS.swarm.run()); } },
     // (11-08 "패턴들이 너무 쉬워": 16~19's second 비기 closer together, one coming up before the last is gone)
-    wheel: { name: ["火環", "화환"], run() { return steps(1.3, () => bigRing("fire"), () => SUBS.wheel.run(), () => bigRing("fire"), () => bigRing("fire")); } },
+    wheel: { name: ["火環", "화환"], run() { return steps(1.3, () => FORESHADOW.wheel(), () => SUBS.wheel.run(), () => FORESHADOW.wheel(), () => SUBS.wheel.run()); } },
     pendulum: { name: ["流星", "유성"], run() { const ball = () => SUBS.pendulum.run(); return steps(0.7, ball, ball, ball, ball, ball, ball); } },
     crumble: { name: ["壓殺", "압살"], run() { // the totem falls flat down a broad road, gets up, and stamps after you
       const fall = () => { const [x, y] = bossAt(); G.warns.push({ kind: "band", x, y, ang: Math.atan2(P.y - y, P.x - x), w: S * 0.24, t: 0, dur: 0.95, delay: 0, fire(v) { landCut(v); impact(P.x, P.y, 1.2, "#9b4a2c"); } }); sfx.warn(); };
@@ -3911,8 +3917,8 @@ sdk.initializeAsync()
       for (const x of [S * 0.05, W - S * 0.05]) G.warns.push({ kind: "clone", x, y: H * 0.2, ang: Math.atan2(P.y - H * 0.2, P.x - x), t: 0, dur: 0.8, delay: 0, fire(w) { cloneDash(w.x, w.y, w.ang); } });
       sfx.warn();
     } },
-    lotus: { name: "물결", run() { // three ripples bursting round you, one after another
-      for (let k = 0; k < 3; k++) later(k * 0.4, () => { const a = rnd(0, Math.PI * 2), d = S * rnd(0.15, 0.28); burstAt(clamp(P.x + Math.cos(a) * d, S * 0.08, W - S * 0.08), clamp(P.y + Math.sin(a) * d, S * 0.15, H - S * 0.08), 10, rnd(0, Math.PI), 0.9, true, "water"); sfx.warn(); });
+    lotus: { name: "물결", run() { // three ripples bursting about the field, one after another (burstSpot: not beside you)
+      for (let k = 0; k < 3; k++) later(k * 0.4, () => { const [x, y] = burstSpot(); burstAt(x, y, 10, rnd(0, Math.PI), 0.9, true, "water"); sfx.warn(); });
     } },
     fire: { name: "불길 행진", run() { marchAt((w) => spikeErupt(w.x, w.y, w.r, "fire"), S * 0.075); } },
     frost: { name: "고드름", run() { // five icicles let go, lanes round you lit first
@@ -3953,8 +3959,8 @@ sdk.initializeAsync()
         sfx.warn();
       });
     } },
-    swarm: { name: "독 날개", run() { // two clouds of scales bursting beside you
-      for (let k = 0; k < 2; k++) later(k * 0.45, () => { const a = rnd(0, Math.PI * 2), d = S * rnd(0.12, 0.22); burstAt(clamp(P.x + Math.cos(a) * d, S * 0.08, W - S * 0.08), clamp(P.y + Math.sin(a) * d, S * 0.15, H - S * 0.08), 12, rnd(0, Math.PI), 0.85, true); sfx.warn(); });
+    swarm: { name: "독 날개", run() { // two clouds of scales bursting about the field (burstSpot: not beside you)
+      for (let k = 0; k < 2; k++) later(k * 0.45, () => { const [x, y] = burstSpot(); burstAt(x, y, 12, rnd(0, Math.PI), 0.85, true); sfx.warn(); });
     } },
     wheel: { name: "불바퀴 질주", run() { // it runs a road through you on its wheels, then leaps home
       const b = G.boss; if (!b) return;
@@ -4191,7 +4197,7 @@ sdk.initializeAsync()
     { key: "drake", name: "불비룡", from: 14, enter: "top", moves: ["fireSpin", "flame", "pillar"], draw: drawDrake },
     { key: "beast", name: "월영수", from: 28, enter: "near", moves: ["ambush", "shadowRush"], draw: drawBeast },
     { key: "bird", name: "천둥새", from: 42, enter: "top", moves: ["thunder", "boltRing"], draw: drawBird },
-    { key: "goblin", name: "도깨비", from: 56, enter: "side", moves: ["wisps", "wispRing"], draw: drawGoblin },
+    { key: "goblin", name: "도깨비", from: 56, enter: "side", moves: ["wisps"], draw: drawGoblin }, // (11-10: 도깨비 포위, a ring of wisps closing on you, gone with 천라지망)
   ];
   const MOVES = {
     waterStar: { name: "물수리검", wait: 1.5, run: (m) => fanFrom(m, "water") },
@@ -4204,7 +4210,6 @@ sdk.initializeAsync()
     thunder: { name: "낙뢰", wait: 2.6, run: thunder },
     boltRing: { name: "번개고리", wait: 1.8, run: (m) => { burstAt(m.x, m.y, G.t >= 60 ? 16 : 12, Math.random() * Math.PI, 1.0, false, "bolt"); sfx.warn(); } },
     wisps: { name: "도깨비불", wait: 1.8, run: wisps },
-    wispRing: { name: "도깨비 포위", wait: 2.4, run: () => bigRing("wisp") },
   };
   const CRY = {
     frog: () => { tone(420, 0.09, 0.08, "square", 300); setTimeout(() => tone(380, 0.12, 0.08, "square", 260), 110); },
@@ -4563,6 +4568,15 @@ sdk.initializeAsync()
       if (w.kind === "edge" && G.freezeT > 0) return true; // (설한정: a sign for a throw waits out the freeze; nothing new flies into frozen air)
       if (w.delay > 0) { w.delay -= dt; return true; }
       if (w.place && !w.placed) { w.placed = true; w.place(w); }
+      // (11-10, measured: "절대 못 피하는 패턴은 안 된다" asks every warning to stay up ≥ 0.55 s by the wall clock, but the
+      // game runs faster than life — a stage at its pace 1.16–1.22, a boss fight at 1.12–1.18, 광음 bending time on top —
+      // and some warnings were set in game seconds only: the red kunai's sight 0.55 game-s was 0.47 s, 광음's lines 0.2 s,
+      // 철추's 0.25 s, 검총주's 죽순 0.43 s.) As each one shows, it is made long enough for 0.55 s at the speed things run now.
+      if (!w.floored) {
+        w.floored = true;
+        const k = (G.timeK || 1) * (G.bossK || 1) * (hard() && !w.quick ? HARD.warn : 1); // (a 간발's blink of slow-motion not counted)
+        if (w.kind !== "none" && w.dur > 0 && w.dur / k < WARN_MIN) w.dur = WARN_MIN * k;
+      }
       w.t += dt * (hard() && !w.quick ? HARD.warn : 1); // 아수라 gives you less time to read them (not those already short)
       // a moment before a blade's band or a palm's lane goes, a dry click: your eyes are on your finger, your ears are free
       // (not on 뇌음's beat, which has its own drum)
