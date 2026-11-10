@@ -8,6 +8,12 @@
   #osBootFill { width: 0%; height: 100%; background: var(--seal, #b8322a); transition: width 0.2s; }
 </style>
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<script>
+  // (11-10 제작자: "dev에 캐시 다 지운 상태로… 이전 수정 상태를 바라보지 않는 상태로") GitHub Pages lets a browser keep the
+  // page ten minutes (max-age 600). With ?dev each opening goes on to an address of its own (v=now), never kept, so it is
+  // always the build last deployed. A reload within the minute stays put.
+  (() => { const q = new URLSearchParams(location.search); if (!q.has("dev") || Date.now() - (Number(q.get("v")) || 0) < 60000) return; q.set("v", Date.now()); location.replace(location.pathname + "?" + q + location.hash); })();
+</script>
 <title>대나무 피하기</title>
 <meta name="description" content="날아오는 칼을 피해 오래 버티는 게임. 한 대라도 맞으면 끝.">
 <meta property="og:title" content="대나무 피하기">
@@ -294,6 +300,7 @@
       </div>
       <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
       <button class="link" id="devOpen" hidden>개발자 모드: 보스 비기 보기</button>
+      <button class="link" id="devPatOpen" hidden>개발자 모드: 패턴 보기</button>
       <label class="dev-inv dev-inv--start" id="stageInvRow" hidden><input type="checkbox" id="stageInv" checked> 스테이지모드 무적 (보상 없음)</label>
       <label class="dev-inv dev-inv--start" id="stagePickRow" hidden>시작할 칸 <select id="stagePick"><option value="">이어서</option></select></label>
       <div class="purse">
@@ -337,8 +344,8 @@
 
   <div class="screen" id="dev" hidden>
     <section class="slip" data-seal="試">
-      <h2 class="shop-title">보스 비기</h2>
-      <p class="shop-note">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓰다가 20초 뒤 종전에 든다. 종전에는 더 센 비기에 종전 고유기와 섞는 공격이 겹치고, 그것까지 버티면 벤다.</p>
+      <h2 class="shop-title" id="devTitle">보스 비기</h2>
+      <p class="shop-note" id="devNote">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓰다가 20초 뒤 종전에 든다. 종전에는 더 센 비기에 종전 고유기와 섞는 공격이 겹치고, 그것까지 버티면 벤다.</p>
       <div class="lvl" id="devLvl" role="group" aria-label="보스 난이도">
         <span>난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
@@ -1147,7 +1154,7 @@ sdk.initializeAsync()
       bigSeen: new Set(), callout: null, stamp: null, killer: null, killedBy: "", killerY: null, killLine: null,
       phase: "", pt: 0, ct: 0, st: 0, boss: null, lines: [], lineI: 0, lineT: 0, onLines: null, card: null, safe: false, cleared: false, banner: null,
       timeK: 1, bossK: 1, freezeT: 0,
-      mons: [], seen: new Set(), monT: 1, msg: null,
+      mons: [], seen: new Set(), monT: 1, msg: null, pat: null,
     });
     Object.assign(P, { x: W / 2, y: H * 0.58, dx: 0, dy: -1, inv: 0, push: null });
     for (const k of Object.keys(PATTERNS)) G.timers[k] = PATTERNS[k].first * (G.kind === "normal" ? 3 : 1);
@@ -1719,6 +1726,7 @@ sdk.initializeAsync()
   }
 
   function storyStep(dt, realDt) {
+    if (G.pat) return patStep(dt, realDt);
     if (G.dev) return devStep(dt, realDt);
     if (G.stageRun) return stageStep(dt, realDt);
     const ch = CHAPTERS[G.ch];
@@ -1992,9 +2000,9 @@ sdk.initializeAsync()
   // 수련's 30 s, the end of 20-4 at 60 s) and its bosses 4 levels lower, the same 25 s by 죽림 수련's own boss clock
   // (20 + 6 s a level); the rest as 보통. It keeps 쉬움's old key, so an old 쉬움 run picks up where it was.
   const STAGE_LEVELS = {
-    easy: { name: "쉬움", pace: 1.16, clock: 30, climb: 1.5, crowd: 0.02, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.12, lv: 1.5, last: 5, layer: 1.2, breath: [0.8, 1.3], top: "stageTopE" },
-    normal: { name: "보통", pace: 1.16, clock: 55, climb: 1.5, crowd: 0.02, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.12, lv: 5.5, last: 5, layer: 1.2, breath: [0.8, 1.3], top: "stageTop" },
-    master: { name: "어려움", pace: 1.22, clock: 90, crowd: 0.01, bamboo: 1.16, floor: 0.2, gap: 0.7, boss: 1.17, lv: 7.5, last: 6, layer: 1.0, breath: [0.55, 1.2], top: "stageTopH" },
+    easy: { name: "쉬움", pace: 1.16, clock: 30, climb: 1.5, crowd: 0.02, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.2, lv: 3, last: 5, layer: 1.2, breath: [0.8, 1.3], top: "stageTopE" },
+    normal: { name: "보통", pace: 1.16, clock: 55, climb: 1.5, crowd: 0.02, bamboo: 0.99, floor: 0.22, gap: 0.78, boss: 1.2, lv: 7, last: 5, layer: 1.2, breath: [0.8, 1.3], top: "stageTop" },
+    master: { name: "어려움", pace: 1.22, clock: 90, crowd: 0.01, bamboo: 1.16, floor: 0.2, gap: 0.7, boss: 1.25, lv: 9, last: 6, layer: 1.0, breath: [0.55, 1.2], top: "stageTopH" },
   };
   const LEVELS = ["easy", "normal", "master"]; // the ones a player can pick, all of them from the start
   { // the furthest stage reached at 일반: the old 고수 record carries over to it (they were the same difficulty)
@@ -2013,7 +2021,11 @@ sdk.initializeAsync()
   const stageTop = () => Number(store.get(STAGE_LEVELS[stageLevel].top, "0")) || 0;
   // the difficulty clock `s` stages (0 to 5) into 장 w, in 죽림 수련's seconds (11-08: "1장은 80초에서 1초씩 올려줘")
   const stageClock = (w, s) => SL().clock + (SL().climb || 1) * (w + s / 5); // (climb: how many seconds a 장 adds)
-  const BOSS_LIFT = 5; // a boss fight's shared attacks, this many seconds harder than its 장's last stage (bossFight)
+  // (11-10 제작자: "스테이지가 각 스테이지 보스보다 어렵다… 스테이지를 전체적으로 좀 더 쉽게, 보스는 좀 더 어렵게 전체적으로".
+  // Measured by the human bot, hits a minute over 1장–20장: stages 13.1, bosses 8.5 — from 6장 on a stage was twice its
+  // boss.) Every boss fight quicker (boss 1.12→1.2, 어려움 1.17→1.25) and 1.5 levels up (lv), its shared attacks 10 s
+  // above its 장's last stage, not 5. The stages: stageDef.
+  const BOSS_LIFT = 10; // a boss fight's shared attacks, this many seconds harder than its 장's last stage (bossFight)
   const bossWorld = (i) => Math.max(0, WORLDS.findIndex((wd) => wd.boss === i)); // the 장 a boss is master of
   const bossLv = (w) => 0.7 * (w < 15 ? 3 + 0.45 * w : 9.3 + (w - 14) * 0.25);
   const BOSS_PACE = 0.8; // (스토리 모드; 스테이지 모드 and 개발자 모드 take their level's)
@@ -2024,15 +2036,23 @@ sdk.initializeAsync()
     const freshBig = BIG.some((b) => b.key === wd.fresh);
     const sub = w < STAGE_LINES.length ? STAGE_LINES[w][s] : ROAD_LINES[((w - STAGE_LINES.length) * 5 + s) % ROAD_LINES.length];
     const d = { i, w, s, label: `${w + 1}-${s + 1}`, world: wd, theme: wd.theme, dur: step.dur, sub,
-      gap: Math.max(0.7, step.gap - 0.05 * Math.max(0, wd.power - 1)) * SL().gap, diff: [stageClock(w, s), stageClock(w, s + 1)],
+      gap: Math.max(0.7, step.gap - 0.05 * Math.max(0, wd.power - 1)) * SL().gap * (1 + 0.015 * Math.min(w, 19)), diff: [stageClock(w, s), stageClock(w, s + 1)],
       pats: wd.pats, big: [], bigEvery: [5.5, 7], boss: s === 4 };
     d.bamboo = SL().bamboo * d.gap;
     if (s === 0) { // the new thing on its own, with the bamboo
-      d.pats = wd.fresh && !freshBig ? [wd.fresh] : wd.fresh ? [wd.pats[0]] : wd.pats;
+      d.pats = wd.fresh && !freshBig ? [wd.fresh] : wd.fresh ? [wd.pats[0]] : wd.pats.slice(0, 2);
       d.big = freshBig ? [wd.fresh] : wd.fresh ? [] : wd.big.slice(0, 1); d.bigEvery = [5, 6.5];
     }
     if (s === 2) { d.big = wd.big.slice(0, 2); d.bigEvery = [6, 7.5]; }
     if (s === 3) { d.big = wd.big; d.bigEvery = [4.8, 6.4]; }
+    // (11-10 제작자: "후반 스테이지 난이도가 너무 어려워", with the measure at BOSS_LIFT) a 장's own attacks come in a few at a
+    // time, its new one always among them: X-1 that one (where a 장 has nothing new, its first two, not all five), X-2
+    // three, X-3 four, X-4 all. From 8장 on a 장 has five kinds, and X-2 ran all five at once. Further on, everything in
+    // a stage also comes a little further apart (gap: +1.5% a 장, so 20장 +28%).
+    if (s === 1 || s === 2) {
+      const order = wd.fresh && PATTERNS[wd.fresh] ? [wd.fresh, ...wd.pats.filter((k) => k !== wd.fresh)] : wd.pats;
+      d.pats = order.slice(0, s + 2);
+    }
     // (11-09 제작자: "x-4에만 하지말고 x-1~4에도 그 장에 어울리는 패턴 나오게") the 장's big moves dealt out over X-1 to X-4
     // in its own order, so every stage has some of them and all have come before its boss: X-1 the first (its new one),
     // X-2 the next two, X-3 the two after, X-4 four of them from there on (as many as its thirty seconds hold, with the
@@ -4073,7 +4093,56 @@ sdk.initializeAsync()
     if (dv && dv.play) { $("boss").hidden = false; bossDone(dv, lasted); } else $("dev").hidden = false;
     P.x = W / 2; P.y = H * 0.58;
   }
+  // ---- 개발자 모드 패턴 보기 (11-10 제작자: "dev에서는 패턴만 따로 볼 수 있는 환경, 하나하나 선택하는 형식으로 가서 패턴만
+  // 보는 거지"): one attack alone, over and over, with nothing else in the air (no bamboo), at the difficulty picked on the
+  // list (that level's clock ten 장 in). Its boss's foretelling is shown as at that 장's X-2. Nothing is paid or kept.
+  const DEV_PATS = [
+    ...Object.keys(PATTERNS).map((k) => ({ group: "칸 공격", name: ATTACK_NAMES[k], run: () => PATTERNS[k].spawn(), every: () => PATTERNS[k].every() })),
+    ...BIG.map((b) => ({ group: "큰 공격", name: ATTACK_NAMES[b.key], run: () => runBig(b), every: () => 5.5 })),
+    ...BOSS_SET.map((d, i) => ({ group: "보스 맛보기", name: `${d.stage} ${d.name}`, sg: bossWorld(i) * 5 + 1, run: () => foreshadow(d.sig), every: () => 4.5 })),
+  ];
+  const DEV_NOTES = { boss: $("devNote").textContent, pat: "공격 하나만 되풀이해서 보여 준다. 대나무도 다른 공격도 없다. 세기는 위에서 고른 난이도의 10장쯤이다. 보스 맛보기는 그 장 X-2에서 나오는 모습이다." };
+  function startDevPattern(p) {
+    begin();
+    const L = STAGE_LEVELS[devLevel];
+    G.story = true; G.stageRun = false; G.dev = null; G.ch = 0; G.sg = p.sg || 0;
+    reset(); G.mode = "play";
+    G.pat = { p, next: 1.0, inv: $("devInv").checked };
+    G.phase = "fight"; G.t = L.clock + (L.climb || 1) * 10;
+    setTheme(p.sg != null ? stageDef(p.sg).theme : "grove", true);
+    $("dev").hidden = true; $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("devExit").hidden = false;
+    $("devExit").textContent = "그만 보기";
+    $("stage").textContent = `${p.name} · ${L.name}`;
+  }
+  function patStep(dt, realDt) {
+    stepLines(realDt);
+    const pt = G.pat;
+    G.st += dt;
+    if ((pt.next -= dt) <= 0) { pt.p.run(); pt.next = pt.p.every(); }
+    G.safe = pt.inv;
+  }
+  function patBack() {
+    clearField(); G.pat = null; G.boss = null; G.lines = []; G.onLines = null; G.card = null; G.story = false; G.mode = "menu";
+    setTheme("grove", true);
+    $("hud").hidden = true; $("over").hidden = true; $("devExit").hidden = true; $("dev").hidden = false;
+    P.x = W / 2; P.y = H * 0.58;
+  }
+  function renderDevPatterns() {
+    $("devTitle").textContent = "패턴 보기"; $("devNote").textContent = DEV_NOTES.pat;
+    const list = $("devList"); list.replaceChildren();
+    for (const p of DEV_PATS) {
+      const li = document.createElement("li");
+      const head = document.createElement("div"); head.className = "dev-head";
+      const who = document.createElement("b"); who.textContent = p.name;
+      const kind = document.createElement("span"); kind.textContent = p.group;
+      head.append(who, kind);
+      const go = document.createElement("button"); go.type = "button"; go.textContent = "보기";
+      go.addEventListener("click", () => startDevPattern(p));
+      li.append(head, go); list.append(li);
+    }
+  }
   function renderDev() {
+    $("devTitle").textContent = "보스 비기"; $("devNote").textContent = DEV_NOTES.boss;
     const list = $("devList"); list.replaceChildren();
     BOSS_SET.forEach((d, i) => {
       const li = document.createElement("li");
@@ -6582,6 +6651,7 @@ sdk.initializeAsync()
     $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false;
   }
   function over() {
+    if (G.pat) return patBack(); // watching one pattern: straight back to the list, nothing paid
     if (G.dev) return devBack(); // watching a 비기: straight back to the list
     G.mode = "over";
     $("scoreUnit").hidden = false;
@@ -6652,13 +6722,14 @@ sdk.initializeAsync()
   $("stageNew").addEventListener("click", () => { begin(); startStage(0); });
   stageLabels();
   // 개발자 모드: only with ?dev in the address
-  $("devOpen").hidden = !DEV; $("stageInvRow").hidden = !DEV; $("stagePickRow").hidden = !DEV;
+  $("devOpen").hidden = !DEV; $("devPatOpen").hidden = !DEV; $("stageInvRow").hidden = !DEV; $("stagePickRow").hidden = !DEV;
   $("devOpen").addEventListener("click", () => { renderDev(); $("start").hidden = true; $("dev").hidden = false; });
+  $("devPatOpen").addEventListener("click", () => { renderDevPatterns(); $("start").hidden = true; $("dev").hidden = false; });
   const devLabels = () => { for (const b of document.querySelectorAll("#devLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === devLevel)); };
   for (const b of document.querySelectorAll("#devLvl button")) b.addEventListener("click", () => { devLevel = b.dataset.lvl; store.set("devLv", devLevel); devLabels(); });
   devLabels();
   $("devClose").addEventListener("click", () => { $("dev").hidden = true; $("start").hidden = false; });
-  $("devExit").addEventListener("click", () => { if (G.dev) { G.dev.quit = true; devBack(); } });
+  $("devExit").addEventListener("click", () => { if (G.pat) patBack(); else if (G.dev) { G.dev.quit = true; devBack(); } });
   // ---- 보스전 (11-06: "지난 보스 잡기 느낌으로"): every boss already met in 스테이지 모드, at any of its difficulties,
   // fought again one at a time at the difficulty picked here. A win pays 엽전 (more at 어려움); which were beaten at which
   // difficulty is kept. Only the next boss not yet met shows, locked; the rest stay a surprise.
