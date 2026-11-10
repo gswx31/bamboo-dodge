@@ -1103,7 +1103,7 @@ sdk.initializeAsync()
     { at: 24, name: "四段 · 장풍" },
     { at: 32, name: "五段 · 그림자" },
     { at: 40, name: "六段 · 칼바람" },
-    { at: 48, name: "七段 · 따라붙는 칼" },
+    { at: 48, name: "七段 · 십자 발도" }, // (11-10: 따라붙는 칼 is gone from the game; 십자 발도 opens here, not at 72)
     { at: 56, name: "八段 · 천잠사" }, // (11-10: 천라지망 is gone from the game, "비슷한 맥락" as 사자후; 천잠사 opens here instead of at 68)
     { at: 64, name: "九段 · 칼비" },
     { at: 72, name: "十段 · 삼연참" },
@@ -1186,8 +1186,7 @@ sdk.initializeAsync()
     line: { from: 0, first: 0.8, every: () => rnd(2.6, 3.4) * pace(), spawn: spawnLine },
     draw: { from: 8, first: 0.8, every: () => rnd(3.6, 4.6) * pace(), spawn: () => spawnSlash(false) },
     burst: { from: 88, first: 0.6, every: () => rnd(5.5, 7) * pace(), spawn: spawnBurst },
-    homing: { from: 48, first: 0.6, every: () => rnd(4.5, 6) * pace(), spawn: spawnHoming },
-    cross: { from: 72, first: 2.5, every: () => rnd(6, 8) * pace(), spawn: () => spawnSlash(true) },
+    cross: { from: 48, first: 2.5, every: () => rnd(6, 8) * pace(), spawn: () => spawnSlash(true) },
   };
   /** The big moves: each one shows itself when its 段 opens, then they take turns, the edges darkening and a drum before each. */
   const BIG = [
@@ -1312,14 +1311,8 @@ sdk.initializeAsync()
       if (hard() && !follow && Math.random() < HARD.follow) { burstAt(x, y, n, off + Math.PI / n, 0.7, true); sfx.warn(); }
     } });
   }
-  function spawnHoming() {
-    const [x, y] = edgePoint();
-    G.warns.push({ kind: "spot", edge: true, x: clamp(x, 8, W - 8), y: clamp(y, 8, H - 8), t: 0, dur: 0.55, delay: 0, fire: () => {
-      shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * 0.58, { home: 1.6, r: S * 0.011, red: true });
-      sfx.whoosh();
-    } });
-    thrower(x, y, Math.atan2(P.y - y, P.x - x), 0, 0.55);
-  }
+  // (따라붙는 칼, the red kunai that bent after you, is gone from the whole game: 11-10 제작자 "추적하는 쿠나이 안 나왔으면,
+  // 전체 제거". Nothing thrown follows you now: 추혼's and the 도깨비's goblin fires fly straight at where you were.)
   // a wall of bamboo (or a wave of water blades) with one gap
   function spawnWall(forceSide, kind = "bamboo") {
     const side = forceSide ?? Math.floor(Math.random() * 4); // 0 from top, 1 from right, 2 from bottom, 3 from left
@@ -1542,10 +1535,10 @@ sdk.initializeAsync()
   // The boss's strength drains as you hold on; every 간발 cuts it faster.
   const CHAPTERS = [
     { num: "一章", name: "죽림", sub: "불타고 남은 숲", theme: "grove", diff: [4, 36], fight: 42, pats: ["line", "draw"], big: ["spikes", "clones"], bigEvery: [7, 9], boss: 0 },
-    { num: "二章", name: "월하 계곡", sub: "안개가 칼을 가린다", theme: "gorge", diff: [22, 52], fight: 42, pats: ["line", "draw", "homing"], big: ["spiral", "flick"], bigEvery: [7, 9], boss: 1 }, // (11-10: 천라지망 out, 탄지신통 in)
+    { num: "二章", name: "월하 계곡", sub: "안개가 칼을 가린다", theme: "gorge", diff: [22, 52], fight: 42, pats: ["line", "draw"], big: ["spiral", "flick"], bigEvery: [7, 9], boss: 1 }, // (11-10: 천라지망 out, 탄지신통 in)
     { num: "三章", name: "적염사", sub: "불타는 절", theme: "temple", diff: [36, 66], fight: 42, pats: ["draw", "line", "cross"], big: ["spikes", "triple"], bigEvery: [6.5, 8.5], boss: 2 },
-    { num: "四章", name: "백설령", sub: "소리 없이 벤다", theme: "snow", diff: [50, 82], fight: 42, pats: ["line", "homing", "cross"], big: ["rain", "flick", "spiral"], bigEvery: [6.5, 8.5], boss: 3 },
-    { num: "終章", name: "흑월봉", sub: "검은 달 아래", theme: "moon", diff: [66, 94], fight: 42, pats: ["line", "draw", "burst", "homing", "cross"], big: ["clones", "spiral", "rain", "triple", "beam", "spikes"], bigEvery: [6, 8], boss: 4 },
+    { num: "四章", name: "백설령", sub: "소리 없이 벤다", theme: "snow", diff: [50, 82], fight: 42, pats: ["line", "draw", "cross"], big: ["rain", "flick", "spiral"], bigEvery: [6.5, 8.5], boss: 3 },
+    { num: "終章", name: "흑월봉", sub: "검은 달 아래", theme: "moon", diff: [66, 94], fight: 42, pats: ["line", "draw", "burst", "cross"], big: ["clones", "spiral", "rain", "triple", "beam", "spikes"], bigEvery: [6, 8], boss: 4 },
   ];
   // 이라/라, 은/는 … after a name, whichever the last syllable wants
   const josa = (word, withFinal, without) => {
@@ -1571,7 +1564,7 @@ sdk.initializeAsync()
     { name: "적염 대사", title: "赤炎 · 파계승", look: "monk", accent: "#d0651e", hp: 20, acts: ["pillars", "staff", "fan", "burst"], // (11-10: 사자후 out)
       intro: () => [{ who: "적염 대사", text: "아미타불. 이 불은 내가 지은 업이다." }],
       down: () => [{ who: "적염 대사", text: "불은 꺼진다. 업은 남는다." }] },
-    { name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", hp: 20, acts: ["icicles", "spiral", "homing", "fan"], // (11-10: 천라지망 out)
+    { name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", hp: 20, acts: ["icicles", "spiral", "burst", "fan"], // (11-10: 천라지망 and 따라붙는 칼 out)
       intro: () => [{ who: "설귀", text: "이 고개를 넘은 자는 없다." }],
       down: () => [{ who: "설귀", text: "이 고개를… 넘는 자가 있었군." }] },
     { name: "흑월교주", title: "黑月 · 검은 달의 교주", look: "lord", accent: "#8b1a12", hp: 30, acts: ["fan", "twin", "spiral", "beam", "pillars", "icicles", "staff", "palm"], // (11-10: 천라지망, 사자후 out)
@@ -1593,7 +1586,6 @@ sdk.initializeAsync()
     icicles: { wait: 3.0, run: bigRain },
     palm: { wait: 2.2, run: () => { bigPalm(); callout("掌風", "장풍"); } },
     silk: { wait: 3.4, run: () => { bigSilk(); callout("天蠶絲", "천잠사"); } },
-    homing: { wait: 1.6, run: () => { spawnHoming(); spawnHoming(); } },
   };
   // a fan of stars thrown from the boss's hand, each lane lit first
   function actFan() {
@@ -1739,7 +1731,7 @@ sdk.initializeAsync()
     b.actT -= dt;
     if (b.actT <= 0) fixed("act", () => {
       const pool = def.acts.filter((a) => a !== b.last), a = pool[Math.floor(Math.random() * pool.length)];
-      b.last = a; ACTS[a].run(); b.castT = b.castDur = 0.4;
+      b.last = a; ACTS[a].run(); throwing();
       b.actT = ACTS[a].wait * (b.mid ? 0.8 : 1) * (b.waitK || 1);
     });
     // its body is a blade too: the robe, from the chest down
@@ -1756,6 +1748,9 @@ sdk.initializeAsync()
   function moveBoss(dt) {
     const b = G.boss;
     b.hurtT = Math.max(0, b.hurtT - dt); b.castT = Math.max(0, b.castT - dt);
+    // its weapon lifted (throwing), then brought down: the full strike, and a crescent of its colour where it went
+    if (b.raise && (b.raise.t += dt) >= b.raise.dur) { b.raise = null; b.castT = b.castDur = 0.6; b.swing = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; sfx.whoosh(); }
+    if (b.swing && (b.swing.t += dt) > 0.3) b.swing = null;
     if (b.tg && (b.tg.f != null ? (b.tg.f += dt) > 0.5 : !G.warns.includes(b.tg.w))) b.tg = null; // 맹호's move under way, read off its warning (11-08)
     if (b.leap && (b.leap.t += dt) > 0.16) { b.leap = null; b.pop = 0.16; }
     if (b.downT > 0) b.downT += dt;
@@ -1845,28 +1840,28 @@ sdk.initializeAsync()
   // A stage throws the same things in the same order on every try, so it can be learned (fixed()).
   const WORLDS = [
     { name: "죽림", theme: "grove", boss: 0, fresh: "line", pats: ["line", "draw"], big: ["spikes", "clones"], diff: [8, 22] },
-    { name: "월하 계곡", theme: "gorge", boss: 1, fresh: "draw", pats: ["line", "draw", "homing"], big: ["spikes", "palm", "clones"], diff: [6, 26] },
+    { name: "월하 계곡", theme: "gorge", boss: 1, fresh: "draw", pats: ["line", "draw"], big: ["spikes", "palm", "clones"], diff: [6, 26] },
     { name: "적염사", theme: "temple", boss: 2, fresh: "clones", pats: ["line", "draw", "cross"], big: ["clones", "palm", "spiral"], diff: [14, 36] },
-    { name: "백설령", theme: "snow", boss: 3, fresh: "homing", pats: ["line", "draw", "homing", "cross"], big: ["spiral", "flick", "clones"], diff: [22, 46] },
-    { name: "흑월봉", theme: "moon", boss: 4, fresh: "rain", pats: ["line", "draw", "homing"], big: ["rain", "triple", "palm"], diff: [30, 56] },
+    { name: "백설령", theme: "snow", boss: 3, fresh: "spiral", pats: ["line", "draw", "cross"], big: ["spiral", "flick", "clones"], diff: [22, 46] },
+    { name: "흑월봉", theme: "moon", boss: 4, fresh: "rain", pats: ["line", "draw"], big: ["rain", "triple", "palm"], diff: [30, 56] },
     // past 흑월봉, the same places again with new masters in them, everything mixed and quicker
-    { name: "불탄 죽림", theme: "grove", boss: 5, fresh: "cross", pats: ["line", "draw", "homing", "cross"], big: ["triple", "rain", "silk", "spikes"], diff: [40, 66] },
-    { name: "안개 계곡", theme: "gorge", boss: 6, fresh: "beam", pats: ["line", "draw", "homing", "cross"], big: ["beam", "palm", "clones", "spiral"], diff: [48, 74] },
-    { name: "붉은 절", theme: "temple", boss: 7, fresh: "burst", pats: ["line", "draw", "homing", "cross", "burst"], big: ["triple", "silk", "palm", "flick"], diff: [56, 82] },
-    { name: "얼음 고개", theme: "snow", boss: 8, fresh: "palm", pats: ["line", "draw", "homing", "cross", "burst"], big: ["palm", "rain", "beam", "flick"], diff: [64, 90] },
-    { name: "비 내리는 고개", theme: "gorge", boss: 9, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["rain", "beam", "spiral", "palm", "clones"], diff: [72, 96] },
-    { name: "검총", theme: "field", boss: 10, fresh: "silk", pats: ["line", "draw", "homing", "cross", "burst"], big: ["silk", "rain", "triple", "spikes", "beam"], diff: [80, 104] },
-    { name: "광음곡", theme: "gorge", boss: 11, fresh: "flick", pats: ["line", "draw", "homing", "cross", "burst"], big: ["flick", "spiral", "clones", "palm"], diff: [88, 112] },
-    { name: "뇌운봉", theme: "moon", boss: 12, fresh: "beam", pats: ["line", "draw", "homing", "cross", "burst"], big: ["beam", "spiral", "palm", "triple"], diff: [96, 120] },
-    { name: "추혼로", theme: "temple", boss: 13, fresh: "triple", pats: ["line", "draw", "homing", "cross", "burst"], big: ["triple", "clones", "silk", "flick", "rain"], diff: [104, 128] },
-    { name: "호접곡", theme: "field", boss: 14, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["spiral", "silk", "flick"], diff: [112, 136] },
-    { name: "화륜평", theme: "moon", boss: 15, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["beam", "triple", "rain", "clones", "flick"], diff: [120, 144] },
-    { name: "철산", theme: "temple", boss: 16, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["palm", "silk", "spiral"], diff: [128, 152] },
-    { name: "장승골", theme: "grove", boss: 17, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["spikes", "triple", "beam", "rain"], diff: [136, 160] },
-    { name: "천안사", theme: "snow", boss: 18, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: ["flick", "clones", "silk", "palm"], diff: [144, 168] },
-    { name: "천하봉", theme: "grove", boss: 19, fresh: "", pats: ["line", "draw", "homing", "cross", "burst"], big: BIG.map((b) => b.key), diff: [152, 176] },
+    { name: "불탄 죽림", theme: "grove", boss: 5, fresh: "cross", pats: ["line", "draw", "cross"], big: ["triple", "rain", "silk", "spikes"], diff: [40, 66] },
+    { name: "안개 계곡", theme: "gorge", boss: 6, fresh: "beam", pats: ["line", "draw", "cross"], big: ["beam", "palm", "clones", "spiral"], diff: [48, 74] },
+    { name: "붉은 절", theme: "temple", boss: 7, fresh: "burst", pats: ["line", "draw", "cross", "burst"], big: ["triple", "silk", "palm", "flick"], diff: [56, 82] },
+    { name: "얼음 고개", theme: "snow", boss: 8, fresh: "palm", pats: ["line", "draw", "cross", "burst"], big: ["palm", "rain", "beam", "flick"], diff: [64, 90] },
+    { name: "비 내리는 고개", theme: "gorge", boss: 9, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["rain", "beam", "spiral", "palm", "clones"], diff: [72, 96] },
+    { name: "검총", theme: "field", boss: 10, fresh: "silk", pats: ["line", "draw", "cross", "burst"], big: ["silk", "rain", "triple", "spikes", "beam"], diff: [80, 104] },
+    { name: "광음곡", theme: "gorge", boss: 11, fresh: "flick", pats: ["line", "draw", "cross", "burst"], big: ["flick", "spiral", "clones", "palm"], diff: [88, 112] },
+    { name: "뇌운봉", theme: "moon", boss: 12, fresh: "beam", pats: ["line", "draw", "cross", "burst"], big: ["beam", "spiral", "palm", "triple"], diff: [96, 120] },
+    { name: "추혼로", theme: "temple", boss: 13, fresh: "triple", pats: ["line", "draw", "cross", "burst"], big: ["triple", "clones", "silk", "flick", "rain"], diff: [104, 128] },
+    { name: "호접곡", theme: "field", boss: 14, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["spiral", "silk", "flick"], diff: [112, 136] },
+    { name: "화륜평", theme: "moon", boss: 15, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["beam", "triple", "rain", "clones", "flick"], diff: [120, 144] },
+    { name: "철산", theme: "temple", boss: 16, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["palm", "silk", "spiral"], diff: [128, 152] },
+    { name: "장승골", theme: "grove", boss: 17, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["spikes", "triple", "beam", "rain"], diff: [136, 160] },
+    { name: "천안사", theme: "snow", boss: 18, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["flick", "clones", "silk", "palm"], diff: [144, 168] },
+    { name: "천하봉", theme: "grove", boss: 19, fresh: "", pats: ["line", "draw", "cross", "burst"], big: BIG.map((b) => b.key), diff: [152, 176] },
   ];
-  const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", homing: "따라붙는 칼", cross: "십자 발도", burst: "터지는 칼",
+  const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", cross: "십자 발도", burst: "터지는 칼",
     spikes: "죽순", palm: "장풍", clones: "그림자", spiral: "칼바람", flick: "탄지신통",
     rain: "칼비", silk: "천잠사", triple: "삼연참", beam: "검기" };
   // the five stages of a 장: how long, and how far apart the attacks (× their usual wait)
@@ -2277,11 +2272,11 @@ sdk.initializeAsync()
   // (light ones only: 검우, 사자후 and 검기 fill the whole field and, measured, buried the 비기 under them; and never 장풍,
   // whose shove can throw you into the boss's body or a 비기 with nothing you could have done)
   const BOSS_MIX = {
-    twin: ["draw", "cross", "clones"], lotus: ["burst", "line", "spiral"], fire: ["draw", "homing", "spikes"], frost: ["line", "homing", "triple"],
-    void: ["draw", "cross", "triple"], charge: ["draw", "line", "clones"], veil: ["homing", "draw", "flick"], drum: ["burst", "line", "homing"],
-    mirror: ["line", "cross", "draw"], rain: ["draw", "homing", "triple"], swords: ["line", "draw", "clones"], time: ["homing", "burst", "triple"],
-    thunder: ["cross", "line", "spikes"], shadow: ["draw", "homing", "clones"], swarm: ["burst", "line", "spiral"], wheel: ["draw", "cross", "flick"],
-    pendulum: ["line", "burst", "flick"], crumble: ["draw", "line", "spikes"], glare: ["line", "homing", "flick"], final: ["draw", "cross", "burst", "triple", "clones"],
+    twin: ["draw", "cross", "clones"], lotus: ["burst", "line", "spiral"], fire: ["draw", "line", "spikes"], frost: ["line", "draw", "triple"],
+    void: ["draw", "cross", "triple"], charge: ["draw", "line", "clones"], veil: ["line", "draw", "flick"], drum: ["burst", "line", "draw"],
+    mirror: ["line", "cross", "draw"], rain: ["draw", "line", "triple"], swords: ["line", "draw", "clones"], time: ["line", "burst", "triple"],
+    thunder: ["cross", "line", "spikes"], shadow: ["draw", "line", "clones"], swarm: ["burst", "line", "spiral"], wheel: ["draw", "cross", "flick"],
+    pendulum: ["line", "burst", "flick"], crumble: ["draw", "line", "spikes"], glare: ["line", "draw", "flick"], final: ["draw", "cross", "burst", "triple", "clones"],
   };
   const BG_NAMES = { bamboo: "대나무", water: "물방울 칼", fire: "불똥", ice: "고드름", wisp: "도깨비불" };
   BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; b.mix = BOSS_MIX[b.sig]; });
@@ -3726,7 +3721,9 @@ sdk.initializeAsync()
     while (m.k < MIX_AT.length && m.t >= MIX_AT[m.k]) { m.k++; const last = m.k === MIX_AT.length; fixed("mix", () => mixAttack(f, d, last)); }
     if (m.k >= MIX_AT.length) f.mix = null;
   }
-  const throwing = () => { if (G.boss && !(G.boss.castT > 0)) G.boss.castT = G.boss.castDur = 0.4; }; // (11-08: its other attacks are its too — a half-size throw of its weapon arm as each one goes)
+  // (11-10 제작자: 보스가 직접 공격하는 모션, "무기를 들었다가 휘두르기") each of its other attacks it throws in full: it lifts
+  // its weapon over its head for 0.24 s (bossPose), then brings it down through a crescent of its colour (moveBoss, drawBoss)
+  const throwing = () => { const b = G.boss; if (b && !(b.castT > 0) && !b.raise) b.raise = { t: 0, dur: 0.24 }; }; // (11-08: its other attacks are its too — was a half-size throw of its weapon arm as each onegoes)
   const subAttack = (d) => { throwing(); return SUBS[d.sig].run(); };
   // A 장's stages before its master: its lesser move, mostly the 종전 one; where that needs the master standing there, or
   // shows its manner better another way, something of its own (thrown from up the mountain where the master waits)
@@ -3928,10 +3925,10 @@ sdk.initializeAsync()
         fire(w) { const sp = S * 0.6, ret = clamp(Math.hypot(P.x - w.x, P.y - w.y) / sp + 0.4, 0.6, 2.2); for (let i = 0; i < n; i++) shoot("star", w.x, w.y, w.off + (i / n) * Math.PI * 2, sp, { spin: 16, r: S * 0.014, ret }); sfx.burst(); } });
     } },
     thunder: { name: "연쇄 낙뢰", run() { marchAt(strike, S * 0.065, 0.1); } },
-    shadow: { name: "도깨비불", run() { // three goblin fires from the edges, bending after you
+    shadow: { name: "도깨비불", run() { // three goblin fires from the edges, straight at where you are (they bent after you, till 11-10)
       for (let k = 0; k < 3; k++) later(k * 0.3, () => {
         const [x, y] = edgePoint();
-        G.warns.push({ kind: "spot", edge: true, x: clamp(x, 8, W - 8), y: clamp(y, 8, H - 8), t: 0, dur: 0.65, delay: 0, fire: () => { shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * 0.5, { home: 1.4, r: S * 0.012, skin: "wisp" }); sfx.whoosh(); } }); // (0.65: the least any warning gets)
+        G.warns.push({ kind: "spot", edge: true, x: clamp(x, 8, W - 8), y: clamp(y, 8, H - 8), t: 0, dur: 0.65, delay: 0, fire: () => { shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * 0.5, { r: S * 0.012, skin: "wisp" }); sfx.whoosh(); } });// (0.65: the least any warning gets)
         sfx.warn();
       });
     } },
@@ -4227,11 +4224,11 @@ sdk.initializeAsync()
     for (let i = 0; i < n; i++) G.warns.push({ kind: "drop", side: 0, p: 0, skin: "bolt", t: 0, dur: 0.6, delay: (i / n) * 1.8, place: placeDrop, fire(w) { fireDrop(w); if (Math.random() < 0.3) flash("255,250,200", 0.12); } });
     sfx.warn();
   }
-  // 도깨비불: pale flames that follow you for a while
+  // 도깨비불: pale flames in a fan at you (they followed you for a while, till 11-10)
   function wisps(m) {
     const n = G.t >= 70 ? 4 : 3;
     G.warns.push({ kind: "spot", x: m.x, y: m.y, t: 0, dur: 0.6, delay: 0, fire() {
-      for (let i = 0; i < n; i++) shoot("kunai", m.x, m.y, Math.atan2(P.y - m.y, P.x - m.x) + (i - (n - 1) / 2) * 0.5, S * 0.5, { home: 1.4, r: S * 0.012, skin: "wisp" });
+      for (let i = 0; i < n; i++) shoot("kunai", m.x, m.y, Math.atan2(P.y - m.y, P.x - m.x) + (i - (n - 1) / 2) * 0.5, S * 0.5, { r: S * 0.012, skin: "wisp" });
       sfx.whoosh();
     } });
   }
@@ -4909,6 +4906,7 @@ sdk.initializeAsync()
     let sx = 1, sy = 1, arm = 0, lean = 0, sl = 0;
     const wd = b.wind || 0, e2 = wd * wd, dir = P.x >= b.x ? 1 : -1;
     if (wd > 0) { sy -= 0.1 * e2; sx += 0.06 * e2; arm = wd < 0.4 ? -0.3 * (wd / 0.4) : -0.3 + 1.2 * ((wd - 0.4) / 0.6) ** 2; }
+    if (b.raise) { const k = clamp(b.raise.t / b.raise.dur, 0, 1), e = 1 - (1 - k) ** 2; arm = 0.95 * e; sy += 0.05 * e; } // lifting its weapon (throwing)
     if (b.castT > 0) {
       const cd = b.castDur || 0.4, e = cd - b.castT, A = cd > 0.55 ? 1 : 0.5; // (a 비기 in full; a beat or a throw at half)
       const c = e < 0.05 ? 1 : e < 0.13 ? 1 - 1.21 * (1 - (1 - (e - 0.05) / 0.08) ** 2) : e < 0.22 ? -0.21 * (1 - (e - 0.13) / 0.09) : 0;
@@ -4956,6 +4954,16 @@ sdk.initializeAsync()
           ctx.save(); ctx.translate(b.x, b.y + u * 0.4); ctx.fillStyle = hexA(fightTint(b.def), 0.55 * sw);
           ctx.beginPath(); ctx.arc(0, 0, R, a0, a0 + 2.0); ctx.arc(0, 0, R * 0.82, a0 + 2.0, a0, true); ctx.closePath(); ctx.fill();
           ctx.strokeStyle = `rgba(255,250,235,${0.8 * sw})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, R, a0 + 0.2, a0 + 1.9); ctx.stroke();
+          ctx.restore();
+        }
+      }
+      const Sw = b.swing; // its weapon brought down (throwing): a crescent of its colour, no lunge
+      if (Sw && !reduced) {
+        const sw = Math.max(0, 1 - Sw.t / 0.26), k = Math.min(1, Sw.t / 0.2), R = u * 2.8, a0 = Sw.ang - 1.2 + k * 0.6;
+        if (sw > 0) {
+          ctx.save(); ctx.translate(b.x, b.y + u * 0.4); ctx.fillStyle = hexA(fightTint(b.def), 0.5 * sw);
+          ctx.beginPath(); ctx.arc(0, 0, R, a0, a0 + 1.8); ctx.arc(0, 0, R * 0.84, a0 + 1.8, a0, true); ctx.closePath(); ctx.fill();
+          ctx.strokeStyle = `rgba(255,250,235,${0.75 * sw})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 0, R, a0 + 0.2, a0 + 1.7); ctx.stroke();
           ctx.restore();
         }
       }
@@ -6008,9 +6016,12 @@ sdk.initializeAsync()
   // 요괴전's thrown things: water shuriken, fireballs, lightning, goblin fire (drawn turned with the shot)
   function drawSkinShot(s) {
     const r = s.r * 1.3, face = () => ctx.rotate(Math.atan2(s.vy, s.vx) - s.rot); // fire and wisps point the way they fly
-    if (s.skin === "water") {
-      ctx.fillStyle = "#3d7fb0";
-      ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2, rr = i % 2 ? r * 0.3 : r * 1.1; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
+    if (s.skin === "water") { // (11-10 제작자: "2- 눈꽃 모양으로 좀 보이게 해 줘, 배경색이랑 너무 비슷해서 모르겠다") deeper blue, a little
+      // bigger, with an edge of dark ink, so it stands off 월하 계곡's blue-grey mist
+      const rw = r * 1.15;
+      ctx.fillStyle = "#2a6fae";
+      ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2, rr = i % 2 ? rw * 0.42 : rw * 1.1; ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); } ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = "#0f3554"; ctx.lineWidth = 1.4; ctx.stroke();
       ctx.strokeStyle = "rgba(255,255,255,0.8)"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(0, 0, r * 0.45, 0, Math.PI * 1.4); ctx.stroke();
       ctx.fillStyle = "rgba(170,215,240,0.9)"; ctx.beginPath(); ctx.arc(0, 0, r * 0.22, 0, Math.PI * 2); ctx.fill();
       return true;
