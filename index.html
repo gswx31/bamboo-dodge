@@ -175,6 +175,7 @@
   .skin canvas { width: 72px; height: 72px; }
   .dev-inv { display: flex; gap: 8px; align-items: center; font-size: 14px; }
   .dev-inv--start { justify-content: center; }
+  .dev-inv select { font: inherit; min-height: 32px; padding: 2px 6px; border: 1.5px solid var(--ink); border-radius: 0; background: transparent; color: var(--ink); }
   .purse .shop-open + .shop-open { margin-left: 8px; margin-right: auto; }
   .boss-list { margin: 0; padding: 0; list-style: none; display: grid; gap: 8px; }
   .boss-list li { border: 1.5px solid var(--ink); padding: 10px 12px; display: grid; grid-template-columns: 1fr auto; align-items: center; column-gap: 10px; row-gap: 2px; }
@@ -294,6 +295,7 @@
       <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
       <button class="link" id="devOpen" hidden>개발자 모드: 보스 비기 보기</button>
       <label class="dev-inv dev-inv--start" id="stageInvRow" hidden><input type="checkbox" id="stageInv" checked> 스테이지모드 무적 (보상 없음)</label>
+      <label class="dev-inv dev-inv--start" id="stagePickRow" hidden>시작할 칸 <select id="stagePick"><option value="">이어서</option></select></label>
       <div class="purse">
         <button class="shop-open" id="shopOpen">상점</button>
         <button class="shop-open" id="bossOpen">보스전</button>
@@ -1326,6 +1328,15 @@ sdk.initializeAsync()
   // ---- 죽순 함정: eruptions chase your steps, and a few more burst around
   function bigSpikes(skin) {
     const R = S * 0.075, n = 4 + Math.min(4, Math.floor(G.t / 45));
+    // (11-10 제작자: "2-1 죽순 너무 많이 나오고 터지는 위치가 내 주변에서만 터져서 너무 피하기 힘들어… 랜덤으로 터지되 일정
+    // 거리 이상에서만") In 스테이지 모드 none chases your steps: six come up one after another anywhere on the field, each
+    // at least 0.2 of it (and its own size) from where you stand as it is lit. 죽림 수련's 죽순 is as it was.
+    if (G.stageRun) {
+      for (let i = 0; i < 6; i++) G.warns.push({ kind: "spike", x: 0, y: 0, r: R * rnd(0.9, 1.2), seed: rnd(0, 6), t: 0, dur: 0.8, delay: i * 0.3,
+        place(w) { let tries = 0; do { w.x = rnd(w.r, W - w.r); w.y = rnd(H * 0.14 + w.r, H - w.r); } while (Math.hypot(w.x - P.x, w.y - P.y) < S * 0.2 + w.r && ++tries < 30); },
+        fire(w) { spikeErupt(w.x, w.y, w.r, skin); } });
+      return;
+    }
     for (let i = 0; i < n; i++) {
       G.warns.push({ kind: "spike", x: 0, y: 0, r: R, seed: rnd(0, 6), t: 0, dur: 0.7, delay: i * 0.34,
         place(w) { w.x = clamp(P.x, R, W - R); w.y = clamp(P.y, R, H - R); }, fire(w) { spikeErupt(w.x, w.y, w.r, skin); } });
@@ -2047,7 +2058,7 @@ sdk.initializeAsync()
     // (11-09 제작자: "각 스테이지 별로 모두 그 스테이지 보스 컨셉에 맞는 패턴", 맛보기 강화) the master's lesser move is what
     // a stage is about now: it comes more often, from X-3 now and then twice running (foePair: every n-th one has a second
     // 1.1 s behind it), and the 장's big moves wait longer to make room for it
-    if (!d.boss) { d.foeEvery = [[6, 7.5], [5, 6.5], [4.4, 5.6], [3.8, 4.8]][s]; d.foePair = [0, 0, 3, 2][s]; d.bigEvery = d.bigEvery.map((v) => v + 2); }
+    if (!d.boss) { d.foeEvery = [[6, 7.5], [5, 6.5], [4.4, 5.6], [3.8, 4.8]][s]; d.foePair = [0, 0, 3, 2][s]; d.bigEvery = d.bigEvery.map((v) => v + (s === 0 ? 6 : 2)); } // (11-10: X-1's one big attack three times, not four: "죽순 너무 많이". Its timer runs on the game's clock, a stage's thirty seconds on the wall's: pace 1.16 makes them ~35)
     stageMemo.set(i, d);
     return d;
   }
@@ -2068,13 +2079,13 @@ sdk.initializeAsync()
     };
     try { return fn(); } finally { Math.random = real; }
   }
-  function startStage(i) {
+  function startStage(i, picked) { // (picked: chosen from 개발자 모드's list — such a run leaves the furthest stage as it was)
     G.story = true; G.stageRun = true; G.dev = null; G.sg = i; G.ch = 0; reset(); G.mode = "play"; runStart();
     G.stageTop0 = stageTop();
     // (11-10 제작자: "?dev 링크 붙으면 스테이지모드 무적") with ?dev and its box ticked, nothing in a stage or its boss can
     // kill you. ?dev works on the live address for anyone, so such a run earns no 엽전 and no boss clothes (payRun,
     // stageClear, bossDown); the stages it reaches still count, on this device only.
-    G.stageInv = DEV && $("stageInv").checked;
+    G.stageInv = DEV && $("stageInv").checked; G.stagePicked = !!picked;
     setTheme(stageDef(i).theme, true);
     $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false;
     reachStage(i); enterStage();
@@ -2090,6 +2101,10 @@ sdk.initializeAsync()
   // 보통 only, and never shown: a stage that keeps beating you gives a little. After the third fall in a row there, each
   // further fall slows that stage (and its boss) 6% more, three steps at most; moving on starts afresh. 고수 is as it is.
   const assist = { sg: -1, n: 0 }, bossSeen = new Set();
+  // (11-10 제작자: "스테이지 전체적으로 표창 빼고 그냥 발도 넣는게 좋아보여") In a stage the throws of stars and kunai — the
+  // line of three stars, the red kunai that follows you, the burst — each come as a 발도 instead, on their own clocks, so
+  // a stage keeps as much coming at you. 죽림 수련 and the bosses' fights still throw them.
+  const STAGE_DRAW = new Set(["line", "homing", "burst"]);
   const easeK = () => (G.stageRun && stageLevel !== "master" && assist.sg === G.sg ? 1 / (1 + 0.06 * clamp(assist.n - 2, 0, 3)) : 1);
   function enterStageFight() {
     const sd = stageDef(G.sg);
@@ -2123,7 +2138,7 @@ sdk.initializeAsync()
   }
   // the furthest stage ever reached: where a new run starts
   function reachStage(i) {
-    if (i > stageTop()) store.set(STAGE_LEVELS[stageLevel].top, i);
+    if (!G.stagePicked && i > stageTop()) store.set(STAGE_LEVELS[stageLevel].top, i);
   }
   function stageStep(dt, realDt) {
     const sd = stageDef(G.sg);
@@ -2136,14 +2151,14 @@ sdk.initializeAsync()
       G.ct += dt / (G.bossK || 1); G.st += dt / (G.bossK || 1); // by the wall clock: thirty seconds stay thirty
       G.t = sd.diff[0] + (sd.diff[1] - sd.diff[0]) * Math.min(1, G.ct / sd.dur); // how hard things are, for the shared attacks
       G.timers.bamboo -= dt;
-      if (G.timers.bamboo <= 0) fixed("bamboo", () => { if (sd.drift && Math.random() < 0.5) spawnDrift(sd.drift); else spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(SL().floor, pace()); }); // (it stops thickening past a point)
+      if (G.timers.bamboo <= 0) fixed("bamboo", () => { if (sd.drift && Math.random() < 0.5) spawnDrift(sd.drift === "water" ? "bamboo" : sd.drift); /* (11-10: 연화's water shuriken stay in her fight: STAGE_DRAW) */ else spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(SL().floor, pace()); }); // (it stops thickening past a point)
       if (sd.foe && (G.timers.foe -= dt) <= 0 && sd.dur - G.ct > 3) fixed("foe", () => {
         foreshadow(sd.foe); G.timers.foe = rnd(sd.foeEvery[0], sd.foeEvery[1]);
         if (sd.foePair && ++G.foeN % sd.foePair === 0) later(1.1, () => { if (G.phase === "fight") fixed("foe2", () => foreshadow(sd.foe)); });
       });
       for (const k of sd.pats) {
         G.timers[k] -= dt;
-        if (G.timers[k] <= 0) fixed(k, () => { PATTERNS[k].spawn(); G.timers[k] = PATTERNS[k].every() * sd.gap * sd.crowd; });
+        if (G.timers[k] <= 0) fixed(k, () => { (STAGE_DRAW.has(k) ? () => spawnSlash(false) : PATTERNS[k].spawn)(); G.timers[k] = PATTERNS[k].every() * sd.gap * sd.crowd; });
       }
       G.bigT -= dt;
       if (G.bigT <= 0) fixed("big", () => {
@@ -3735,6 +3750,24 @@ sdk.initializeAsync()
       for (let i = 0; i < 30 && !at; i++) { const c = [rnd(R, W - R), rnd(H * 0.3, H - R)], d = Math.hypot(c[0] - P.x, c[1] - P.y); if (d > R * 1.2 && d < S * 0.6) at = c; }
       at = at || [W / 2, H * 0.6];
       G.warns.push({ kind: "zone", x: at[0], y: at[1], R, t: 0, dur: 1.3, delay: 0, fire: pour }); sfx.warn();
+    },
+    // (11-10 제작자: "2-1… 표창 날라오는거 보면 너무 어려워, 피하는 워닝사인이 너무 커 보이고", then "스테이지 전체적으로
+    // 표창 빼고 그냥 발도") No kunai or stars in a stage: the bosses whose lesser move threw them show it as 발도 instead,
+    // in their manner. Their own moves in their fights are as they were.
+    lotus: () => { // 연화's 수류검: a 발도 through you, and at X-3 and X-4 one more where you've moved to (was 물결, thirty kunai)
+      const n = stageDef(G.sg).s < 2 ? 1 : 2;
+      for (let k = 0; k < n; k++) later(k * 0.55, () => { if (G.phase === "fight") bandsAt([rnd(0, Math.PI)], S * 0.075, 0.8); });
+    },
+    time: () => { // 광음's 되감기: a 발도 through you, then the same cut again along the same line (was a ring of stars, out and back)
+      const g = rnd(0, Math.PI), x = P.x, y = P.y;
+      const cut = (dur) => { G.warns.push({ kind: "band", x, y, ang: g, w: S * 0.075, t: 0, dur, delay: 0, fire(v) { landCut(v); } }); sfx.warn(); };
+      cut(0.8); later(1.3, () => { if (G.phase === "fight") cut(0.7); });
+    },
+    swarm: () => { // 호접's wings: two cuts closing either side of you, then one across where you are (was two bursts of kunai)
+      const g = rnd(0, Math.PI), nx = Math.cos(g + Math.PI / 2), ny = Math.sin(g + Math.PI / 2);
+      for (const o of [-1, 1]) G.warns.push({ kind: "band", x: P.x + nx * S * 0.16 * o, y: P.y + ny * S * 0.16 * o, ang: g, w: S * 0.075, t: 0, dur: 0.8, delay: 0, fire(v) { landCut(v); } });
+      sfx.warn();
+      later(0.6, () => { if (G.phase === "fight") bandsAt([g + rnd(0.6, 1.0)], S * 0.075, 0.75); });
     },
     wheel: () => bigRing("fire"),
     final: () => cursive(Math.random() < 0.5, 1.0, 1.1), // one stroke of its own cursive, slower (11-08: it threw one of eight others' moves)
@@ -6603,8 +6636,16 @@ sdk.initializeAsync()
   $("goMon").addEventListener("click", () => startEndless("mon"));
   $("story").addEventListener("click", () => { begin(); startStory(Number(store.get("storyCh", "0")) || 0); });
   $("storyNew").addEventListener("click", () => { begin(); store.set("storyCh", 0); startStory(0); });
+  // (11-10 제작자: "dev에서는 스테이지 선택도 가능하게") with ?dev, every stage in a list to start from. A run started there
+  // doesn't move the furthest stage reached (reachStage): ?dev is open to anyone, and 보스전 opens by that
+  const devPick = () => (DEV && $("stagePick").value !== "" ? Number($("stagePick").value) : null);
+  if (DEV) for (let i = 0; i < WORLDS.length * 5; i++) {
+    const d = stageDef(i), o = document.createElement("option");
+    o.value = String(i); o.textContent = `${d.label} ${d.world.name}${d.boss ? " (보스)" : ""}`; $("stagePick").append(o);
+  }
+  $("stagePick").addEventListener("change", () => stageLabels());
   function stageLabels() { // the stage button says the difficulty and which stage a run starts from; the chosen difficulty is lit
-    const from = stageTop();
+    const from = devPick() ?? stageTop();
     $("stageSub").textContent = from > 0 ? `${STAGE_LEVELS[stageLevel].name} ${stageDef(from).label}부터` : STAGE_LEVELS[stageLevel].name;
     $("stageSub").hidden = false;
     $("stageNew").hidden = from === 0;
@@ -6617,11 +6658,11 @@ sdk.initializeAsync()
   for (const b of document.querySelectorAll("#stageLvl button")) b.addEventListener("click", () => {
     stageLevel = b.dataset.lvl; store.set("stageLv", stageLevel); stageMemo.clear(); stageLabels();
   });
-  $("goStage").addEventListener("click", () => { begin(); startStage(stageTop()); });
+  $("goStage").addEventListener("click", () => { begin(); const p = devPick(); startStage(p ?? stageTop(), p != null); });
   $("stageNew").addEventListener("click", () => { begin(); startStage(0); });
   stageLabels();
   // 개발자 모드: only with ?dev in the address
-  $("devOpen").hidden = !DEV; $("stageInvRow").hidden = !DEV;
+  $("devOpen").hidden = !DEV; $("stageInvRow").hidden = !DEV; $("stagePickRow").hidden = !DEV;
   $("devOpen").addEventListener("click", () => { renderDev(); $("start").hidden = true; $("dev").hidden = false; });
   const devLabels = () => { for (const b of document.querySelectorAll("#devLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === devLevel)); };
   for (const b of document.querySelectorAll("#devLvl button")) b.addEventListener("click", () => { devLevel = b.dataset.lvl; store.set("devLv", devLevel); devLabels(); });
@@ -6678,7 +6719,7 @@ sdk.initializeAsync()
   });
   $("bossClose").addEventListener("click", () => { $("boss").hidden = true; $("start").hidden = false; });
   $("again").addEventListener("click", () => adBreak(() => {
-    if (G.stageRun) { begin(); return startStage(G.sg); } // the stage you fell in, from its start
+    if (G.stageRun) { begin(); return startStage(G.sg, G.stagePicked); } // the stage you fell in, from its start
     if (!G.story) return startEndless(G.kind);
     begin();
     if (G.cleared) startStory(0); else startStory(G.ch, true);
