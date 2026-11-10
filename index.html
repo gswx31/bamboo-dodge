@@ -1001,12 +1001,14 @@ sdk.initializeAsync()
     } else if (lvl > M.lvl) M.up = true;
     M.lvl = lvl;
     if (M.next < now - 0.25) M.next = now + 0.05; // after a stall, don't rush to catch up
-    const song = bossSong();
-    if (song !== M.song) { // a boss steps in (or falls): its own music from the top, a gong to open it
+    const song = bossSong() || stageSong();
+    if (song !== M.song) { // a boss steps in (or falls), or a new 장 begins: its own music from the top, a gong to open it
       M.song = song; M.step = 0; M.mel = null; M.next = Math.max(M.next, now + 0.05);
       if (song) gong(M.next, 0.1, bgmBus, 420, 2);
     }
-    const sp = 60 / (song ? songBpm(song) : BPM[lvl]) / 4;
+    const light = song && !bossSong(); // (a stage's song: a step quicker, and a gong, for its harder half and its last six seconds)
+    if (light && M.up) { gong(M.next, 0.08 + 0.03 * lvl, bgmBus); M.up = false; }
+    const sp = 60 / (song ? songBpm(song) * (light ? 1 + 0.06 * Math.max(0, lvl - 1) : 1) : BPM[lvl]) / 4;
     while (M.next < now + 0.12) { if (song) bossBeat(M.step, M.next, song, sp); else beat(M.step, M.next, lvl, sp); M.next += sp; M.step++; }
   }
   function beat(step, t, lvl, sp) {
@@ -1062,6 +1064,16 @@ sdk.initializeAsync()
     final: { bpm: 138, scale: "dark", ost: [5, 3, 5, 6, 5, 3, 5, 7, 5, 3, 5, 6, 4, 3, 2, 1], harm: [0, 0, -1, 1], boom: [0, 3, 6, 8, 11, 14], wood: [4, 10, 12], shk: 2, gongEvery: 1, canon: 4, low: true },
   };
   const bossSong = () => (G.mode === "play" && G.boss && G.phase !== "bossDown" && BOSS_MUSIC[G.boss.def.sig]) || null;
+  // (11-10 제작자: "스테이지별로 브금도 달라지면 어떨까") a 장's stages play its master's song, lighter: slower, its drums thinned
+  // to the downbeats, no woodblock, rattle, canon or clang; then the boss fight brings the same song in full, a gong first
+  const stageSongs = {};
+  const stageSong = () => {
+    if (G.mode !== "play" || !G.stageRun || G.boss || G.phase === "bossDown") return null;
+    const sig = BOSS_SET[stageDef(G.sg).world.boss].sig, m = BOSS_MUSIC[sig];
+    if (!m) return null;
+    return stageSongs[sig] || (stageSongs[sig] = { ...m, bpm: Math.round((m.bpm || 90) * 0.85), boom: m.boom.filter((s) => s % 8 === 0), wood: [], shk: 0,
+      canon: 0, clang: null, trem: false, drumSync: false, timed: false, gongEvery: 0, freeze: false }); // (뇌음's song keeps its beat in the fight only: here 90 × 0.85, 77 a minute)
+  };
   // (뇌음's beat is in the fight's time, which runs slower than the wall clock the music keeps)
   const songBpm = (m) => (m.drumSync ? (60 * (G.bossK || 1)) / drumBeat() : m.timed ? m.bpm * (G.timeK || 1) : m.bpm);
   function bossBeat(step, t, m, sp) {
@@ -1756,8 +1768,10 @@ sdk.initializeAsync()
     if (b.downT > 0) b.downT += dt;
     const u = bossUnit(b.def);
     const leaping = b.home > 0;
-    b.home = Math.max(0, (b.home || 0) - dt);
-    if (leaping && b.home <= 0 && Math.hypot(b.tx - b.x, b.ty - b.y) > S * 0.01) b.home = 0.02; // (out of reach till it is down)
+    b.home = Math.max(0, (b.home || 0) - dt); b.vanish = Math.max(0, (b.vanish || 0) - dt);
+    // (out of reach till it is down, and never down on top of you: it stays up while you are under it — 11-10, its body
+    // is a blade, and 무명 coming back from its 無我 or a boss leaping home must not land on you unannounced)
+    if (leaping && b.home <= 0 && (Math.hypot(b.tx - b.x, b.ty - b.y) > S * 0.01 || bossBodies(b).some(([x, y]) => Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u * 1.6))) b.home = 0.02;
     b.pop = Math.max(0, (b.pop || 0) - dt);
     if (b.reel && (b.reel.t += dt) > 0.12) b.reel = null;
     if (b.hpShow == null || b.hpShow < b.hp) b.hpShow = b.hp;
@@ -1773,8 +1787,8 @@ sdk.initializeAsync()
       // between them it shows where it will stand (a shadow on the ground) a moment before it steps there — never
       // onto you, nor across you.
       const f = (G.stageRun || G.dev) && G.fight;
-      if (f && !(b.home > 0) && (f.busy > 0 || f.wind || f.kill)) { b.tx = b.x; b.ty = b.y; b.next = null; b.wT = Math.max(b.wT, 0.4); }
-      else if (G.phase === "boss") {
+      if (f && (!(b.home > 0) || b.vanish > 0) && (f.busy > 0 || f.wind || f.kill)) { b.tx = b.x; b.ty = b.y; b.next = null; b.wT = Math.max(b.wT, 0.4); }
+      else if (G.phase === "boss" && !(b.vanish > 0)) { // (gone in its 無我, it waits unseen where it vanished)
         if (b.next) { if ((b.next.t -= dt) <= 0) { b.tx = b.next.x; b.ty = b.next.y; b.next = null; } }
         else if ((b.wT -= dt) <= 0) fixed("move", () => {
           b.wT = b.def.look === "lotus" ? rnd(1.0, 1.6) : rnd(1.8, 3); // (연화 flows from place to place: (11-08: "2-5는 속도감이 더 있었으면"))
@@ -1872,7 +1886,7 @@ sdk.initializeAsync()
     { dur: 30, gap: 0.85 },
     { dur: 4, gap: 1.4 },
   ];
-  const BOSS_SECONDS = 26;
+  const BOSS_SECONDS = 20; // (11-10 제작자: "맹호는 무슨 60초 동안 하냐, 종전이 너무 늦게 나온다": 26 → 20; its 종전 and the rest as ever)
   // The line on each stage's card. X-1 is something the 사부 once said, about the attack that comes in now (in quotes);
   // X-2 to X-4 are what the 강호 says about the 장's master, nearer the truth each time; X-5 is the hush before it.
   const STAGE_LINES = [
@@ -2138,7 +2152,9 @@ sdk.initializeAsync()
       G.ct += dt / (G.bossK || 1); G.st += dt / (G.bossK || 1); // by the wall clock: thirty seconds stay thirty
       G.t = sd.diff[0] + (sd.diff[1] - sd.diff[0]) * Math.min(1, G.ct / sd.dur); // how hard things are, for the shared attacks
       G.timers.bamboo -= dt;
-      if (G.timers.bamboo <= 0) fixed("bamboo", () => { if (sd.drift && Math.random() < 0.5) spawnDrift(sd.drift); else spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(SL().floor, pace()); }); // (it stops thickening past a point)
+      // (11-10 제작자: "1스테이지 빼고 대나무 다 빼 주고… 보스보다 일반 스테이지가 어려운데") the unannounced bamboo only in 1장;
+      // from 2장 on a stage's master's backdrop still drifts in, as often as before, and nothing else comes unlit
+      if (G.timers.bamboo <= 0) fixed("bamboo", () => { if (sd.drift && Math.random() < 0.5) spawnDrift(sd.drift); else if (sd.w === 0) spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(SL().floor, pace()); }); // (it stops thickening past a point)
       if (sd.foe && (G.timers.foe -= dt) <= 0 && sd.dur - G.ct > 3) fixed("foe", () => {
         foreshadow(sd.foe); G.timers.foe = rnd(sd.foeEvery[0], sd.foeEvery[1]);
         if (sd.foePair && ++G.foeN % sd.foePair === 0) later(1.1, () => { if (G.phase === "fight") fixed("foe2", () => foreshadow(sd.foe)); });
@@ -2206,7 +2222,7 @@ sdk.initializeAsync()
       what: "보스 둘레로 표창이 꽃잎처럼 퍼져 나갔다가 멈추고, 다시 보스에게 돌아온다. 나갈 때와 돌아올 때 두 번 피해야 한다.",
       intro: "물을 벤 자는 있어도, 물을 이긴 자는 없다.", sigLine: "진흙 속에서 피었다. 꺾이는 법은 모른다.", down: "돌아오지 못하는 물도… 있었구나." },
     { stage: "3-5", name: "적염 대사", title: "赤炎 · 파계승", look: "monk", accent: "#d0651e", theme: "temple", sig: "fire", sigName: ["業火陣", "업화진"],
-      what: "땅이 바둑판으로 나뉘고, 칸의 절반씩 번갈아 불기둥이 솟는다. 박자가 점점 빨라진다.",
+      what: "땅이 칸으로 나뉘고 박자마다 다른 무늬로 불기둥이 솟는다. 바둑판, 줄, 대각선, 내 둘레의 고리, X자, 보스에서 퍼지는 물결이 번갈아 나오고 박자가 점점 빨라진다. 내가 선 칸은 늘 타고, 옆 칸 하나는 늘 비어 있다.",
       intro: "아미타불. 이 불은 내가 지은 업이다.", sigLine: "염불은 잊었다. 불 지피는 법만 남았지.", down: "불은 꺼진다. 업은 남는다." },
     { stage: "4-5", name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", theme: "snow", sig: "frost", sigName: ["氷花亂舞", "빙화난무"],
       what: "백발을 휘날리며 도는 팔을 따라 얼음꽃을 흩뿌린다. 얼음꽃은 천천히 돌며 흘러가다가, 하얗게 깜빡이며 여섯 갈래 빛줄기를 보인 뒤 그 길로 얼음 바늘 여섯 개가 되어 터진다. 처음엔 듬성듬성, 갈수록 촘촘하고 빠르게. 마지막엔 보스 앞의 큰 얼음꽃이 작은 꽃 여섯으로, 그 꽃들이 다시 바늘로 두 번 갈라진다. 꽃 사이를 비집고, 터질 꽃에서 비켜 바늘 사이 틈으로 빠져야 한다.",
@@ -2215,7 +2231,7 @@ sdk.initializeAsync()
       what: "내가 선 자리에 검은 달의 그림자가 드리우고, 1초 뒤 달이 내려앉아 잠시 땅에 박혀 있다. 달은 쉬지 않고 나를 따라 떨어져 설 곳이 점점 줄고, 그 사이 교주가 나를 가로질러 칼을 긋는다.",
       intro: "{me}. 네 사부도 그 검으로는 나를 막지 못했다.", sigLine: "청죽문을 태운 밤에도, 달은 검었다.", down: "결국… 그 늙은이의 검이었나." },
     { stage: "6-5", name: "맹호", title: "猛虎 · 대숲을 뚫는 사내", look: "tiger", accent: "#c7782a", theme: "grove", sig: "charge", sigName: ["猛虎衝", "맹호충"],
-      what: "세 가지를 섞어 쓴다. 붉은 길을 깔고 몸째 돌진하고, 내가 선 자리를 덮쳐 땅을 깨뜨리고, 발톱으로 나란한 세 줄을 긋는다.",
+      what: "두 가지를 섞어 쓴다. 붉은 길을 깔고 몸째 돌진하고, 발톱으로 나란한 세 줄을 긋는다. 셀수록 벽에서 되돌아오고, 두 발이 엇갈려 긋는다.",
       intro: "대숲에 길이 없다고? 내가 지나가면 길이다.", sigLine: "범을 맨손으로 잡았다. 그날부터 내가 범이다.", down: "범도… 넘어질 때가 있군." },
     { stage: "7-5", name: "무영", title: "無影 · 그림자 없는 자", look: "veil", accent: "#55525c", theme: "gorge", sig: "veil", sigName: ["無影劍", "무영검"],
       what: "무영이 사라졌다가 가장자리 곳곳에서 나타나며 나를 가로질러 벤다. 나타날 자리와 벨 길은 먹물 잔상으로 먼저 보인다. 마지막엔 잔상 넷이 한꺼번에 엇갈려 벤다.",
@@ -2229,14 +2245,14 @@ sdk.initializeAsync()
     { stage: "10-5", name: "청우", title: "靑雨 · 비 속의 검객", look: "rain", accent: "#3f7f8f", theme: "gorge", sig: "rain", sigName: ["雨中劍", "우중검"],
       what: "보스의 우산 그림자 하나만 비가 피해 간다. 소나기가 쏟아질 때 그 밖에 있으면 죽고, 비가 떨어지는 순간 다음 그림자가 보인다. 비가 지나갈 때까지 버텼다가 바로 뛰어야 한다. 세 번째마다 비가 길게 오고, 우산이 미리 그려진 길을 따라 흘러간다. 우산 밑을 따라 움직여야 한다.",
       intro: "이 우산은 둘이 쓰던 것이다. 반쪽이 늘 비어 있지.", sigLine: "빗소리가 좋다. 다른 소리는 다 지워 주거든.", down: "비가… 그쳤군." },
-    { stage: "11-5", name: "검총주", title: "劍塚主 · 칼 무덤의 주인", look: "swords", accent: "#7a7f86", theme: "field", sig: "swords", sigName: ["萬劍歸宗", "만검귀종"],
-      what: "칼무덤에서 칼이 솟아 땅에 박힌다. 박힌 칼마다 보스를 향한 붉은 선이 그어지고, 곧 모든 칼이 그 선을 따라 보스에게 한꺼번에 날아간다. 선과 선 사이나 칼 뒤쪽에 서야 한다. 칼을 거둔 보스는 사방으로 다시 터뜨린다. 두 번.",
+    { stage: "11-5", name: "검총주", title: "劍塚主 · 칼 무덤의 주인", look: "swords", accent: "#7a7f86", theme: "field", sig: "swords", sigName: ["飛劍決鬪", "비검결투"],
+      what: "큰 칼을 하나씩 던져 땅에 꽂는다. 꽂힐 자리가 먼저 빛나고, 내 곁에는 꽂지 않는다. 다 꽂으면 사라졌다가 나에게서 가장 먼 칼 곁에 나타나, 칼을 뽑아 그 자리에서 나를 가로질러 벤다. 칼마다 한 번씩, 다음 베기는 앞의 것이 떨어지기 전에 빛난다. 셀수록 칼이 많고, 마지막 두 칼은 한꺼번에 엇갈려 벤다.",
       intro: "여기 묻힌 칼이 만 자루다. 오늘 모두 깨운다.", sigLine: "이 칼들의 주인은 모두 내 손에 죽었다.", down: "칼들이… 너를 주인으로 아는구나." },
     { stage: "12-5", name: "광음", title: "光陰 · 시간을 쥔 노인", look: "time", accent: "#b08d4a", theme: "gorge", sig: "time", sigName: ["光陰", "광음"],
       what: "세상이 느려졌다 빨라졌다를 되풀이한다. 내 몸만 제 속도라서, 느릴 때 자리를 잡아 두어야 빠를 때 산다.",
       intro: "내일을 먼저 다녀왔다. 거기에 너는 없더구나.", sigLine: "세월을 붙잡으려다 세월에 붙잡혔지.", down: "내가 본 내일이… 틀렸구나." },
     { stage: "13-5", name: "벽력", title: "霹靂 · 번개를 부르는 도사", look: "thunder", accent: "#d9b23a", theme: "moon", sig: "thunder", sigName: ["天雷", "천뢰"],
-      what: "내가 선 자리에 번개 자국이 생기고, 0.85초 뒤 하늘에서 번개가 떨어진다. 갈수록 잦아지고, 세 개가 나란히 떨어지기도 한다.",
+      what: "하늘이 어두워지고, 번개가 줄지어 나를 향해 걸어온다. 이어서 내 자리에 큰 번개 자국이 생기고, 떨어지는 순간 하늘이 하얗게 갈라지며 여덟 갈래 번개가 사방으로 뻗는다. 자국 밖, 갈래와 갈래 사이에 서야 한다. 셀수록 두 번 떨어지고, 마지막엔 내 둘레에 열십자로 다섯 개가 떨어진다.",
       intro: "내가 부적을 쓰면, 하늘이 답한다.", sigLine: "하늘도 사십 년을 길들이면 말을 듣는다.", down: "하늘도… 너는 맞히지 못하는구나." },
     { stage: "14-5", name: "추혼", title: "追魂 · 혼을 쫓는 저승사자", look: "ghost", accent: "#4a6b6f", theme: "temple", sig: "shadow", sigName: ["追魂", "추혼"],
       what: "1.4초 전의 내가 그림자가 되어, 내가 지나온 길을 그대로 따라온다. 멈춰 서면 따라잡히고, 닿으면 죽는다.",
@@ -2256,15 +2272,15 @@ sdk.initializeAsync()
     { stage: "19-5", name: "천안", title: "天眼 · 하늘의 눈", look: "eye", accent: "#c9a227", theme: "snow", sig: "glare", sigName: ["天眼光", "천안광"],
       what: "눈이 뜨이면 붉은 눈빛이 나를 따라 돈다. 나보다 느리지만 멈추면 닿는다. 눈빛이 깜빡이는 동안만 건널 수 있고, 그 사이 가장자리에서 칼이 날아온다.",
       intro: "하늘에서 내려다보면, 모든 것이 작다. 너도.", sigLine: "세상의 죄를 다 보아 왔다. 네 것도 보인다.", down: "보지 못했다… 처음으로." },
-    { stage: "20-5", name: "무명", title: "無名 · 이름 없는 고수", look: "final", accent: "#b8912a", theme: "grove", sig: "final", sigName: ["天下", "천하"],
-      what: "칼이 곧 붓이다. 내가 선 자리 위에 天下第一을 한 글자씩 쓴다(더 셀수록 天下第一人, 天上天下第一). 한 글자의 획이 모두 한꺼번에 흐린 선으로 보이고, 곧 먹이 한 번에 벤다. 다음 글자는 앞 글자가 베이기 전에 벌써 보이고, 갈수록 빨라진다. 마지막은 온 땅을 가르는 한 획, 一劍(가장 셀 때는 엇갈려 두 번).",
-      intro: "이름 없는 검객이 여기까지 왔군. 나도 이름이 없다.", sigLine: "눈을 감은 지 오래다. 글씨는 손이 기억한다.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
+    { stage: "20-5", name: "무명", title: "無名 · 이름 없는 고수", look: "final", accent: "#b8912a", theme: "grove", sig: "final", sigName: ["天下一劍", "천하일검"],
+      what: "치켜든 칼을 단번에 내리긋는다. 처음엔 한 줄, 다음엔 두 줄이 엇갈리고, 그다음엔 세 줄이 별 모양으로 내 자리를 지난다. 이어서 분신들이 내 둘레에 서서 차례로 나를 꿰뚫고 지나가고, 마지막엔 하늘을 가르는 넓은 일검이 내려온다. 셀수록 분신이 많고, 보통부터는 일검이 둘 엇갈린다.",
+      intro: "이름 없는 검객이 여기까지 왔군. 나도 이름이 없다.", sigLine: "눈을 감은 지 오래다. 칼은 손이 기억한다.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
   ];
   // what drifts across each boss's fight behind its 비기, unannounced, read as it comes: the boss's own element
   // (the grove's bamboo only where the grove is; nothing at all where the 비기 should stand alone)
   const BOSS_BG = {
     twin: "bamboo", lotus: "water", fire: "fire", frost: "ice", void: null, charge: "bamboo", veil: null, drum: null,
-    mirror: "ice", rain: null, swords: null, time: null, thunder: null, shadow: "wisp", swarm: null, wheel: null,
+    mirror: "ice", rain: null, swords: null, time: null, thunder: "bolt", shadow: "wisp", swarm: null, wheel: null,
     pendulum: null, crumble: null, glare: null, final: null,
   };
   // between one 비기 and the next, each boss throws a couple of the ordinary attacks that suit it (11-06: "단일 패턴만
@@ -2278,10 +2294,15 @@ sdk.initializeAsync()
     thunder: ["cross", "line", "spikes"], shadow: ["draw", "line", "clones"], swarm: ["burst", "line", "spiral"], wheel: ["draw", "cross", "flick"],
     pendulum: ["line", "burst", "flick"], crumble: ["draw", "line", "spikes"], glare: ["line", "draw", "flick"], final: ["draw", "cross", "burst", "triple", "clones"],
   };
-  const BG_NAMES = { bamboo: "대나무", water: "물방울 칼", fire: "불똥", ice: "고드름", wisp: "도깨비불" };
+  const BG_NAMES = { bamboo: "대나무", water: "물방울 칼", fire: "불똥", ice: "고드름", wisp: "도깨비불", bolt: "번개" };
   BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; b.mix = BOSS_MIX[b.sig]; });
   function spawnDrift(kind, drift) { // (`drift`: a boss's backdrop, as spawnBamboo)
     if (kind === "bamboo") return spawnBamboo(drift);
+    if (kind === "bolt") { // 벽력's storm (11-10): lightning about the field, its scorch lit 0.9 s first, never by you, a faint flash
+      const [x, y] = burstSpot(S * 0.25);
+      G.warns.push({ kind: "spike", x, y, r: S * 0.055, seed: rnd(0, 6), t: 0, dur: 0.9, delay: 0, drift: true, fire(w) { strike(w, true); } });
+      return;
+    }
     if (kind === "ice") { // icicles let go from the top
       const x = rnd(S * 0.05, W - S * 0.05), y = -S * 0.08, ang = Math.PI / 2 + rnd(-0.12, 0.12), sp = S * rnd(0.55, 0.75);
       driftMark(shoot("sword", x, y, ang, sp, { len: S * 0.09, r: S * 0.006, ice: true }), drift); // (11-08: the backdrop comes unannounced, like the bamboo)
@@ -2341,86 +2362,16 @@ sdk.initializeAsync()
     later(warn, fire);
   }
   // 벽력's lightning leaping from one rod to the next: it cuts only in its first flash
-  function zapSeg(x0, y0, x1, y1) {
+  function zapSeg(x0, y0, x1, y1, quiet) {
     const pts = [[x0, y0]], n = 9, L = Math.hypot(x1 - x0, y1 - y0), nx = -(y1 - y0) / (L || 1), ny = (x1 - x0) / (L || 1);
     for (let i = 1; i < n; i++) { const k = i / n, o = rnd(-S * 0.03, S * 0.03); pts.push([x0 + (x1 - x0) * k + nx * o, y0 + (y1 - y0) * k + ny * o]); }
     pts.push([x1, y1]);
     G.hazards.push({ kind: "bolt", x: x1, y: y1, r: S * 0.03, pts, t: 0, dur: 0.35, best: Infinity, near: true,
       dist() { return this.t < 0.16 ? Math.max(0, segDist(P.x, P.y, x0, y0, x1, y1) - S * 0.012) : Infinity; },
       draw: drawBolt });
-    flash("255,248,214", 0.12); sfx.burst(); spark(x1, y1, 6); G.shake = Math.max(G.shake, 5);
+    if (!quiet) { flash("255,248,214", 0.12); sfx.burst(); G.shake = Math.max(G.shake, 5); } spark(x1, y1, 6);
   }
-  // 무명's brush, a whole character at once (11-08 19:23: "천 한 자 쓰는 동안 코를 파도 되겠어… 한자 한 글자씩, 빠르게
-  // 빠르게"; it wrote stroke by stroke, half a second apart). Every stroke of it comes up together for `warn`, faint and
-  // dashed on a paper rim, brightening (as segLine's); then the ink cuts down all of them in the same instant (live 0.22 s,
-  // red at its heart only while it cuts) and dries into pale writing gone in half a second, so the next reads on its own.
-  // One hazard for the whole character: one sound, one thing to read.
-  const GLYPH_LIVE = 0.22;
-  function inkChar(segs, warn) {
-    if (!segs.length) return null;
-    const near = (x, y) => { let d = Infinity; for (const [a, b, c, e] of segs) d = Math.min(d, segDist(x, y, a, b, c, e)); return d; };
-    let top = [segs[0][0], segs[0][1]]; // (where the eye finds it: its highest point)
-    for (const [a, b, c, e] of segs) { if (b < top[1]) top = [a, b]; if (e < top[1]) top = [c, e]; }
-    G.hazards.push({ kind: "glyph", x0: top[0], y0: top[1], segs, t: 0, dur: warn + GLYPH_LIVE + 0.5, best: Infinity, near: true,
-      step() {
-        if (this.cut || this.t < warn) return;
-        this.cut = true; sfx.slash(); G.shake = Math.max(G.shake, 7);
-        for (const [a, b, c, e] of segs) stain((a + c) / 2, (b + e) / 2, S * 0.022);
-        if (G.boss) G.boss.castT = G.boss.castDur = 0.4;
-      },
-      dist() { return this.t >= warn && this.t < warn + GLYPH_LIVE ? Math.max(0, near(P.x, P.y) - S * 0.018) : Infinity; },
-      warnAt(x, y, pad) { return this.t < warn + GLYPH_LIVE && near(x, y) < S * 0.02 + pad; },
-      draw(h, time) {
-        ctx.save(); ctx.lineCap = "round";
-        if (h.t < warn) { // all of it, faint and dashed, brightening (its pulse never under 0.4: it reads on any ground)
-          const k = Math.min(1, h.t / warn), p = 0.7 + 0.3 * Math.sin(time * 22), lw = 1.5 + S * 0.006 * k;
-          ctx.setLineDash([10, 7]); ctx.beginPath(); for (const [a, b, c, e] of segs) { ctx.moveTo(a, b); ctx.lineTo(c, e); }
-          ctx.strokeStyle = `rgba(247,240,222,${(0.35 + 0.3 * k) * p})`; ctx.lineWidth = lw + 3; ctx.stroke();
-          ctx.strokeStyle = `rgba(29,26,23,${(0.35 + 0.55 * k) * p})`; ctx.lineWidth = lw; ctx.stroke();
-        } else { // the ink runs down every stroke at once in a tenth of a second
-          const u = h.t - warn, g = Math.min(1, u / 0.1);
-          ctx.beginPath(); for (const [a, b, c, e] of segs) { ctx.moveTo(a, b); ctx.lineTo(a + (c - a) * g, b + (e - b) * g); }
-          if (u < GLYPH_LIVE) { ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = S * 0.036; ctx.stroke(); ctx.strokeStyle = "rgba(200,50,31,0.8)"; ctx.lineWidth = S * 0.006; ctx.stroke(); }
-          else { ctx.globalAlpha = clamp((h.dur - h.t) / 0.5, 0, 1); ctx.strokeStyle = "rgba(29,26,23,0.3)"; ctx.lineWidth = S * 0.02; ctx.stroke(); }
-        }
-        ctx.restore();
-      } });
-    sfx.warn();
-    return G.hazards[G.hazards.length - 1];
-  }
-  // where a character goes: over where you stand, turned, sized and shifted a little differently each time, so each leaves
-  // a different gap; kept only if it leaves a clear spot within 0.12 S of you that misses `avoid` too (what is still to
-  // fall, or still cutting). Failing that, one that leaves a spot clear of itself; failing that, whatever stroke would
-  // leave you no room is not written.
-  function glyphSegs(strokes, box, avoid) {
-    const lo = edge(), CLR = S * 0.055, spots = [[0, 0]]; // (it cuts within 0.03 S of a stroke: a clear spot is 0.055 S off every one)
-    for (const r of [0.04, 0.08, 0.12]) for (let j = 0; j < 12; j++) { const q = (j * Math.PI) / 6 + r * 9; spots.push([Math.cos(q) * r * S, Math.sin(q) * r * S]); }
-    const open = (segs) => spots.some(([dx, dy]) => {
-      const x = clamp(P.x + dx, lo, W - lo), y = clamp(P.y + dy, lo, H - lo);
-      for (const [a, b, c, e] of segs) if (segDist(x, y, a, b, c, e) < CLR) return false;
-      return true;
-    });
-    let segs = [];
-    for (let i = 0; i < 24; i++) {
-      // (its middle a little off you, never right on you: where four strokes meet there is no side to step to)
-      const sz = box * rnd(0.8, 1.06), th = rnd(-0.38, 0.38), cs = Math.cos(th), sn = Math.sin(th), q = rnd(0, Math.PI * 2), j = S * rnd(0.04, i < 16 ? 0.08 + i * 0.004 : 0.1);
-      const cx = P.x + Math.cos(q) * j, cy = P.y + Math.sin(q) * j;
-      const at = (u, v) => [cx + ((u - 0.5) * cs - (v - 0.5) * sn) * sz, cy + ((u - 0.5) * sn + (v - 0.5) * cs) * sz];
-      segs = strokes.map(([a, b, c, d]) => [...at(a, b), ...at(c, d)]);
-      if (open(i < 16 ? segs.concat(avoid) : segs)) return segs;
-    }
-    return segs.filter(([a, b, c, e]) => segDist(P.x, P.y, a, b, c, e) >= CLR);
-  }
-  // the characters, in a box of 1 (few strokes, straight: 第 is simplified), and what it writes: more, the fiercer it is
-  const GLYPHS = {
-    天: [[0.2, 0.25, 0.8, 0.25], [0.08, 0.5, 0.92, 0.5], [0.5, 0.04, 0.5, 0.5], [0.5, 0.5, 0.1, 0.96], [0.5, 0.5, 0.9, 0.96]],
-    上: [[0.5, 0.06, 0.5, 0.9], [0.5, 0.46, 0.84, 0.46], [0.06, 0.9, 0.94, 0.9]],
-    下: [[0.06, 0.12, 0.94, 0.12], [0.5, 0.12, 0.5, 0.96], [0.56, 0.4, 0.82, 0.62]],
-    第: [[0.32, 0.04, 0.14, 0.22], [0.74, 0.04, 0.56, 0.22], [0.14, 0.36, 0.86, 0.36], [0.86, 0.36, 0.86, 0.58], [0.14, 0.58, 0.86, 0.58], [0.5, 0.24, 0.5, 1.0], [0.5, 0.58, 0.1, 0.96]],
-    一: [[0.04, 0.5, 0.96, 0.5]],
-    人: [[0.52, 0.06, 0.12, 0.94], [0.47, 0.42, 0.9, 0.94]],
-  };
-  const GLYPH_WORDS = [["天下第一", "천하제일"], ["天下第一人", "천하제일인"], ["天上天下第一", "천상천하제일"]];
+  // (무명's brush and its cursive, inkChar / glyphSegs / cursive, are gone with its 天下第一: 11-10)
   // 설귀's 氷花亂舞: an ice flower, a crystal of six arms, flowing and slowly turning (its way bends a little all the time,
   // and it slows as it goes). It forms first (`born`: drawn small and pale, it cuts nothing yet), then it is a blade. `tele`
   // before it breaks it stops turning and slows hard, pulses white, faster and faster, and its six ways are lit as thin
@@ -2530,87 +2481,51 @@ sdk.initializeAsync()
         ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 1.6 * (1 - k) + 0.5; ctx.stroke(); ctx.restore();
       } });
   }
-  // 무명's 狂草: one stroke of wild cursive that never leaves the paper, three loops across the field (or down it). Its
-  // loops as [along, off its middle] and its length, before it is laid on you: the length never depends on where you stand,
-  // so the 비기 knows how long it takes before it is written
-  function cursiveWay(vertical) {
-    const k = S * 0.13, n = 72, lo = vertical ? H * 0.2 : S * 0.04, hi = (vertical ? H : W) - S * 0.04, way = [];
-    for (let i = 0; i <= n; i++) { const u = i / n, ph = Math.PI * 6 * u; way.push([lo + (hi - lo) * u + k * Math.sin(ph), k * Math.cos(ph)]); } // (a cycloid drawn out: it stays between lo and hi)
-    let len = 0; for (let i = 1; i <= n; i++) len += Math.hypot(way[i][0] - way[i - 1][0], way[i][1] - way[i - 1][1]);
-    return { way, len, lo, hi, k };
-  }
-  // (11-08: "최종보스도 남의 기술 모음이 아니라 고유하게": 天下 is written a character at a time and you read where it leaves
-  // you room; 狂草 is one stroke and you read where its tip goes, and when.) Its whole way shows first, dashed, flowing the
-  // way the brush will run, laid so that it passes through where you stand; then the brush touches down at the edge far
-  // from you and runs it at `speed` (S a second). Only the wet ink just behind the tip cuts; the rest dries into writing.
-  function cursive(vertical, warn, speed) {
-    const { way, len, lo, hi, k } = cursiveWay(vertical), dur = len / (S * speed), me = vertical ? P.y : P.x, flip = me < (lo + hi) / 2;
-    const ws = way.map(([a, o]) => [flip ? lo + hi - a : a, o]); // (from the far edge: a fair way off before it reaches you)
-    let off = 0, gap = Infinity; // of the places where the stroke passes your line, the one nearest you sets where its loops lie
-    for (let i = 1; i < ws.length; i++) {
-      const [a0, o0] = ws[i - 1], [a1, o1] = ws[i];
-      if ((me - a0) * (me - a1) > 0 || a0 === a1) continue;
-      const o = o0 + ((me - a0) / (a1 - a0)) * (o1 - o0);
-      if (Math.abs(o) < gap) { gap = Math.abs(o); off = o; }
-    }
-    const c = vertical ? clamp(P.x - off, k + S * 0.04, W - k - S * 0.04) : clamp(P.y - off, H * 0.22 + k, H - k - S * 0.04);
-    const pts = ws.map(([a, o]) => (vertical ? [c + o, a] : [a, c + o])), n = pts.length - 1, cum = [0];
-    for (let i = 1; i <= n; i++) cum.push(cum[i - 1] + Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]));
-    const total = cum[n], WET = 0.22;
-    const at = (s) => { let i = 0; while (i < n - 1 && cum[i + 1] < s) i++; const f = clamp((s - cum[i]) / (cum[i + 1] - cum[i] || 1), 0, 1); return [pts[i][0] + (pts[i + 1][0] - pts[i][0]) * f, pts[i][1] + (pts[i + 1][1] - pts[i][1]) * f]; };
-    const span = (s0, s1) => { const out = [at(s0)]; for (let i = 1; i < n; i++) if (cum[i] > s0 && cum[i] < s1) out.push(pts[i]); out.push(at(s1)); return out; };
-    const distOn = (p, x, y) => { let d = Infinity; for (let i = 1; i < p.length; i++) d = Math.min(d, segDist(x, y, p[i - 1][0], p[i - 1][1], p[i][0], p[i][1])); return d; };
-    const tipAt = (t) => clamp((t - warn) / dur, 0, 1) * total; // how far along the brush is, `t` into it
-    const trace = (p) => { ctx.beginPath(); ctx.moveTo(p[0][0], p[0][1]); for (let i = 1; i < p.length; i++) ctx.lineTo(p[i][0], p[i][1]); };
-    G.hazards.push({ kind: "brush", x0: pts[0][0], y0: pts[0][1], t: 0, dur: warn + dur + 1.4, best: Infinity, near: true,
-      step() {
-        if (!this.down && this.t >= warn) { // it touches down: one cut of sound for the whole stroke, not one a segment
-          this.down = true; sfx.slash(); G.shake = Math.max(G.shake, 6); stain(pts[0][0], pts[0][1], S * 0.03);
-          if (G.boss) G.boss.castT = 0.6;
-        }
-        if (!this.up && this.t >= warn + dur) { this.up = true; G.shake = Math.max(G.shake, 4); stain(pts[n][0], pts[n][1], S * 0.03); } // and lifts
-        // (회의 11-08) once the next stroke is laid, this one's dry ink goes quickly, so the field reads as the new stroke
-        // alone; the two laid at once at the end are not "the next" of each other
-        if (this.fadeAt == null && this.t > warn && G.hazards.some((o) => o !== this && o.kind === "brush" && o.t < this.t - 0.05)) this.fadeAt = this.t;
-      },
-      dist() { // the wet ink: from the tip back as far as it went in the last 0.22 s
-        if (this.t < warn || this.t > warn + dur + WET) return Infinity;
-        return Math.max(0, distOn(span(tipAt(this.t - WET), tipAt(this.t)), P.x, P.y) - S * 0.018);
-      },
-      warnAt(x, y, pad) { return this.t < warn + dur && distOn(span(tipAt(this.t), total), x, y) < S * 0.02 + pad; },
-      draw(h, time) {
-        const sT = tipAt(h.t), sW = tipAt(h.t - WET), lw = Math.max(2, S * 0.005);
-        ctx.save(); ctx.lineCap = "round"; ctx.lineJoin = "round";
-        if (sT < total) { // the way still to go: ink dashes on a paper rim, flowing on ahead; steady from just before it starts
-          const a = (0.3 + 0.45 * Math.min(1, h.t / 0.25)) * (h.t < warn - 0.15 ? 0.85 + 0.15 * Math.sin(time * 14) : 1);
-          trace(span(sT, total)); ctx.setLineDash([S * 0.022, S * 0.014]); ctx.lineDashOffset = -time * S * 0.12;
-          ctx.strokeStyle = `rgba(247,240,222,${0.8 * a})`; ctx.lineWidth = lw + 2.5; ctx.stroke();
-          ctx.strokeStyle = `rgba(29,26,23,${a})`; ctx.lineWidth = lw; ctx.stroke(); ctx.setLineDash([]);
-        }
-        if (sW > 0) { // dry ink, harmless now: one path, so its joins don't bead into something like dashes; thin and pale
-          // beside the wet ink (회의 11-08: it read as a second blade), gone in 0.25 s once the next stroke is laid
-          ctx.globalAlpha = clamp((h.dur - h.t) / 0.6, 0, 1) * (h.fadeAt == null ? 1 : clamp(1 - (h.t - h.fadeAt) / 0.25, 0, 1)); trace(span(0, sW));
-          ctx.strokeStyle = "rgba(29,26,23,0.22)"; ctx.lineWidth = S * 0.016; ctx.stroke(); ctx.globalAlpha = 1;
-        }
-        if (sT > sW) { // wet ink, what cuts: red at its heart
-          trace(span(sW, sT)); ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = S * 0.036; ctx.stroke();
-          ctx.strokeStyle = "rgba(200,50,31,0.85)"; ctx.lineWidth = S * 0.006; ctx.stroke();
-        }
-        if (h.t >= warn && h.t < warn + dur) { // the tip of the brush
-          const [x, y] = at(sT);
-          ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(x, y, S * 0.022, 0, Math.PI * 2); ctx.fill();
-          ctx.strokeStyle = "rgba(200,50,31,0.9)"; ctx.lineWidth = 2.5; ctx.beginPath(); ctx.arc(x, y, S * 0.032, 0, Math.PI * 2); ctx.stroke();
-        } else if (h.t < warn) { // where it will touch down: a sight settling there (as a "spot" warning)
-          const q = h.t / warn, r = S * 0.03 * (1.4 - 0.4 * q), [x, y] = pts[0], pulse = 0.55 + 0.45 * Math.sin(time * (14 + q * 26));
-          ctx.strokeStyle = `rgba(200,50,31,${0.5 + pulse * 0.45})`; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
-          for (let i = 0; i < 4; i++) { const g = (i * Math.PI) / 2 + time * 3; ctx.beginPath(); ctx.moveTo(x + Math.cos(g) * r * 0.45, y + Math.sin(g) * r * 0.45); ctx.lineTo(x + Math.cos(g) * r * 1.5, y + Math.sin(g) * r * 1.5); ctx.stroke(); }
-        }
-        ctx.restore();
-      } });
-    sfx.warn();
-    return warn + dur;
-  }
   // each returns how many seconds it takes
+  // ---- 검총주's great swords (11-10, 비검 결투): one thrown to stick in the ground at a lit spot (it cuts only as it lands);
+  // standing there it is where its master steps out next (duelCut, bossBlink)
+  function plantSword(x, y, life) {
+    const h = { kind: "planted", x, y, tilt: rnd(-0.25, 0.25), t: 0, dur: life, best: Infinity, near: true,
+      dist() { return this.t < 0.12 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - S * 0.035) : Infinity; }, draw: drawPlanted };
+    G.hazards.push(h);
+    impact(x, y, 0.8, "#5c6168"); stain(x, y, S * 0.03); sfx.shing();
+    return h;
+  }
+  function drawPlanted(h) { // a great sword driven point first into the ground: its shadow, the blade, the guard, the grip
+    const k = Math.min(1, h.t / 0.08), fade = h.dur - h.t < 0.25 ? Math.max(0, (h.dur - h.t) / 0.25) : 1, L = S * 0.13 * k;
+    ctx.save(); ctx.translate(h.x, h.y); ctx.rotate(h.tilt); ctx.globalAlpha = fade;
+    ctx.fillStyle = "rgba(29,26,23,0.25)"; ctx.beginPath(); ctx.ellipse(0, 0, S * 0.03, S * 0.01, 0, 0, Math.PI * 2); ctx.fill();
+    ctx.lineCap = "round"; ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = S * 0.015; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, -L); ctx.stroke();
+    ctx.strokeStyle = "#c9ccce"; ctx.lineWidth = S * 0.009; ctx.stroke();
+    ctx.fillStyle = "#4a4e54"; ctx.fillRect(-S * 0.022, -L - S * 0.005, S * 0.044, S * 0.01);
+    ctx.fillStyle = "#1d1a17"; ctx.fillRect(-S * 0.005, -L - S * 0.042, S * 0.01, S * 0.037);
+    ctx.restore();
+  }
+  // gone in a puff of ink, and out of another where it is going (its next cut's line shows where it will be)
+  function bossBlink(x, y) {
+    const b = G.boss; if (!b) return;
+    const u = bossUnit(b.def);
+    // never out onto you (its body is a blade): a spot that would put it on you is swapped for another in its upper field,
+    // or it stays where it is (11-10, review: its blink home after 비검결투 and 섬검 could land on you)
+    const onYou = (x, y) => Math.hypot(P.x - x, P.y - (y + u * 0.8)) < u * 2.4;
+    for (let i = 0; i < 12 && onYou(x, y); i++) { x = rnd(W * 0.22, W * 0.78); y = rnd(H * 0.2, H * 0.29); }
+    if (onYou(x, y)) return;
+    if (!reduced) { b.ghosts = [...(b.ghosts || []), { x: b.x, y: b.y, t: 0 }]; burstInk(b.x, b.y + u, 10); }
+    b.dash = null; b.next = null; b.x = b.tx = x; b.y = b.ty = y; b.pop = reduced ? 0 : 0.16; sfx.whoosh();
+    if (!reduced) burstInk(x, y + u, 10);
+  }
+  // 비검 결투: to a standing sword (or two) farthest from you, and from there a cut through you; the sword is pulled free as it cuts
+  function duelCut(swords, m) {
+    const b = G.boss; if (!b) return;
+    const up = swords.filter((h) => !h.taken && h.t < h.dur - 0.3).sort((p, q) => Math.hypot(q.x - P.x, q.y - P.y) - Math.hypot(p.x - P.x, p.y - P.y)).slice(0, m);
+    if (!up.length) return;
+    for (const h of up) h.taken = true; // (each sword cuts once: the next cut is picked before this one's band has struck)
+    const u = bossUnit(b.def), first = up[0];
+    if (Math.hypot(first.x - P.x, first.y - P.y) > S * 0.18) bossBlink(first.x, first.y - u * 1.6);
+    for (const h of up) G.warns.push({ kind: "band", x: P.x, y: P.y, ang: Math.atan2(P.y - h.y, P.x - h.x), w: S * 0.085, t: 0, dur: 0.8, delay: 0,
+      fire(v) { landCut(v); h.t = Math.max(h.t, h.dur - 0.25); const b = G.boss; if (b) { b.castT = b.castDur = 0.6; b.swing = { t: 0, ang: v.ang }; } } });
+    sfx.warn();
+  }
   const SIGS = {
     twin() { // two shadows at once, mirror images: from the side walls, then from top and bottom, by turns
       // (11-08 제작자 19:23 "패턴들이 너무 쉬워… 빠르게 빠르게": a pair every 0.65 s, one step aside and then nothing; now
@@ -2660,18 +2575,37 @@ sdk.initializeAsync()
       // where you stood. Now more beats, quicker sooner, and each one picked as it lights, never the same kind twice
       // running, so that the cell you stand in always burns: a fresh read and a step every beat. Each still lit 0.7 s
       // or more; and no hit-stop on each beat any more, nothing on the screen ever stops.)
-      const cols = 4, rows = 6, cw = W / cols, ch = H / rows;
-      const kinds = [(c, row) => (c + row) % 2, (c, row) => row % 2, (c, row) => c % 2];
+      // (11-10 제작자: "3-5도 패턴 무늬가 너무 심플한데 좀 멋있는 패턴이 나왔으면, 불타는 곳이 뭐 너무 일정해서 지루해") a finer
+      // board, 5 × 8, and eight 무늬 instead of three: checkerboard, rows, columns, stripes of three down either diagonal,
+      // rings round where you stand, an X through you, ripples out from the monk. Picked as each beat lights, never the
+      // same twice running; every one burns the cell you stand in and leaves at least one cell beside it (edge to edge)
+      // cold, checked as it lights (else the checkerboard, which leaves all four sides cold).
+      const cols = 5, rows = 8, cw = W / cols, ch = H / rows;
+      const m3 = (v) => ((v % 3) + 3) % 3, cheb = (a, b, c, d) => Math.max(Math.abs(a - c), Math.abs(b - d));
+      const kinds = [
+        (c, r, pc, pr) => (c + r) % 2 === (pc + pr) % 2,
+        (c, r, pc, pr) => r % 2 === pr % 2,
+        (c, r, pc, pr) => c % 2 === pc % 2,
+        (c, r, pc, pr) => m3(c + r) === m3(pc + pr),
+        (c, r, pc, pr) => m3(c - r) === m3(pc - pr),
+        (c, r, pc, pr) => cheb(c, r, pc, pr) % 2 === 0,
+        (c, r, pc, pr) => Math.abs(c - pc) === Math.abs(r - pr),
+        (c, r, pc, pr, bc, br) => cheb(c, r, bc, br) % 2 === cheb(pc, pr, bc, br) % 2,
+      ];
       const n = 11 + Math.floor(lvl() / 3), slow = Math.max(0.88, 1 - lvl() * 0.012);
       let at = 0, last = -1;
       for (let k = 0; k < n; k++) {
         const dur = Math.max(0.7, (0.95 - k * 0.045) * slow);
-        later(at, () => { // which half burns, decided as it lights: the half you stand in
-          let kind = Math.floor(Math.random() * 3);
-          if (kind === last) kind = (kind + 1 + Math.floor(Math.random() * 2)) % 3;
+        later(at, () => { // which cells burn, decided as it lights: always the one you stand in
+          const pc = clamp(Math.floor(P.x / cw), 0, cols - 1), pr = clamp(Math.floor(P.y / ch), 0, rows - 1);
+          const [bx, by] = bossAt(), bc = clamp(Math.floor(bx / cw), 0, cols - 1), br = clamp(Math.floor(by / ch), 0, rows - 1);
+          const burns = (f, c, r) => f(c, r, pc, pr, bc, br);
+          const fair = (f) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([dc, dr]) => { const c = pc + dc, r = pr + dr; return c >= 0 && c < cols && r >= 0 && r < rows && !burns(f, c, r); });
+          let kind = Math.floor(Math.random() * kinds.length), tries = 0;
+          while ((kind === last || !fair(kinds[kind])) && tries++ < 20) kind = Math.floor(Math.random() * kinds.length);
+          if (!fair(kinds[kind])) kind = 0;
           last = kind;
-          const pc = clamp(Math.floor(P.x / cw), 0, cols - 1), pr = clamp(Math.floor(P.y / ch), 0, rows - 1), side = kinds[kind](pc, pr);
-          for (let c = 0; c < cols; c++) for (let row = 0; row < rows; row++) if (kinds[kind](c, row) === side)
+          for (let c = 0; c < cols; c++) for (let row = 0; row < rows; row++) if (burns(kinds[kind], c, row))
             G.warns.push({ kind: "cell", x0: c * cw, y0: row * ch, x1: (c + 1) * cw, y1: (row + 1) * ch, t: 0, dur, delay: 0, fire: burnCell });
           sfx.taiko();
         });
@@ -2732,15 +2666,18 @@ sdk.initializeAsync()
       return Math.max(at + warn + stay, 0.9 + (cuts - 1) * 1.2 + 0.8) + 0.4;
     },
     charge() { // the tiger, never the same twice running (11-06: one road over and over was "단조롭다 지루해"): it runs a red
-      // road through you bodily, it pounces where you stand, it rakes three claws across you.
+      // road through you bodily, it rakes three claws across you (11-10 제작자: "땅울림 없애 줬으면", its pounce that broke the
+      // ground under you is gone, from its 비기, its second and its 종전).
       // (11-08: "6-5 어려움도 너무 쉬워": it rested 1.15 s after every move and each move was a single blow. Now the rest
       // shortens as it grows, to 0.55 s at least; there are more moves; it runs faster; and its blows come two at a time:
-      // from a pounce's landing straight into its claws, and higher, a run that turns at the wall and comes back at you,
-      // and a second paw raking across the first a moment later, where you are by then. Warnings are as long as they
+      // higher, a run that turns at the wall and comes back at you, and a second paw raking across the first a moment
+      // later, where you are by then. Warnings are as long as they
       // were, never under 0.55 s real: it is the pace and the follow-ups that are fiercer, not the reading.)
-      const L = lvl(), n = 6 + Math.floor(L / 2.5), warn = Math.max(0.75, 0.95 - L * 0.015), cw = warn * 0.9;
-      const rest = clamp(1.5 - L * 0.09, 0.55, 1.15), v = 2.0 + clamp((L - 6) * 0.12, 0, 0.8), combo = L >= 8, back = L >= 10, paw2 = L >= 10, run = 0.45;
-      const order = ["run", "pounce", "claw", "run", "claw", "pounce", "run", "pounce", "claw"], from = (G.fight ? G.fight.n : 0) * 2;
+      // (11-10 제작자: "맹호는 무슨 60초 동안 하냐": at 6-5's level it ran eleven moves, some 22 s, and its 종전 more again — a
+      // fight of a minute. Five moves now, six for its 종전.)
+      const L = lvl(), n = Math.min(G.fight && G.fight.last ? 6 : 5, 4 + Math.floor(L / 4)), warn = Math.max(0.75, 0.95 - L * 0.015), cw = warn * 0.9;
+      const rest = clamp(1.5 - L * 0.09, 0.55, 1.15), v = 2.0 + clamp((L - 6) * 0.12, 0, 0.8), back = L >= 10, paw2 = L >= 10, run = 0.45;
+      const order = ["run", "claw", "run", "claw", "run", "claw"], from = (G.fight ? G.fight.n : 0) * 2;
       const road = (then) => { // a red road from it through you; `then`, the moment it pulls up at the end
         const b = G.boss; if (!b) return;
         const u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x);
@@ -2758,10 +2695,9 @@ sdk.initializeAsync()
           const b = G.boss; if (!b) return;
           b.castT = b.castDur = 0.4;
           if (kind === "run") road(back ? () => road() : null); // (higher: back at you from the wall it ran to)
-          else if (kind === "pounce") pounce(warn + 0.1, combo ? () => tigerRake(cw) : null); // it lands, and its claws are up
           else { const a = tigerRake(cw); if (paw2) tigerRake(cw, 0.35, a + (Math.random() < 0.5 ? 0.8 : -0.8)); } // the other paw, crossing
         });
-        t += (kind === "run" ? warn + run + (back ? warn + 0.25 : 0) : kind === "pounce" ? warn + 0.1 + (combo ? cw : 0) : cw + (paw2 ? 0.35 : 0)) + rest;
+        t += (kind === "run" ? warn + run + (back ? warn + 0.25 : 0) : cw + (paw2 ? 0.35 : 0)) + rest;
       }
       G.boss.wT = t + 1;
       later(t - 0.2, () => { if (G.boss && !G.boss.dash) { G.boss.home = 1.0; G.boss.wT = 0; } }); // one great leap home, over your head
@@ -2858,43 +2794,33 @@ sdk.initializeAsync()
       }
       return t + 0.8;
     },
-    swords() { // 萬劍歸宗, as its name says (11-06: the row of swords falling in turn over a gap to stand under was "초딩같다"):
-      // the sword tomb wakes, swords bursting up out of the ground round you (a glint where each will come) and standing
-      // there, point to their master; each one's red line comes up, and all of them fly home at once down those lines,
-      // which meet in it. Stand between the lines, or behind a sword. Then from its hands they go out again every way.
-      // Twice, more swords the second time.
-      // (11-08 "패턴들이 너무 쉬워 … 빠르게 빠르게": the second round began 4 s after the first, once the burst was past;
-      // now three rounds, each standing a little less long, the next rising while the last burst is still flying out,
-      // and the swords fly home and out quicker; each line still lit 0.85 s, each burst 0.8 s)
-      const go = S * (1.7 + lvl() * 0.03), rounds = lvl() >= 6 ? 3 : 2;
-      const stand = (r) => Math.max(1.35, 1.8 - lvl() * 0.02 - r * 0.12);
-      let t0 = 0; const starts = [];
-      for (let r = 0; r < rounds; r++) { starts.push(t0); t0 += stand(r) + 1.35; }
-      starts.forEach((st, r) => later(st, () => {
-        const b = G.boss; if (!b) return;
-        const standBy = stand(r), n = 10 + Math.floor(lvl() * 0.6) + r * 3, pts = [];
-        for (let i = 0; i < n * 8 && pts.length < n; i++) { // in the lower field, never on you, never on each other
-          const x = rnd(S * 0.06, W - S * 0.06), y = rnd(H * 0.32, H - S * 0.06);
-          if (Math.hypot(x - P.x, y - P.y) < S * 0.14 || pts.some(([px, py]) => Math.hypot(px - x, py - y) < S * 0.1)) continue;
-          pts.push([x, y]);
-        }
-        pts.forEach(([x, y], i) => {
-          const rise = (i / pts.length) * 0.7, ang = Math.atan2(b.y - y, b.x - x);
-          G.warns.push({ kind: "spike", x, y, r: S * 0.035, seed: rnd(0, 6), t: 0, dur: 0.5, delay: rise, fire(w) {
-            shoot("sword", w.x, w.y, ang, 0, { len: S * 0.12, r: S * 0.009, hold: standBy - rise - 0.5, go }); // standing, trembling, then home
-            stain(w.x, w.y, S * 0.02); if (i % 3 === 0) sfx.shing();
-          } });
-          G.warns.push({ kind: "line", x, y, ang, t: 0, dur: 0.85, delay: standBy - 0.85, fire() {} }); // the way it will fly
-        });
-        later(standBy, () => { sfx.whoosh(); G.shake = Math.max(G.shake, 8); });
-        later(standBy + 0.6, () => { // gathered in its hands, and out again every way (one of them at you)
-          const nb = 14 + Math.floor(lvl() / 3) + r * 2;
-          G.warns.push({ kind: "ring", x: 0, y: 0, n: nb, off: 0, t: 0, dur: 0.8, delay: 0,
-            place(w) { [w.x, w.y] = bossAt(); w.off = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); if (G.boss) G.boss.castT = G.boss.castDur = 0.5; },
-            fire(w) { for (let i = 0; i < nb; i++) shoot("sword", w.x, w.y, w.off + (i / nb) * Math.PI * 2, S * 1.0, { len: S * 0.11, r: S * 0.009 }); sfx.burst(); flash("255,250,235", 0.15); } });
-        });
-      }));
-      return starts[rounds - 1] + stand(rounds - 1) + 1.4 + 0.8;
+    swords() { // 飛劍決鬪 (11-10 제작자: "검총주는 패턴 통으로 리메이크 해야 할 것 같고 뭔가 마음에 안 든다", "비검 결투로 가자"):
+      // it hurls its great swords one after another to stick in the ground where a glint shows first (never by you), then
+      // it is gone and steps out at one of them — the one farthest from you — pulls it free and cuts from there through
+      // you. Sword by sword, each cut lit 0.8 s, the next lit before the last has struck; at its fiercest the last two cut
+      // at once, crossing at your feet. Then it is back where it stood.
+      const b = G.boss; if (!b) return 1;
+      const L = lvl(), n = Math.min(6, 3 + Math.floor(L / 4)), hx = b.x, hy = b.y, spots = [], swords = [];
+      for (let i = 0; i < n * 12 && spots.length < n; i++) { // in the lower field, never by you, never by each other
+        const x = rnd(S * 0.1, W - S * 0.1), y = rnd(H * 0.3, H - S * 0.12);
+        if (Math.hypot(x - P.x, y - P.y) < S * 0.3 || spots.some(([sx, sy]) => Math.hypot(sx - x, sy - y) < S * 0.22)) continue;
+        spots.push([x, y]);
+      }
+      const throwGap = 0.32, cutGap = Math.max(0.55, 0.8 - L * 0.012), both = L >= 8 && spots.length >= 2;
+      spots.forEach(([x, y], i) => G.warns.push({ kind: "spike", x, y, r: S * 0.04, seed: rnd(0, 6), t: 0, dur: 0.7, delay: i * throwGap,
+        place(w) { // (checked again as it is thrown: you may have moved under it since)
+          throwing();
+          if (Math.hypot(w.x - P.x, w.y - P.y) < S * 0.3) for (let j = 0; j < 30; j++) {
+            const x = rnd(S * 0.1, W - S * 0.1), y = rnd(H * 0.3, H - S * 0.12);
+            if (Math.hypot(x - P.x, y - P.y) < S * 0.3 || spots.some(([sx, sy], k) => k !== i && Math.hypot(sx - x, sy - y) < S * 0.22)) continue;
+            w.x = x; w.y = y; spots[i] = [x, y]; break;
+          }
+        }, fire(w) { swords.push(plantSword(w.x, w.y, 30)); } }));
+      let t = (spots.length - 1) * throwGap + 0.7 + 0.5;
+      const cuts = both ? spots.length - 1 : spots.length;
+      for (let k = 0; k < cuts; k++) { const two = both && k === cuts - 1; later(t, () => duelCut(swords, two ? 2 : 1)); t += cutGap; }
+      later(t + 0.4, () => { for (const h of swords) h.t = Math.max(h.t, h.dur - 0.25); if (G.boss) bossBlink(hx, hy); });
+      return t + 1.1;
     },
     time() { // slow, then fast, over and over; your finger keeps its own time
       // (11-08 제작자 19:23 "패턴들이 너무 쉬워, 어려움에도 불구하고": no gaps left in it. The lines come a third sooner and
@@ -2919,24 +2845,26 @@ sdk.initializeAsync()
       h.end = () => { G.timeK = 1; };
       return 9.4;
     },
-    thunder() { // lightning called down where you stand, its scorch on the ground a moment before; more often as it goes, three abreast later
-      // (11-08: the rods-and-chains 비기 was "말이 안 나온다" — back to the original, only harder: "기존 보스 애들에 난이도만 조정".
-      // More strikes, closer together (each still lit 0.85 s before it falls), rows of three sooner and both ways, a cross to end on)
-      const n = 12 + Math.floor(lvl()), gap = Math.max(0.38, 0.56 - lvl() * 0.015);
-      for (let k = 0; k < n; k++) later(k * gap, () => {
-        const row = lvl() >= 2 && k % 3 === 2, down = row && lvl() >= 6 && k % 2 === 1; // three side by side: step up or down, not along (later, three stacked: step aside)
-        const offs = row ? [-S * 0.15, 0, S * 0.15] : [0];
-        for (const o of offs)
-          G.warns.push({ kind: "spike", x: clamp(P.x + (down ? 0 : o), S * 0.05, W - S * 0.05), y: clamp(P.y + (down ? o : 0), S * 0.1, H - S * 0.05), r: S * 0.065, seed: rnd(0, 6), t: 0, dur: 0.85, delay: 0, fire: strike });
-        sfx.warn();
-      });
-      later(n * gap + 0.2, () => { // to end: a cross of five round you — the corners between its arms are open
+    thunder() { // 天雷 (11-10 제작자: "13 스테이지가 좀 별로다… 보스 패턴도 너무 쉽고 멋있지도 않고, 번개 특색을 살려서 좀
+      // 멋있는 임팩트"; it was lightning called down where you stood, again and again): the sky goes dark. The storm walks
+      // first, a line of lightning marching on you from it, then another, quicker (each strike lit 0.75 s); then the great
+      // bolt (greatBolt: the sky split white, eight forks running out), twice at its fiercest; and to end, a cross of five
+      // round you, the corners between its arms open.
+      if (!G.boss) return 1;
+      const L = lvl(), marches = L >= 10 ? 3 : 2, bolts = L >= 12 ? 2 : 1;
+      let t = 0;
+      G.dark = Math.max(G.dark, 0.85);
+      for (let k = 0; k < marches; k++) { later(t, () => { if (G.boss) { throwing(); marchAt(strike, S * 0.065, Math.max(0.06, 0.1 - L * 0.003 - k * 0.01), 9); } }); t += 1.25; }
+      t += 0.5;
+      for (let k = 0; k < bolts; k++) { later(t, () => { if (G.boss) { throwing(); greatBolt(); } }); t += 2.2; }
+      later(t, () => {
+        if (!G.boss) return;
         const x = clamp(P.x, S * 0.2, W - S * 0.2), y = clamp(P.y, S * 0.25, H - S * 0.2), d = S * 0.15;
         for (const [ox, oy] of [[0, 0], [d, 0], [-d, 0], [0, d], [0, -d]])
           G.warns.push({ kind: "spike", x: x + ox, y: y + oy, r: S * 0.065, seed: rnd(0, 6), t: 0, dur: 0.9, delay: 0, fire: strike });
-        sfx.warn(); if (G.boss) G.boss.castT = G.boss.castDur = 0.4;
+        sfx.warn(); throwing();
       });
-      return n * gap + 1.4;
+      return t + 1.4;
     },
     swarm() { // butterflies ring you at a distance, circling, following wherever you go (harmless as they circle); one after
       // another each fixes on you, its red line drawn, and darts down it (11-06: a cloud drifting after you, slower than
@@ -3202,34 +3130,32 @@ sdk.initializeAsync()
       if (lvl() >= 9) later(7.3, () => G.boss && SUBS.shadow.run()); // (and once more near the end, as it comes harder)
       return 9.4;
     },
-    final() { // 天下第一 (11-08: "고유하게", nothing borrowed): a nameless master's sword is a brush. (11-08 19:23: "천 한 자
-      // 쓰는 동안 코를 파도 되겠어… 한자 한 글자씩, 빠르게 빠르게": it wrote 天 and 下 a stroke every half second.) A whole
-      // character at a time now (inkChar), each laid over where you stand then (glyphSegs); the next already showing just
-      // before the one before it falls, and faster each time: the first 0.64~0.57 s after the one before, the last
-      // 0.51~0.43 s. Every warning at least 0.65 s. 天下第一, 天下第一人, 天上天下第一 the fiercer it is; and last 一劍, one
-      // stroke across the whole world (twice, crossed, at its fiercest).
-      const L = lvl(), word = GLYPH_WORDS[L >= 12.5 ? 2 : L >= 9 ? 1 : 0], chars = [...word[0]], n = chars.length;
-      const box = Math.min(W * 0.8, H * 0.5), g0 = clamp(0.7 - L * 0.008, 0.57, 0.64), g1 = clamp(0.58 - L * 0.009, 0.43, 0.51);
-      const live = []; // (what it has written that is still to fall or still cutting: the next leaves room that misses it too)
-      let cut = 0.85; // when the first falls (it comes up with its name: a moment longer to read the first)
-      chars.forEach((ch, i) => {
-        const warn = i === 0 ? 0.85 : Math.max(0.65, 0.72 - i * 0.015);
-        later(cut - warn, () => {
-          if (!G.boss) return;
-          if (i === 0) callout(ch, word[1][0]);
-          const avoid = live.filter((g) => g.t < g.dur - 0.5).flatMap((g) => g.segs);
-          const g = inkChar(glyphSegs(GLYPHS[ch], box, avoid), warn); if (g) live.push(g);
-        });
-        if (i < n - 1) cut += g0 + (g1 - g0) * Math.pow(i / Math.max(1, n - 2), 0.8);
+    final() { // 天下一劍 (11-10 제작자: "무명 패턴도 너무 이상해, 기존 컨셉 다 갈고 리뉴얼하자, 진짜 최종 무림고수 느낌나게끔"; it
+      // wrote 天下第一 over you in strokes of ink): a master's sword and nothing else. Its sword raised, then 발도 — one
+      // line through you, then two crossed, then three in a star (step off where they meet, between two of them); then its
+      // shadows stand round you and run through where you are one after another; and last one great stroke from the sky,
+      // wide, through you (two of them crossed at its fiercest). Every cut lit 0.8 s or more.
+      if (!G.boss) return 1;
+      const L = lvl(), draws = [[0], [0, Math.PI / 2], [0, Math.PI / 3, Math.PI * 2 / 3]];
+      let t = 0;
+      draws.forEach((angs, k) => {
+        later(t, () => { const g = rnd(0, Math.PI), x = P.x, y = P.y; throwing(); for (const a of angs) G.warns.push({ kind: "band", x, y, ang: g + a, w: S * 0.06, t: 0, dur: 0.85, delay: 0, fire(v) { landCut(v); } }); sfx.warn(); });
+        t += 0.95 - k * 0.05;
       });
-      const blade = (ang) => { // 一劍: one great cut through you, across everything
-        G.warns.push({ kind: "band", x: P.x, y: P.y, ang, w: S * 0.12, t: 0, dur: 0.8, delay: 0, fire(w) { landCut(w); } });
-        sfx.warn(); if (G.boss) G.boss.castT = G.boss.castDur = 0.6;
-      };
-      const ang = rnd(-0.35, 0.35) + (Math.random() < 0.5 ? 0 : Math.PI / 2), twice = L >= 11, at = cut - 0.15; // (it too comes up just before the last character falls)
-      later(at, () => { if (G.boss) { callout("一劍", "일검"); blade(ang); } });
-      if (twice) later(at + 0.42, () => G.boss && blade(ang + Math.PI / 2 + rnd(-0.3, 0.3)));
-      return at + (twice ? 0.42 : 0) + 0.8 + 0.5;
+      t += 0.3;
+      const m = 4 + Math.floor(L / 4), ring = rnd(0, Math.PI * 2), step = Math.max(0.32, 0.42 - L * 0.006); // 分身: its shadows round you, each through you in turn
+      for (let i = 0; i < m; i++) G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur: 0.8, delay: t + i * step,
+        place(w) { const a = ring + (i / m) * Math.PI * 3, d = S * 0.42; w.x = clamp(P.x + Math.cos(a) * d, S * 0.04, W - S * 0.04); w.y = clamp(P.y + Math.sin(a) * d, S * 0.06, H - S * 0.04); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
+        fire(w) { cloneDash(w.x, w.y, w.ang); } });
+      t += m * step + 0.9;
+      later(t, () => { // 一劍: the sky cut in two
+        if (!G.boss) return;
+        const g = rnd(0, Math.PI), x = P.x, y = P.y, angs = L >= 12 ? [g, g + Math.PI / 2] : [g];
+        callout("一劍", "일검"); G.dark = Math.max(G.dark, 0.8); throwing();
+        for (const a of angs) G.warns.push({ kind: "band", x, y, ang: a, w: S * 0.16, t: 0, dur: 1.0, delay: 0, fire(v) { landCut(v); flash("255,250,235", 0.3); G.shake = Math.max(G.shake, reduced ? 0 : 14); } });
+        sfx.warn();
+      });
+      return t + 1.6;
     },
   };
   // 빙경's mirrors: four panes of ice standing about the lower field (for `life` seconds), harmless themselves. A pane
@@ -3565,14 +3491,14 @@ sdk.initializeAsync()
     ctx.restore();
   }
   // 천뢰: the bolt comes down on its scorch mark (it cuts only in the instant it lands)
-  function strike(w) {
+  function strike(w, soft) { // (soft: 벽력's storm about the field, 11-10 — a faint flash, so the sky doesn't strobe)
     const pts = [[w.x + rnd(-S * 0.05, S * 0.05), -S * 0.05]];
     for (let i = 1; i < 8; i++) { const k = i / 8; pts.push([w.x + rnd(-S * 0.06, S * 0.06) * (1 - k), -S * 0.05 + (w.y + S * 0.05) * k]); }
     pts.push([w.x, w.y]);
-    G.hazards.push({ kind: "bolt", x: w.x, y: w.y, r: w.r, pts, t: 0, dur: 0.35, best: Infinity, near: true,
+    G.hazards.push({ kind: "bolt", x: w.x, y: w.y, r: w.r, pts, t: 0, dur: 0.35, best: Infinity, near: true, drift: !!soft,
       dist() { return this.t < 0.14 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - this.r) : Infinity; },
       draw: drawBolt });
-    flash("255,248,214", 0.18); sfx.burst(); stain(w.x, w.y, w.r * 0.6); impact(w.x, w.y, 1, "#d9b23a"); spark(w.x, w.y, 8);
+    flash("255,248,214", soft ? 0.05 : 0.18); if (!soft) sfx.burst(); stain(w.x, w.y, w.r * 0.6); impact(w.x, w.y, soft ? 0.5 : 1, "#d9b23a"); spark(w.x, w.y, soft ? 4 : 8);
   }
   function drawBolt(h) {
     const a = Math.max(0, 1 - h.t / h.dur);
@@ -3624,7 +3550,7 @@ sdk.initializeAsync()
   function devStep(dt, realDt) {
     stepLines(realDt);
     if (!G.dev) return; // its last words just ended: back at the list already
-    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], bossLv(G.dev.i) + SL().lv, G.dev.play ? 32 : 20); } // (11-08: "dev모드에서는 종전 빨리 볼 수 있게 20초로": watching in the 개발자 list, its 종전 comes at 20 s; a player's 보스전 keeps 32)
+    if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], bossLv(G.dev.i) + SL().lv, G.dev.play ? BOSS_SECONDS + 6 : 20); } // (11-08: "dev모드에서는 종전 빨리 볼 수 있게 20초로": watching in the 개발자 list, its 종전 comes at 20 s; a player's 보스전 6 s more than a stage's boss, 26 since 11-10)
     if (G.boss) moveBoss(realDt);
     G.safe = (G.phase !== "boss") || G.devInv;
   }
@@ -3637,7 +3563,7 @@ sdk.initializeAsync()
   // can still reach you (not the drifting backdrop, not a star already past you and flying off)? (11-08: "어렵지만 억울하지
   // 않게": a 비기 whose name went up over a vortex of stars still turning made two things to read at once, and the eye
   // takes one; its wind-up waits for the field to clear)
-  const fieldBusy = () => G.warns.some((w) => w.kind !== "none" && w.kind !== "edge") || G.hazards.some((h) => h.kind === "segw" || (h.kind !== "ctl" && h.dist() < Infinity)) ||
+  const fieldBusy = () => G.warns.some((w) => w.kind !== "none" && w.kind !== "edge" && !w.drift) || G.hazards.some((h) => h.kind === "segw" || (h.kind !== "ctl" && !h.drift && h.dist() < Infinity)) ||
     G.shots.some((s) => !s.dead && !s.drift && s.x > 0 && s.x < W && s.y > 0 && s.y < H && (s.hold > 0 || s.home > 0 || (s.ret && !s.back) || (P.x - s.x) * s.vx + (P.y - s.y) * s.vy > 0));
   // (never longer than this: a field that will not clear doesn't stall the fight. 11-08 evening, "전체적으로 패턴들이 너무
   // 쉬워, 어려움에도 불구하고": 1.2 → 0.5 — the warnings were long enough, it was the empty air between attacks that made
@@ -3710,20 +3636,22 @@ sdk.initializeAsync()
   // the warnings. 破 to its next 비기 was its breath + 1.3 s and up to 2.2 s more of waiting for the field to clear (about
   // 2.2 s to 4.6 s at 어려움); now the second attack comes 0.85 s in, over the tail of the first, the breath is cut to
   // BREATH_K of itself and the waits to MIX_HOLD and HOLD_MAX: about 1.4 s to 2.4 s)
-  const MIX_AT = [0.1, 0.85];
-  const MIX_HOLD = 0.4; // the most the second waits for the first to clear (was 1.0)
-  const BREATH_K = 0.6; // how much of its level's breath (STAGE_LEVELS) it takes between 비기 (was all of it)
+  const MIX_AT = [0.1, 0.6, 1.1]; // (11-10, the same: "종전 전에 너무 시시해": three of its other attacks between 비기, not two)
+  const MIX_HOLD = 0.4; // the most the last waits for the field to clear (was 1.0)
+  const BREATH_K = 0.45; // how much of its level's breath (STAGE_LEVELS) it takes between 비기 (was all of it). (On 보통 and
+  // 어려움 the wind-up, 0.5 s by the wall clock, is longer than that anyway, so there the breath is the wind-up alone.)
   function mixStep(dt, f, d) {
     const m = f.mix; m.t += dt;
-    // the second (the light one before its next 비기) waits for the first to clear, MIX_HOLD at most, its 비기 waiting
+    // the last (the light one before its next 비기) waits for the field to clear, MIX_HOLD at most, its 비기 waiting
     // with it (11-08 meeting: 무명's diagonal band and its blast ring went up together, two things to read at once)
-    if (m.k === 1 && m.t >= MIX_AT[1] && fieldBusy() && (m.hold = (m.hold || 0) + dt) < MIX_HOLD) { m.t = MIX_AT[1]; f.sigT += dt; return; }
+    const j = MIX_AT.length - 1;
+    if (m.k === j && m.t >= MIX_AT[j] && fieldBusy() && (m.hold = (m.hold || 0) + dt) < MIX_HOLD) { m.t = MIX_AT[j]; f.sigT += dt; return; }
     while (m.k < MIX_AT.length && m.t >= MIX_AT[m.k]) { m.k++; const last = m.k === MIX_AT.length; fixed("mix", () => mixAttack(f, d, last)); }
     if (m.k >= MIX_AT.length) f.mix = null;
   }
   // (11-10 제작자: 보스가 직접 공격하는 모션, "무기를 들었다가 휘두르기") each of its other attacks it throws in full: it lifts
   // its weapon over its head for 0.24 s (bossPose), then brings it down through a crescent of its colour (moveBoss, drawBoss)
-  const throwing = () => { const b = G.boss; if (b && !(b.castT > 0) && !b.raise) b.raise = { t: 0, dur: 0.24 }; }; // (11-08: its other attacks are its too — was a half-size throw of its weapon arm as each onegoes)
+  const throwing = () => { const b = G.boss; if (b && !(b.castT > 0) && !b.raise) b.raise = { t: 0, dur: 0.24 }; }; // (11-08: its other attacks are its too — was a half-size throw of its weapon arm as each one goes)
   const subAttack = (d) => { throwing(); return SUBS[d.sig].run(); };
   // A 장's stages before its master: its lesser move, mostly the 종전 one; where that needs the master standing there, or
   // shows its manner better another way, something of its own (thrown from up the mountain where the master waits)
@@ -3755,7 +3683,19 @@ sdk.initializeAsync()
       bandsAt([g], S * 0.09, 0.8);
       later(0.7, () => { if (G.phase === "fight") bandsAt([g + Math.PI / 2 + rnd(-0.3, 0.3)], S * 0.09, 0.75); });
     },
-    final: () => cursive(Math.random() < 0.5, 1.0, 1.1), // one stroke of its own cursive, slower (11-08: it threw one of eight others' moves)
+    thunder: () => (stageDef(G.sg).s >= 2 ? greatBolt(S * 0.1, 4) : SUBS.thunder.run()), // 벽력: its walking lightning; from X-3 a small great bolt, four forks (11-10)
+    final: () => { // 무명's 발도: a thin line through you, and further on (X-3, X-4) a second across it as you move (11-10: was a stroke of cursive)
+      bandsAt([rnd(0, Math.PI)], S * 0.06, 0.85);
+      if (stageDef(G.sg).s >= 2) later(0.5, () => { if (G.phase === "fight") bandsAt([rnd(0, Math.PI)], S * 0.06, 0.8); });
+    },
+    swords: () => { // 검총주's duel without him: a great sword falls where a glint shows (not by you), and from it a cut through you
+      const [x, y] = burstSpot(S * 0.3);
+      G.warns.push({ kind: "spike", x, y, r: S * 0.04, seed: rnd(0, 6), t: 0, dur: 0.7, delay: 0, fire(w) {
+        const h = plantSword(w.x, w.y, 1.6);
+        later(0.2, () => { if (G.phase !== "fight") return; G.warns.push({ kind: "band", x: P.x, y: P.y, ang: Math.atan2(P.y - h.y, P.x - h.x), w: S * 0.08, t: 0, dur: 0.8, delay: 0, fire(v) { landCut(v); h.t = Math.max(h.t, h.dur - 0.25); } }); sfx.warn(); });
+      } });
+      sfx.warn();
+    },
   };
   const foreshadow = (sig) => (FORESHADOW[sig] || SUBS[sig].run)();
   // Each boss's second 비기, in its manner, taking turns with its first (11-06: "나머지 보스들도 컨셉과 함께 다양한 고유기").
@@ -3783,14 +3723,14 @@ sdk.initializeAsync()
     } },
     // (11-10: no 사자후 anywhere, "게임 전체적으로 빼버려" — 맹호 rakes its claws across you before it charges, 뇌음 lays its
     // paths on the beat with no rings first, and 뇌음's 북소리 is its three paths on the beat)
-    charge: { name: ["虎咆", "호포"], run() { // its claws across you, and at once it comes down the road through you (was its roar)
-      // (11-08 "6-5 어려움도 너무 쉬워": faster down its road as it grows; its pounce lands straight into its claws, and
-      // higher it pounces once more at the end)
-      const L = lvl(), v = 2.0 + clamp((L - 6) * 0.12, 0, 0.8), leap = () => pounce(0.85, L >= 8 ? () => tigerRake(0.75) : null);
+    charge: { name: ["虎爪衝", "호조충"], run() { // its claws across you, and then it comes down the road through you; between,
+      // both paws crossing (11-10: was 虎咆, a roar and a pounce: "땅울림 없애 줬으면". Faster down its road as it grows.)
+      const L = lvl(), v = 2.0 + clamp((L - 6) * 0.12, 0, 0.8);
       const run = () => { const b = G.boss, u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x); G.warns.push({ kind: "band", x: b.x, y: cy, ang, w: u * 2.3, t: 0, dur: 0.85, delay: 0, fire(w) { runAt(ang, w.x, w.y - u * 0.8, v); } }); sfx.warn(); };
       G.boss.tx = G.boss.x; G.boss.ty = G.boss.y;
       const rakeRun = () => { tigerRake(0.75); later(1.0, () => G.boss && run()); };
-      const t = L >= 10 ? steps(2.0, rakeRun, leap, rakeRun, leap) : steps(2.0, rakeRun, leap, rakeRun);
+      const paws = () => { const a = tigerRake(0.75); tigerRake(0.7, 0.35, a + (Math.random() < 0.5 ? 0.8 : -0.8)); }; // (no second road laid while the first is still to run)
+      const t = L >= 10 ? steps(1.8, rakeRun, paws, rakeRun, paws) : steps(1.8, rakeRun, paws, rakeRun);
       later(t - 0.3, () => { if (G.boss && !G.boss.dash) G.boss.home = 1.0; });
       return t;
     } },
@@ -3813,52 +3753,51 @@ sdk.initializeAsync()
       const wave = (side) => { const c = side ? P.y : P.x, L = side ? H : W; for (let k = 0; k < 9; k++) G.warns.push({ kind: "drop", side, p: clamp(c + (k - 4) * S * 0.11 + rnd(-S * 0.02, S * 0.02), S * 0.03, L - S * 0.03), t: 0, dur: 0.65, delay: k * 0.06, fire(w) { fireDrop(w); } }); sfx.warn(); };
       return steps(0.75, () => wave(0), () => wave(3), () => SUBS.rain.run(), () => wave(0), () => wave(1), () => wave(0));
     } },
-    // (11-08 "빠르게 빠르게": three volleys 1.2 s apart and a ring of 16 with its gap on you, then; now four volleys 0.8 s
-    // apart, each shown before the last has flown, and a ring of 20, one of them at you)
-    swords: { name: ["飛劍陣", "비검진"], run() { const v = () => SUBS.swords.run(); return steps(0.8, v, v, v, v, () => { const n = 20; G.warns.push({ kind: "ring", x: 0, y: 0, n, off: 0, t: 0, dur: 0.8, delay: 0, place(w) { [w.x, w.y] = bossAt(); w.off = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); }, fire(w) { for (let i = 0; i < n; i++) shoot("sword", w.x, w.y, w.off + (i / n) * Math.PI * 2, S * 0.95, { len: S * 0.11, r: S * 0.009 }); sfx.burst(); } }); }); } },
+    swords: { name: ["閃劍", "섬검"], run() { // 비검 결투's other half: it is gone, and out of the air beside you, cutting
+      // through you; again and again, the next lit before the last has struck, two at once to end on (11-10: was 飛劍陣)
+      const b = G.boss; if (!b) return 1;
+      const L = lvl(), hx = b.x, hy = b.y, n = 5 + Math.floor(L / 4), gap = Math.max(0.55, 0.78 - L * 0.012);
+      const strike = (two) => {
+        const b = G.boss; if (!b) return;
+        let x, y, tries = 0;
+        do { const a = rnd(0, Math.PI * 2); x = clamp(P.x + Math.cos(a) * S * 0.4, S * 0.08, W - S * 0.08); y = clamp(P.y + Math.sin(a) * S * 0.4, H * 0.18, H - S * 0.1); } while (Math.hypot(x - P.x, y - P.y) < S * 0.28 && ++tries < 20);
+        bossBlink(x, y - bossUnit(b.def) * 0.8);
+        const a0 = Math.atan2(P.y - y, P.x - x), angs = two ? [a0, a0 + Math.PI / 2] : [a0];
+        for (const ang of angs) G.warns.push({ kind: "band", x: P.x, y: P.y, ang, w: S * 0.08, t: 0, dur: 0.8, delay: 0, fire(v) { landCut(v); const b = G.boss; if (b) { b.castT = b.castDur = 0.6; b.swing = { t: 0, ang: v.ang }; } } });
+        sfx.warn();
+      };
+      let t = 0;
+      for (let k = 0; k < n; k++) { const two = k === n - 1; later(t, () => strike(two)); t += gap; }
+      later(t + 0.5, () => G.boss && bossBlink(hx, hy));
+      return t + 1.2;
+    } },
     // (11-08 제작자 19:23 "너무 쉬워": 광음·벽력·추혼·호접's second 비기 a third quicker from one move to the next, and longer)
     time: { name: ["逆流", "역류"], run() { const two = () => { aimedLine(...edgePoint(), S * 0.9); aimedLine(...edgePoint(), S * 0.9); }; return steps(1.1, () => SUBS.time.run(), two, () => SUBS.time.run(), two, two, () => SUBS.time.run()); } },
     thunder: { name: ["雷網", "뇌망"], run() { const net = () => { const g = rnd(0, Math.PI); for (const ang of [g, g + Math.PI / 2]) G.warns.push({ kind: "band", x: P.x, y: P.y, ang, w: S * 0.07, t: 0, dur: 0.75, delay: 0, fire(v) { landCut({ ...v, tint: "#d9b23a" }); flash("255,248,214", 0.12); } }); sfx.warn(); }; return steps(0.8, net, () => SUBS.thunder.run(), net, net, () => SUBS.thunder.run(), net); } },
     shadow: { name: ["百鬼", "백귀"], run() { return steps(0.9, () => SUBS.shadow.run(), () => SUBS.veil.run(), () => SUBS.shadow.run(), () => SUBS.veil.run(), () => SUBS.shadow.run(), () => SUBS.veil.run()); } },
     swarm: { name: ["毒粉", "독분"], run() { return steps(0.72, () => SUBS.swarm.run(), () => SUBS.swarm.run(), () => SUBS.swarm.run(), () => SUBS.lotus.run(), () => SUBS.swarm.run()); } },
     // (11-08 "패턴들이 너무 쉬워": 16~19's second 비기 closer together, one coming up before the last is gone)
-    wheel: { name: ["火環", "화환"], run() { return steps(1.3, () => FORESHADOW.wheel(), () => SUBS.wheel.run(), () => FORESHADOW.wheel(), () => SUBS.wheel.run()); } },
+    wheel: { name: ["火輪痕", "화륜흔"], run() { // (11-10: its wheel tracks, was 火環, a ring of fire)
+      return steps(1.3, () => FORESHADOW.wheel(), () => SUBS.wheel.run(), () => FORESHADOW.wheel(), () => SUBS.wheel.run()); } },
     pendulum: { name: ["流星", "유성"], run() { const ball = () => SUBS.pendulum.run(); return steps(0.7, ball, ball, ball, ball, ball, ball); } },
     crumble: { name: ["壓殺", "압살"], run() { // the totem falls flat down a broad road, gets up, and stamps after you
       const fall = () => { const [x, y] = bossAt(); G.warns.push({ kind: "band", x, y, ang: Math.atan2(P.y - y, P.x - x), w: S * 0.24, t: 0, dur: 0.95, delay: 0, fire(v) { landCut(v); impact(P.x, P.y, 1.2, "#9b4a2c"); } }); sfx.warn(); };
       return steps(1.05, fall, () => SUBS.crumble.run(), fall, () => SUBS.crumble.run(), fall);
     } },
     glare: { name: ["天罰", "천벌"], run() { const look = () => SUBS.glare.run(); return steps(0.9, () => { const [x, y] = bossAt(); beamAt(x, y - (G.boss ? bossUnit(G.boss.def) * 1.2 : 0)); }, () => {}, look, look, look, look); } }, // (its glances while the beam goes round)
-    final: { name: ["狂草", "광초"], run() { // a stroke of cursive across you, one down through you, then both at once
-      // (11-08: "최종보스도 남의 기술 모음이 아니라 고유하게": it strung three of the others' second 비기 together, 14 s of
-      // borrowed moves, longer than its own 天下). The brush quickens with it, never past 1.45 S a second: the eye follows it.
-      // (11-08 19:23: "패턴들이 너무 쉬워, 빠르게 빠르게": 1.1~1.45 → 1.3~1.75 S a second, and no rest between strokes: the
-      // next one's way is up 0.25 s before the one before it lifts, where it had waited half a second after)
-      const warn = Math.max(0.75, 0.95 - lvl() * 0.015), v = clamp(1.2 + lvl() * 0.035, 1.3, 1.75), first = Math.random() < 0.5;
-      const dur = (vertical) => cursiveWay(vertical).len / (S * v), g1 = warn + dur(first) - 0.25, g2 = g1 + warn + dur(!first) - 0.25;
-      cursive(first, warn, v);
-      later(g1, () => G.boss && cursive(!first, warn, v));
-      later(g2, () => { if (G.boss) { cursive(false, warn + 0.15, v); cursive(true, warn + 0.15, v); } });
-      return g2 + warn + 0.15 + Math.max(dur(false), dur(true)) + 0.6;
+    final: { name: ["無我", "무아"], run() { // it is gone altogether, and cuts come out of nothing at you, one every 0.4–0.5 s,
+      // a pair crossed every third; then it is there again, where it vanished (11-10: was 狂草, its cursive)
+      const b = G.boss; if (!b) return 1;
+      const L = lvl(), n = 8 + Math.floor(L / 3), step = Math.max(0.4, 0.5 - L * 0.006);
+      b.vanish = b.home = (0.4 + n * step + 0.8) / (G.bossK || 1); burstInk(b.x, b.y + bossUnit(b.def), 12); sfx.whoosh(); // (out of sight and out of reach, by the wall clock: back as its cuts end)
+      let t = 0.4;
+      for (let k = 0; k < n; k++) { const two = k % 3 === 2; later(t, () => { const g = rnd(0, Math.PI); bandsAt(two ? [g, g + Math.PI / 2] : [g], S * 0.065, 0.8); }); t += step; }
+      return t + 1.0;
     } },
   };
   // which of its two 비기 comes next: the first, then the second, by turns (its 종전 is always the first)
   const nextSig = (f, d) => (!f.last && f.n % 2 === 1 ? { name: ALTS[d.sig].name, run: ALTS[d.sig].run } : { name: d.sigName, run: SIGS[d.sig] });
   const bossAt = () => (G.boss ? [G.boss.x, G.boss.y] : [W / 2, H * 0.24]);
-  // 맹호's pounce: a ring on the ground where you stand; it bounds there (its shadow left where it was) and the ground breaks under it
-  function pounce(warn, then = null) { // (then: what it does the moment it lands — 11-08, its claws)
-    const b = G.boss; if (!b) return;
-    const u = bossUnit(b.def), R = u * 1.9, x = clamp(P.x, R, W - R), y = clamp(P.y, H * 0.22, H - R);
-    G.warns.push({ kind: "spike", x, y, r: R, seed: rnd(0, 6), t: 0, dur: warn, delay: 0, fire(w) {
-      const b = G.boss; if (!b) return;
-      if (!reduced) { b.ghosts = [...(b.ghosts || []), { x: b.x, y: b.y, t: 0 }]; b.leap = { x0: b.x, y0: b.y, t: 0 }; } // (11-08: drawn bounding along an arc, landing squashed — bossPose)
-      if (b.tg && b.tg.w === w) b.tg = null;
-      b.dash = null; b.next = null; b.x = b.tx = w.x; b.y = b.ty = w.y - u * 0.8; b.pop = reduced ? 0 : b.pop; // (its body is a blade: it lands in the ring's middle, the ring wider than it)
-      spikeErupt(w.x, w.y, w.r, "bamboo"); impact(w.x, w.y, 1.4, "#c7782a"); sfx.slash();
-      if (then) then();
-    } });
-    b.tg = { kind: "pounce", w: G.warns[G.warns.length - 1] }; // it crouches to spring as the ring fills (11-08)
-  }
   // 맹호's claws: three rakes side by side through where you stand, all at once as a paw comes down, its claws going up
   // over its head as they are drawn (b.tg). `late`: drawn that many seconds on, where you are by then, at `ang` (its other
   // paw). (11-08 "6-5 어려움도 너무 쉬워": 0.13 S apart, slipping between them was luck as much as reading; now 0.16 S, and
@@ -3872,6 +3811,19 @@ sdk.initializeAsync()
       fire(w) { landCut(w); const b = G.boss; if (!b) return; if (late) { if (o === 0) b.tg = { kind: "claw", f: 0 }; } else if (b.tg && b.tg.kind === "claw" && b.tg.f == null) b.tg.f = 0; } });
     if (!late) { b.tg = { kind: "claw", w: G.warns[G.warns.length - 2] }; sfx.warn(); }
     return a;
+  }
+  // 天雷's great stroke (11-10, "번개 특색을 살려서 멋있는 임팩트"): a wide scorch where you stand, lit 1.0 s; and with it the
+  // `forks` ways the lightning will run out from there, lit 0.8 s. It falls: the sky cracks white, the ground shakes, and
+  // the forks run out to the edges. Out of the scorch, between two of the forks.
+  function greatBolt(R = S * 0.15, forks = 8) {
+    const x = clamp(P.x, R * 0.8, W - R * 0.8), y = clamp(P.y, H * 0.2, H - R * 0.8), off = rnd(0, Math.PI * 2), far = Math.hypot(W, H);
+    G.warns.push({ kind: "spike", x, y, r: R, seed: rnd(0, 6), t: 0, dur: 1.0, delay: 0, fire(w) {
+      strike(w); flash("255,252,235", reduced ? 0.2 : 0.5); G.shake = Math.max(G.shake, reduced ? 0 : 20); G.stopT = Math.max(G.stopT, reduced ? 0 : 0.05);
+      for (let i = 0; i < forks; i++) { const a = off + (i / forks) * Math.PI * 2; zapSeg(x, y, x + Math.cos(a) * far, y + Math.sin(a) * far, true); }
+      sfx.issen();
+    } });
+    for (let i = 0; i < forks; i++) G.warns.push({ kind: "line", x, y, ang: off + (i / forks) * Math.PI * 2, t: 0, dur: 0.8, delay: 0.2, fire() {} });
+    sfx.warn(); G.dark = Math.max(G.dark, 0.6);
   }
   // a row of warnings from the boss out through you, going off one after another (a fire walking, lightning walking)
   function marchAt(fire, R, step = 0.09, n = 7) {
@@ -3899,7 +3851,7 @@ sdk.initializeAsync()
       sfx.warn();
     } },
     void: { name: "월광참", run() { const g = rnd(0, Math.PI); bandsAt([g, g + Math.PI / 2]); } }, // its sword twice across you, crossed
-    charge: { name: "덮치기", run() { pounce(0.9, lvl() >= 10 ? () => tigerRake(0.75) : null); } }, // (11-08: higher, its claws as it lands)
+    charge: { name: "쌍조", run() { const a = tigerRake(0.8); tigerRake(0.75, 0.4, a + (Math.random() < 0.5 ? 0.8 : -0.8)); } }, // both paws, crossing (11-10: was 덮치기, its pounce: "땅울림 없애 줬으면")
     veil: { name: "그림자 습격", run() { // three shadows step out round you, each running through where you are
       for (let k = 0; k < 3; k++) G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur: 0.75, delay: k * 0.35,
         place(w) { const a = rnd(0, Math.PI * 2), d = S * 0.4; w.x = clamp(P.x + Math.cos(a) * d, S * 0.04, W - S * 0.04); w.y = clamp(P.y + Math.sin(a) * d, S * 0.04, H - S * 0.04); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
@@ -3957,7 +3909,12 @@ sdk.initializeAsync()
         place(w) { const [x, y] = bossAt(); w.x = x; w.y = y - (G.boss ? bossUnit(G.boss.def) * 1.2 : 0); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
         fire(w) { shoot("pellet", w.x, w.y, w.ang, S * 1.6, { r: S * 0.012 }); sfx.tick(); } });
     } },
-    final: { name: "삼연참", run() { bigTriple(); } },
+    final: { name: "분신", run() { // three of its shadows from round you, through you one after another (11-10: was 삼연참)
+      const r0 = rnd(0, Math.PI * 2);
+      for (let i = 0; i < 3; i++) G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur: 0.8, delay: i * 0.3,
+        place(w) { const a = r0 + (i * Math.PI * 2) / 3, d = S * 0.4; w.x = clamp(P.x + Math.cos(a) * d, S * 0.04, W - S * 0.04); w.y = clamp(P.y + Math.sin(a) * d, S * 0.06, H - S * 0.04); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
+        fire(w) { cloneDash(w.x, w.y, w.ang); } });
+    } },
   };
   function mixAttack(f, d, last) { // never the same one twice running
     let pool = d.mix.length > 1 ? d.mix.filter((k) => k !== f.lastMix) : d.mix;
@@ -4916,7 +4873,6 @@ sdk.initializeAsync()
     }
     lean = -arm * 0.06 * dir; // (lifting it leans back from you; striking, or spent, toward you)
     const g = b.tg, gk = g ? (g.f == null ? (g.w.delay > 0 ? 0 : clamp(g.w.t / (g.w.dur || 1), 0, 1)) : 1) : 0;
-    if (g && g.kind === "pounce") { sy *= 1 - 0.2 * gk; sx *= 1 + 0.12 * gk; lean = 0.12 * gk * dir; } // 맹호 crouching to spring
     if (g && g.kind === "claw") { const f = g.f ?? -1; arm = f < 0 ? 0.9 * Math.min(1, gk * 5) : f < 0.07 ? 0.9 - 1.6 * (f / 0.07) ** 2 : f < 0.17 ? -0.7 : -0.7 * Math.max(0, 1 - (f - 0.17) / 0.25) ** 2; lean = -arm * 0.1 * dir; } // claws high, then raked down
     if (b.dash) { const d = b.dash; lean = 0.25 * Math.sign(d.x1 - d.x0 || 1); sy *= 0.92; } // running low into its road
     if (b.pop > 0) { const k = 1 - b.pop / 0.16, y2 = k < 0.3 ? 0.8 + 0.26 * (k / 0.3) : 1.06 - 0.06 * ((k - 0.3) / 0.7); sy *= y2; sx *= 1 + (1 - y2) * 0.6; } // a landing: squashed, up past its height, settled
@@ -4943,7 +4899,7 @@ sdk.initializeAsync()
         ctx.save(); ctx.globalAlpha = 0.28 * (1 - g.t / 0.3); ctx.translate(g.x - b.x, g.y - b.y);
         bodies.forEach(([x, y], i) => bossFigure(b.def, x, y, u, time, { mid: b.mid, side: i ? 1 : -1, ghost: true })); ctx.restore(); // (11-08: a ghost skips the halo and the shadow)
       }
-      ctx.save(); if (b.home > 0) ctx.globalAlpha = 0.45; // in the air, out of reach
+      ctx.save(); if (b.home > 0) ctx.globalAlpha = b.vanish > 0 ? 0.1 : 0.45; // in the air, out of reach (or gone altogether: 무명's 無我)
       if (b.reel) { const off = S * 0.012 * Math.sin(Math.PI * Math.min(1, b.reel.t / 0.12)); ctx.translate(Math.cos(b.reel.ang) * off, Math.sin(b.reel.ang) * off); } // a graze landed: it reels
       const L = b.lunge;
       if (L) { // a lunge at you and back, and a crescent of its colour where its blade went
@@ -5342,7 +5298,7 @@ sdk.initializeAsync()
       ctx.fillStyle = "#d9a23a"; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(u * 1.4 + Math.cos(i * 1.3) * u * 0.18, -u * 0.75 + Math.sin(i * 1.3) * u * 0.18 + Math.sin(t * 9 + i) * u * 0.03, u * 0.1, 0, Math.PI * 2); ctx.fill(); }
       return [u * 1.4, -u * 0.8];
     },
-    final(u, t, o, def, ink) { // 무명: one great brush circle behind him, left open; undyed hemp, a black sash, (11-08: a brush that is his sword, raised; eyes closed)
+    final(u, t, o, def, ink) { // 무명: one great brush circle behind him, left open; undyed hemp, a black sash, a long sword raised (11-10: was a brush); eyes closed
       ctx.save(); ctx.translate(0, -u * 0.5); ctx.lineCap = "butt";
       for (let i = 0; i < 40; i++) { // the 원상, the brush thinning as it goes round
         const a0 = Math.PI * 0.35 + (i / 40) * Math.PI * 1.75, a1 = a0 + (Math.PI * 1.75 / 40) * 1.2;
@@ -5357,20 +5313,24 @@ sdk.initializeAsync()
       ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(0, hy - hr * 1.02, hr * 0.3, 0, Math.PI * 2); ctx.fill(); // (11-08: a topknot and a pin, not a headband)
       headAt(hy, hr, ink);
       line(def.accent, Math.max(1.5, u * 0.05), -hr * 0.5, hy - hr * 0.95, hr * 0.5, hy - hr * 1.12);
-      if (o.mid) eyesAt(hy, hr, "#e8cf6a"); // the eyes open only for the last 一劍; till then he writes with them closed
+      if (o.mid) eyesAt(hy, hr, "#e8cf6a"); // the eyes open only for the last 一劍; till then he fights with them closed
       else { ctx.strokeStyle = o.hurt ? "#1d1a17" : "#f7f0de"; ctx.lineWidth = Math.max(1.2, u * 0.05); for (const s of [-1, 1]) { ctx.beginPath(); ctx.arc(s * hr * 0.38, hy - hr * 0.12, hr * 0.22, Math.PI * 0.2, Math.PI * 0.8); ctx.stroke(); } }
       const hx = u * 1.2, hy2 = -u * 0.55, bx = u * 2.0, by = -u * 1.9, bl = Math.hypot(bx - hx, by - hy2), dx = (bx - hx) / bl, dy = (by - hy2) / bl; // (11-08: the sword is a brush — raised high, the bamboo shaft, an ink-laden tuft with a steel edge)
       const turn = armTurn(u * 0.5, -u * 0.62, o, 0.7); // (11-08: the brush arm, sleeve and all, moves with the pose)
       ctx.fillStyle = "#d8d2c4"; ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = Math.max(1.5, u * 0.07); // a wide hemp sleeve hanging off the raised arm
       ctx.beginPath(); ctx.moveTo(u * 0.5, -u * 0.62); ctx.quadraticCurveTo(u * 0.9, -u * 0.82, hx + u * 0.08, hy2 - u * 0.14); ctx.lineTo(hx + u * 0.12, hy2 + u * 0.1); ctx.bezierCurveTo(u * 1.35, 0, u * 1.2, u * 0.4, u * 0.95, u * 0.55); ctx.bezierCurveTo(u * 0.85, u * 0.25, u * 0.6, u * 0.05, u * 0.45, -u * 0.1); ctx.closePath(); ctx.fill(); ctx.stroke();
       ctx.strokeStyle = "rgba(29,26,23,0.45)"; ctx.lineWidth = Math.max(1, u * 0.04); ctx.beginPath(); ctx.moveTo(hx, hy2 + u * 0.12); ctx.quadraticCurveTo(u * 1.1, u * 0.1, u * 0.98, u * 0.42); ctx.moveTo(u * 0.75, -u * 0.5); ctx.quadraticCurveTo(u * 0.8, -u * 0.1, u * 0.72, u * 0.15); ctx.stroke(); // folds, so it hangs like cloth
-      line("#5b3a2a", u * 0.13, hx - dx * u * 0.15, hy2 - dy * u * 0.15, bx, by);
-      for (const k of [0.38, 0.68]) { const jx = hx + (bx - hx) * k, jy = hy2 + (by - hy2) * k; line("#3a2a20", Math.max(1, u * 0.05), jx - dy * u * 0.1, jy + dx * u * 0.1, jx + dy * u * 0.1, jy - dx * u * 0.1); }
-      const L = u * 0.8, W = u * 0.14, tx = bx + dx * L, ty = by + dy * L, nx = -dy, ny = dx;
-      ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.moveTo(bx + nx * W * 0.7, by + ny * W * 0.7); ctx.quadraticCurveTo(bx + dx * L * 0.35 + nx * W * 1.5, by + dy * L * 0.35 + ny * W * 1.5, tx, ty); ctx.quadraticCurveTo(bx + dx * L * 0.35 - nx * W * 1.5, by + dy * L * 0.35 - ny * W * 1.5, bx - nx * W * 0.7, by - ny * W * 0.7); ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = "#c9ccce"; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(bx + nx * W * 0.7, by + ny * W * 0.7); ctx.quadraticCurveTo(bx + dx * L * 0.35 + nx * W * 1.5, by + dy * L * 0.35 + ny * W * 1.5, tx, ty); ctx.stroke(); // the edge of it is steel
+      // (11-10: no brush any more, "기존 컨셉 다 갈고 리뉴얼": a plain long sword held high — a wrapped grip behind the hand,
+      // a small round guard in its gold, a long bright blade with its ridge)
+      const gx = hx - dx * u * 0.35, gy = hy2 - dy * u * 0.35, sx = hx + dx * u * 0.2, sy = hy2 + dy * u * 0.2;
+      line("#2a2420", u * 0.12, gx, gy, sx, sy);
+      ctx.fillStyle = def.accent; ctx.beginPath(); ctx.ellipse(sx, sy, u * 0.18, u * 0.07, Math.atan2(dy, dx) + Math.PI / 2, 0, Math.PI * 2); ctx.fill();
+      const BL = u * 2.7, nx = -dy, ny = dx, bw = u * 0.075, tx = sx + dx * BL, ty = sy + dy * BL;
+      ctx.fillStyle = "#e9ecee"; ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = Math.max(1, u * 0.035);
+      ctx.beginPath(); ctx.moveTo(sx + nx * bw, sy + ny * bw); ctx.lineTo(tx - dx * u * 0.3 + nx * bw * 0.8, ty - dy * u * 0.3 + ny * bw * 0.8); ctx.lineTo(tx, ty);
+      ctx.lineTo(tx - dx * u * 0.3 - nx * bw * 0.8, ty - dy * u * 0.3 - ny * bw * 0.8); ctx.lineTo(sx - nx * bw, sy - ny * bw); ctx.closePath(); ctx.fill(); ctx.stroke();
+      line("rgba(29,26,23,0.35)", Math.max(1, u * 0.025), sx, sy, tx - dx * u * 0.35, ty - dy * u * 0.35);
       ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(hx, hy2, u * 0.12, 0, Math.PI * 2); ctx.fill();
-      for (let i = 0; i < 3; i++) { const k = (t * 1.4 + i * 0.33) % 1; ctx.fillStyle = `rgba(29,26,23,${1 - k})`; ctx.beginPath(); ctx.arc(bx + dx * L * 0.45 + nx * W, by + dy * L * 0.45 + ny * W + k * u * 0.9, u * 0.06, 0, Math.PI * 2); ctx.fill(); } // ink drips off the tuft
       ctx.restore(); return turn([tx, ty]);
     },
   };
@@ -5882,16 +5842,6 @@ sdk.initializeAsync()
       ctx.fillStyle = `rgba(200,50,31,${0.45 + pulse * 0.35})`;
       for (let x = S * 0.3 + ((time * S * 0.6) % (S * 0.22)); x < L; x += S * 0.22) arrow(x, 0, 0, S * 0.03);
       ctx.globalAlpha = 0.25 + k * 0.4; palmShape(S * 0.1, 0, S * 0.2);
-    } else if (w.kind === "roar") { // where the roar will come from, and where each ring will leave its gap
-      ctx.translate(w.x, w.y);
-      w.rings.forEach((r, i) => {
-        ctx.fillStyle = `rgba(29,26,23,${(0.18 - i * 0.05) * (0.5 + k)})`;
-        ctx.beginPath(); ctx.moveTo(0, 0); ctx.arc(0, 0, S * (0.32 - i * 0.06), r.gapA - r.gapW / 2, r.gapA + r.gapW / 2); ctx.closePath(); ctx.fill();
-      });
-      for (let i = 0; i < 3; i++) {
-        ctx.strokeStyle = `rgba(200,50,31,${(0.6 - i * 0.15) * (0.4 + pulse * 0.6)})`; ctx.lineWidth = 3 - i;
-        ctx.beginPath(); ctx.arc(0, 0, S * (0.04 + i * 0.03) * (1 + k * 0.3), 0, Math.PI * 2); ctx.stroke();
-      }
     } else if (w.kind === "silk") { // a wire, barely there, flickering into being
       const ux = Math.cos(w.ang) * D, uy = Math.sin(w.ang) * D;
       ctx.strokeStyle = `rgba(200,50,31,${(0.2 + k * 0.4) * (0.6 + pulse * 0.4)})`; ctx.lineWidth = 1.2;
@@ -6179,20 +6129,6 @@ sdk.initializeAsync()
     ctx.strokeStyle = "rgba(247,240,222,0.7)"; ctx.lineWidth = 3;
     ctx.beginPath(); ctx.arc(S * 0.05, 0, h.hw * 1.05, -1.1, 1.1); ctx.stroke();
     palmShape(0, 0, S * 0.2);
-    ctx.restore();
-  }
-  function drawRoar(h) { // 사자후's rings of force, each with its gap
-    const D = Math.hypot(W, H);
-    ctx.save(); ctx.translate(h.x, h.y); ctx.lineCap = "round";
-    for (const r of h.rings) {
-      const rad = (h.t - r.delay) * h.v;
-      if (rad <= 0) continue;
-      const a = Math.max(0, 1 - rad / (D * 1.05));
-      ctx.strokeStyle = `rgba(29,26,23,${0.75 * a})`; ctx.lineWidth = h.th;
-      ctx.beginPath(); ctx.arc(0, 0, rad, r.gapA + r.gapW / 2, r.gapA - r.gapW / 2 + Math.PI * 2); ctx.stroke();
-      ctx.strokeStyle = `rgba(200,50,31,${0.8 * a})`; ctx.lineWidth = 2;
-      ctx.beginPath(); ctx.arc(0, 0, Math.max(0.5, rad - h.th * 0.6), r.gapA + r.gapW / 2, r.gapA - r.gapW / 2 + Math.PI * 2); ctx.stroke();
-    }
     ctx.restore();
   }
   function drawSilk(h) { // 천잠사: taut and humming, then snapping from the middle out
