@@ -1142,6 +1142,7 @@ sdk.initializeAsync()
   const G = {
     mode: "menu", t: 0, bonus: 0, near: 0, combo: 0, comboT: 0, stage: 0, slow: 1, slowT: 0, shake: 0,
     shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], leaves: [], decals: [], snaps: [], timers: {}, dieT: 0, banner: null,
+    minions: [], // (11-11) a stage's master's men, there while its lesser move is thrown (minionCast): only a look, they cut nothing
     flash: 0, flashC: "255,250,235", zoom: 0, stopT: 0, dark: 0,
     bigT: 0, lastBig: "",
     bigSeen: new Set(), callout: null, // which big moves this run has shown; the technique name being called out
@@ -1162,11 +1163,11 @@ sdk.initializeAsync()
   function reset() {
     Object.assign(G, {
       t: 0, rt: 0, bonus: 0, near: 0, combo: 0, comboT: 0, stage: 0, slow: 1, slowT: 0, shake: 0,
-      shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], decals: [], snaps: [], timers: {}, dieT: 0,
+      shots: [], warns: [], cuts: [], hazards: [], parts: [], texts: [], decals: [], snaps: [], timers: {}, dieT: 0, minions: [],
       flash: 0, zoom: 0, stopT: 0, dark: 0, bigT: 0, lastBig: "",
       bigSeen: new Set(), callout: null, stamp: null, killer: null, killedBy: "", killerY: null, killLine: null,
       phase: "", pt: 0, ct: 0, st: 0, boss: null, lines: [], lineI: 0, lineT: 0, onLines: null, card: null, safe: false, cleared: false, banner: null,
-      timeK: 1, bossK: 1, freezeT: 0,
+      timeK: 1, bossK: 1, freezeT: 0, fight: null, // (a boss's fight is set after this, when it comes)
       mons: [], seen: new Set(), monT: 1, msg: null, pat: null,
     });
     Object.assign(P, { x: W / 2, y: H * 0.58, dx: 0, dy: -1, inv: 0, push: null });
@@ -1280,7 +1281,9 @@ sdk.initializeAsync()
         // stroke, a boss arriving) takes them too (11-08 "보스 대사가 끝나기도 전에 뭐가 날아와서 죽는데": they were on
         // setTimeout and came out after 종전 had cleared the field, under its line)
         shoot("star", x, y, ang, S * 1.55, { spin: 18, r: S * 0.016 });
-        for (let k = 1; k < 3; k++) later(k * 0.07, () => shoot("star", x, y, ang, S * 1.55, { spin: 18, r: S * 0.016 }));
+        // (11-11 제작자: "표창 3발 연속으로 일직선으로 나가는 그 패턴 없애달라니까 왜 아직도 있고") one star down each line in
+        // 스테이지 모드 and the boss fights; the three in a row stay in 일반 모드, the old game's throw
+        if (!G.story) for (let k = 1; k < 3; k++) later(k * 0.07, () => shoot("star", x, y, ang, S * 1.55, { spin: 18, r: S * 0.016 }));
         sfx.whoosh();
       } });
       thrower(x, y, ang, i * 0.18, dur);
@@ -1688,7 +1691,7 @@ sdk.initializeAsync()
   // a scene change: whatever is in the air turns to ink
   function clearField() {
     for (const s of G.shots) { if (!s.dead) { s.dead = true; shatter(s); } }
-    G.warns = []; G.hazards = []; G.cuts = []; G.snaps = []; G.parts = G.parts.filter((p) => p.kind !== "thrower");
+    G.warns = []; G.hazards = []; G.cuts = []; G.snaps = []; G.parts = G.parts.filter((p) => p.kind !== "thrower"); G.minions = [];
     G.timeK = 1; G.bossK = 1; G.freezeT = 0; G.killLine = null; // and whatever a 비기 had done to time is undone
   }
   // something heavy lands: the world catches for a blink, the ground shakes, a ring of ink runs out from it
@@ -1861,19 +1864,21 @@ sdk.initializeAsync()
     // past 흑월봉, the same places again with new masters in them, everything mixed and quicker
     { name: "불탄 죽림", theme: "grove", boss: 5, fresh: "cross", pats: ["line", "draw", "cross"], big: ["triple", "rain", "silk", "spikes"], diff: [40, 66] },
     { name: "안개 계곡", theme: "gorge", boss: 6, fresh: "beam", pats: ["line", "draw", "cross"], big: ["beam", "palm", "clones", "spiral"], diff: [48, 74] },
-    { name: "붉은 절", theme: "temple", boss: 7, fresh: "burst", pats: ["line", "draw", "cross", "burst"], big: ["triple", "silk", "palm", "flick"], diff: [56, 82] },
-    { name: "얼음 고개", theme: "snow", boss: 8, fresh: "palm", pats: ["line", "draw", "cross", "burst"], big: ["palm", "rain", "beam", "flick"], diff: [64, 90] },
-    { name: "비 내리는 고개", theme: "gorge", boss: 9, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["rain", "beam", "spiral", "palm", "clones"], diff: [72, 96] },
-    { name: "검총", theme: "field", boss: 10, fresh: "silk", pats: ["line", "draw", "cross", "burst"], big: ["silk", "rain", "triple", "spikes", "beam"], diff: [80, 104] },
-    { name: "광음곡", theme: "gorge", boss: 11, fresh: "flick", pats: ["line", "draw", "cross", "burst"], big: ["flick", "spiral", "clones", "palm"], diff: [88, 112] },
-    { name: "뇌운봉", theme: "moon", boss: 12, fresh: "beam", pats: ["line", "draw", "cross", "burst"], big: ["beam", "spiral", "palm", "triple"], diff: [96, 120] },
-    { name: "추혼로", theme: "temple", boss: 13, fresh: "triple", pats: ["line", "draw", "cross", "burst"], big: ["triple", "clones", "silk", "flick", "rain"], diff: [104, 128] },
-    { name: "호접곡", theme: "field", boss: 14, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["spiral", "silk", "flick"], diff: [112, 136] },
-    { name: "화륜평", theme: "moon", boss: 15, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["beam", "triple", "rain", "clones", "flick"], diff: [120, 144] },
-    { name: "철산", theme: "temple", boss: 16, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["palm", "silk", "spiral"], diff: [128, 152] },
-    { name: "장승골", theme: "grove", boss: 17, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["spikes", "triple", "beam", "rain"], diff: [136, 160] },
-    { name: "천안사", theme: "snow", boss: 18, fresh: "", pats: ["line", "draw", "cross", "burst"], big: ["flick", "clones", "silk", "palm"], diff: [144, 168] },
-    { name: "천하봉", theme: "grove", boss: 19, fresh: "", pats: ["line", "draw", "cross", "burst"], big: BIG.map((b) => b.key), diff: [152, 176] },
+    // (11-11 제작자: "스테이지 해보니까 터지는칼도 그냥 다 뺴줬으면") no 터지는 칼 in any 장's stages (it was 8장's new attack);
+    // 일반 모드 keeps it as its last 段, and 연화's 물결 and 호접's 독 날개 burst in their own looks
+    { name: "붉은 절", theme: "temple", boss: 7, fresh: "", pats: ["line", "draw", "cross"], big: ["triple", "silk", "palm", "flick"], diff: [56, 82] },
+    { name: "얼음 고개", theme: "snow", boss: 8, fresh: "palm", pats: ["line", "draw", "cross"], big: ["palm", "rain", "beam", "flick"], diff: [64, 90] },
+    { name: "비 내리는 고개", theme: "gorge", boss: 9, fresh: "", pats: ["line", "draw", "cross"], big: ["rain", "beam", "spiral", "palm", "clones"], diff: [72, 96] },
+    { name: "검총", theme: "field", boss: 10, fresh: "silk", pats: ["line", "draw", "cross"], big: ["silk", "rain", "triple", "spikes", "beam"], diff: [80, 104] },
+    { name: "광음곡", theme: "gorge", boss: 11, fresh: "flick", pats: ["line", "draw", "cross"], big: ["flick", "spiral", "clones", "palm"], diff: [88, 112] },
+    { name: "뇌운봉", theme: "moon", boss: 12, fresh: "beam", pats: ["line", "draw", "cross"], big: ["beam", "spiral", "palm", "triple"], diff: [96, 120] },
+    { name: "추혼로", theme: "temple", boss: 13, fresh: "triple", pats: ["line", "draw", "cross"], big: ["triple", "clones", "silk", "flick", "rain"], diff: [104, 128] },
+    { name: "호접곡", theme: "field", boss: 14, fresh: "", pats: ["line", "draw", "cross"], big: ["spiral", "silk", "flick"], diff: [112, 136] },
+    { name: "화륜평", theme: "moon", boss: 15, fresh: "", pats: ["line", "draw", "cross"], big: ["beam", "triple", "rain", "clones", "flick"], diff: [120, 144] },
+    { name: "철산", theme: "temple", boss: 16, fresh: "", pats: ["line", "draw", "cross"], big: ["palm", "silk", "spiral"], diff: [128, 152] },
+    { name: "장승골", theme: "grove", boss: 17, fresh: "", pats: ["line", "draw", "cross"], big: ["spikes", "triple", "beam", "rain"], diff: [136, 160] },
+    { name: "천안사", theme: "snow", boss: 18, fresh: "", pats: ["line", "draw", "cross"], big: ["flick", "clones", "silk", "palm"], diff: [144, 168] },
+    { name: "천하봉", theme: "grove", boss: 19, fresh: "", pats: ["line", "draw", "cross"], big: BIG.map((b) => b.key), diff: [152, 176] },
   ];
   const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", cross: "십자 발도", burst: "터지는 칼",
     spikes: "죽순", palm: "장풍", clones: "그림자", spiral: "칼바람", flick: "탄지신통",
@@ -2110,6 +2115,7 @@ sdk.initializeAsync()
   function enterStageFight() {
     const sd = stageDef(G.sg);
     G.phase = "fight"; G.ct = 0; G.timers = { bamboo: 0.6, foe: 2.5 }; G.lastBig = ""; G.bigN = 0; G.foeN = 0;
+    G.fight = null; // the boss just beaten must not lend its level (lvl()) to the next 장's foreshadow: 9장 had 3 icicles, not 2
     G.bossK = SL().pace * easeK(); // (cleared with the field when the stage ends)
     sd.pats.forEach((k, i) => { G.timers[k] = PATTERNS[k].first + 0.5 + i * 0.9; }); // one after another, not all in the first second
     G.bigT = sd.big.length ? 4 : Infinity;
@@ -2156,8 +2162,11 @@ sdk.initializeAsync()
       // from 2장 on a stage's master's backdrop still drifts in, as often as before, and nothing else comes unlit
       if (G.timers.bamboo <= 0) fixed("bamboo", () => { if (sd.drift && Math.random() < 0.5) spawnDrift(sd.drift); else if (sd.w === 0) spawnBamboo(); G.timers.bamboo = sd.bamboo * Math.max(SL().floor, pace()); }); // (it stops thickening past a point)
       if (sd.foe && (G.timers.foe -= dt) <= 0 && sd.dur - G.ct > 3) fixed("foe", () => {
+        const w0 = G.warns.length, h0 = G.hazards.length; // (what the move puts up: its man strikes as that goes off)
         foreshadow(sd.foe); G.timers.foe = rnd(sd.foeEvery[0], sd.foeEvery[1]);
-        if (sd.foePair && ++G.foeN % sd.foePair === 0) later(1.1, () => { if (G.phase === "fight") fixed("foe2", () => foreshadow(sd.foe)); });
+        const ws = G.warns.slice(w0), hs = G.hazards.slice(h0);
+        if (sd.foePair && ++G.foeN % sd.foePair === 0) later(1.1, () => { if (G.phase === "fight") fixed("foe2", () => foeCast(sd)); });
+        minionSafe(() => minionCast(sd, ws, hs)); // (11-11: its man, after all the stage's own, so none of it waits on him. He draws no random number)
       });
       for (const k of sd.pats) {
         G.timers[k] -= dt;
@@ -2287,15 +2296,32 @@ sdk.initializeAsync()
   // 나와서 쉬운 느낌": the 비기 is the fight's spine, these keep it from going quiet). PATTERNS and BIG keys.
   // (light ones only: 검우, 사자후 and 검기 fill the whole field and, measured, buried the 비기 under them; and never 장풍,
   // whose shove can throw you into the boss's body or a 비기 with nothing you could have done)
+  // (11-11: no 터지는 칼 here either, each one's place taken by another light one that suits the boss)
   const BOSS_MIX = {
-    twin: ["draw", "cross", "clones"], lotus: ["burst", "line", "spiral"], fire: ["draw", "line", "spikes"], frost: ["line", "draw", "triple"],
-    void: ["draw", "cross", "triple"], charge: ["draw", "line", "clones"], veil: ["line", "draw", "flick"], drum: ["burst", "line", "draw"],
-    mirror: ["line", "cross", "draw"], rain: ["draw", "line", "triple"], swords: ["line", "draw", "clones"], time: ["line", "burst", "triple"],
-    thunder: ["cross", "line", "spikes"], shadow: ["draw", "line", "clones"], swarm: ["burst", "line", "spiral"], wheel: ["draw", "cross", "flick"],
-    pendulum: ["line", "burst", "flick"], crumble: ["draw", "line", "spikes"], glare: ["line", "draw", "flick"], final: ["draw", "cross", "burst", "triple", "clones"],
+    twin: ["draw", "cross", "clones"], lotus: ["draw", "line", "spiral"], fire: ["draw", "line", "spikes"], frost: ["line", "draw", "triple"],
+    void: ["draw", "cross", "triple"], charge: ["draw", "line", "clones"], veil: ["line", "draw", "flick"], drum: ["cross", "line", "draw"],
+    mirror: ["line", "cross", "draw"], rain: ["draw", "line", "triple"], swords: ["line", "draw", "clones"], time: ["line", "spiral", "triple"],
+    thunder: ["cross", "line", "spikes"], shadow: ["draw", "line", "clones"], swarm: ["flick", "line", "spiral"], wheel: ["draw", "cross", "flick"],
+    pendulum: ["line", "cross", "flick"], crumble: ["draw", "line", "spikes"], glare: ["line", "draw", "flick"], final: ["draw", "cross", "triple", "clones"],
   };
   const BG_NAMES = { bamboo: "대나무", water: "물방울 칼", fire: "불똥", ice: "고드름", wisp: "도깨비불", bolt: "번개" };
-  BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; b.mix = BOSS_MIX[b.sig]; });
+  // (11-11, 제작자가 고른 안 A) X-1 to X-4 of 1장–19장: each time the master's lesser move comes (foreshadow), one of its men
+  // steps out of the ink, lifts its weapon, brings it down as that move goes off, and is ink again (minionCast). The move
+  // is as it was, the same draws on the same clock: a man only shows who threw it. Where it stands (`stand`, minionStand):
+  // "perch", of three spots under the bar, one clear of its move and furthest from you; "origin", at the top middle, where
+  // the move starts when no master is there (bossAt), or just beside it where the move would cover him; "clone", its
+  // rushing shadows are the move itself and wear its look. 벽력's walk from the top middle only at X-1 and X-2. 20장's
+  // 무명 has no men, and the road past it is as it was.
+  const MINIONS = {
+    twin: { name: "흑월 정탐꾼", stand: "clone" }, lotus: { name: "수류문 제자", stand: "perch" }, fire: { name: "파계 무승", stand: "origin" },
+    frost: { name: "얼어붙은 무사", stand: "perch" }, void: { name: "흑월교 호법", stand: "perch" }, charge: { name: "호피 산적", stand: "perch" },
+    veil: { name: "무영문 살수", stand: "clone" }, drum: { name: "전고수", stand: "perch" }, mirror: { name: "빙경궁 호위", stand: "perch" },
+    rain: { name: "도롱이 낭인", stand: "perch" }, swords: { name: "검총 묘지기", stand: "perch" }, time: { name: "일귀 무사", stand: "origin" },
+    thunder: { name: "뇌검수", stand: ["origin", "origin", "perch", "perch"] }, shadow: { name: "저승 차사", stand: "perch" },
+    swarm: { name: "철선 자객", stand: "perch" }, wheel: { name: "화창병", stand: "perch" }, pendulum: { name: "철퇴 역사", stand: "origin" },
+    crumble: { name: "장승탈 무사", stand: "perch" }, glare: { name: "맹검사", stand: "origin" },
+  };
+  BOSS_SET.forEach((b) => { b.bg = BOSS_BG[b.sig]; b.mix = BOSS_MIX[b.sig]; b.minion = MINIONS[b.sig] || null; });
   function spawnDrift(kind, drift) { // (`drift`: a boss's backdrop, as spawnBamboo)
     if (kind === "bamboo") return spawnBamboo(drift);
     if (kind === "bolt") { // 벽력's storm (11-10): lightning about the field, its scorch lit 0.9 s first, never by you, a faint flash
@@ -3536,8 +3562,8 @@ sdk.initializeAsync()
   function startDevBoss(i, play = false) {
     const d = BOSS_SET[i], def = bossDefOf(d), lvl = play ? bossLevel : devLevel;
     begin();
-    G.story = true; G.stageRun = false; G.dev = { i, lvl, play }; G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; G.devInv = !play && $("devInv").checked; G.ch = 0;
-    reset(); G.mode = "play";
+    G.story = true; G.stageRun = false; G.dev = { i, lvl, play }; G.devInv = !play && $("devInv").checked; G.ch = 0;
+    reset(); G.mode = "play"; G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; // (after reset, which clears it)
     setTheme(d.theme, true);
     $("dev").hidden = true; $("boss").hidden = true; $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("devExit").hidden = false;
     $("devExit").textContent = play ? "그만하기" : "그만 보기";
@@ -3698,6 +3724,151 @@ sdk.initializeAsync()
     },
   };
   const foreshadow = (sig) => (FORESHADOW[sig] || SUBS[sig].run)();
+  // (11-11, 안 A) the master's man, as its lesser move is thrown (stageStep, and ?dev's 하수인 list): what it strikes with —
+  // the move's first warning, 흑월's moon coming down, or, where the move puts its warning up a moment late (2-2 to 2-4,
+  // 14장, 15장), the warning that comes then — and, once that has its place, where it stands (minionStand). Cast inside
+  // fixed(), it draws no random number, and nothing of it goes into a list that cuts (G.warns, G.hazards, G.shots).
+  // Touching one does nothing; it never stands by you.
+  let minionSeq = 0, minionsOff = false, mDepth = 0;
+  const minionU = () => S * 0.022; // (a man about 0.09 S tall: twice you, not half a master)
+  // (a fault in a man, placed or drawn, must never cost a warning or the cast after it: the men stop for good, the canvas
+  // is put back as it was, the error is told as any other is, and the game goes on without them)
+  function minionSafe(fn) {
+    if (minionsOff) return;
+    const d = mDepth;
+    try { fn(); } catch (e) { while (mDepth > d) { mDepth--; ctx.restore(); } minionsOff = true; G.minions = []; (window.reportError || console.error)(e); }
+  }
+  const mSave = () => { mDepth++; ctx.save(); }, mRestore = () => { mDepth--; ctx.restore(); };
+  function foeCast(sd) { // the lesser move and its man (foePair's second, and ?dev's 하수인)
+    const w0 = G.warns.length, h0 = G.hazards.length;
+    foreshadow(sd.foe);
+    minionSafe(() => minionCast(sd, G.warns.slice(w0), G.hazards.slice(h0)));
+  }
+  function minionCast(sd, ws, hs) { // (ws, hs: what the move has just put up)
+    const mn = sd.w < 19 && MINIONS[sd.foe];
+    if (!mn || reduced) return; // (as the throwers: none where motion is turned down)
+    const id = ++minionSeq, stand = Array.isArray(mn.stand) ? mn.stand[sd.s] : mn.stand;
+    const m = { sig: sd.foe, tint: fightTint(BOSS_SET[sd.world.boss]), id, ink: minionInk(id), stand, t: 0, x: null, y: null, swing: null, leave: null,
+      w: null, h: null, wait: null, ws: ws.filter((w) => w.kind !== "none"), hs };
+    if (stand === "clone") { // 1장, 7장: its shadows are the move's own, warned and running as ever, drawn as its men
+      for (const w of m.ws) if (w.kind === "clone") {
+        const fire = w.fire; w.minion = m;
+        w.fire = function (v) {
+          const n = G.hazards.length; fire.call(this, v);
+          minionSafe(() => { for (const h of G.hazards.slice(n)) if (h.kind === "clone") { h.look = (x, y, ang, time) => (minionsOff ? ninja(x, y, ang, S * 0.026, 1, time) : minionSafe(() => minionRun(m, x, y, ang, time))); h.ink = "43,38,34"; } });
+        };
+      }
+      return;
+    }
+    if (m.ws.length) m.w = m.ws.reduce((a, b) => ((b.delay || 0) < (a.delay || 0) ? b : a)); // the first of its warnings to show
+    else m.h = hs.find((h) => h.warn != null) || null; // 흑월's moon: its shadow, then the fall
+    if (!m.w && !m.h) { // a move that puts its warning up a moment late (later()): it strikes with the first that comes
+      const first = ws.reduce((a, b) => (!a || (b.delay || 0) < (a.delay || 0) ? b : a), null);
+      if (!first) return;
+      const fire = first.fire; m.wait = first;
+      first.fire = function (v) { const n = G.warns.length; fire.call(this, v); minionSafe(() => { m.ws = G.warns.slice(n).filter((x) => x.kind !== "none"); m.w = m.ws[0] || null; m.wait = null; }); };
+    }
+    G.minions.push(m); // (it stands once what it throws has its place: stepMinions)
+  }
+  function minionInk(id) { // its own few drops of ink, the same each time it is drawn: from its number, never Math.random
+    let a = Math.imul(id, 2654435761) >>> 0 || 1;
+    const r = () => { a = (a + 0x6d2b79f5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    return Array.from({ length: 10 }, () => ({ a: r() * Math.PI * 2, d: 0.7 + r() * 1.1, r: 0.09 + r() * 0.14, y: r() * 2.2 - 0.9 }));
+  }
+  // an umbrella's shade over (x, y): 청우's, lit or pouring, any of them. The shade is yours: no man stands in it
+  const minionShaded = (x, y, u) => G.warns.some((w) => w.kind === "zone" && !(w.delay > 0) && Math.hypot(w.x - x, w.y - (y + u * 0.2)) < w.R + u * 2.2)
+    || G.hazards.some((h) => h.kind === "pour" && Math.hypot(h.x - x, h.y - (y + u * 0.2)) < h.R + u * 2.2);
+  const segSeg = (ax, ay, bx, by, cx, cy, dx, dy) => { // the least distance between two segments (0 where they cross)
+    const side = (px, py, qx, qy, rx, ry) => (qx - px) * (ry - py) - (qy - py) * (rx - px);
+    if (side(cx, cy, dx, dy, ax, ay) * side(cx, cy, dx, dy, bx, by) < 0 && side(ax, ay, bx, by, cx, cy) * side(ax, ay, bx, by, dx, dy) < 0) return 0;
+    return Math.min(segDist(ax, ay, cx, cy, dx, dy), segDist(bx, by, cx, cy, dx, dy), segDist(cx, cy, ax, ay, bx, by), segDist(dx, dy, ax, ay, bx, by));
+  };
+  // how far a man standing at (x, y) would be from what its move puts up, under 0 in it (his body from head to feet, 0.75u
+  // round): a blade's band, a burst and its lines, a glance and its glint, a falling lane, an icicle's bent way, a scorch,
+  // a sight and its throw, the moon, an ice pane
+  function minionClear(m, x, y, u) {
+    const y0 = y - u * 1.0, y1 = y + u * 1.35, D = Math.hypot(W, H), seg = (a, b, c, d) => segSeg(x, y0, x, y1, a, b, c, d), pt = (a, b) => segDist(a, b, x, y0, x, y1);
+    let c = Infinity;
+    const ray = (a, b, ang, from, pad) => { c = Math.min(c, seg(a + Math.cos(ang) * from, b + Math.sin(ang) * from, a + Math.cos(ang) * D, b + Math.sin(ang) * D) - pad); };
+    for (const w of m.ws) {
+      if (w.place && !w.placed) continue; // (not where it will be yet)
+      if (w.kind === "band") c = Math.min(c, seg(w.x - Math.cos(w.ang) * D, w.y - Math.sin(w.ang) * D, w.x + Math.cos(w.ang) * D, w.y + Math.sin(w.ang) * D) - w.w / 2);
+      else if (w.kind === "ring") { c = Math.min(c, pt(w.x, w.y) - S * 0.07); for (let i = 0; i < w.n; i++) ray(w.x, w.y, w.off + (i / w.n) * Math.PI * 2, S * 0.07, -u * 0.25); } // (its lines are thin: one may pass by his side, not through him)
+      else if (w.kind === "line") { c = Math.min(c, pt(w.x, w.y) - u * 1.6); ray(w.x, w.y, w.ang, 0, u * 0.45); }
+      else if (w.kind === "spike") c = Math.min(c, pt(w.x, w.y) - w.r);
+      else if (w.kind === "drop") { const [a, b, e, f] = dropPath(w); c = Math.min(c, seg(a, b, e, f) - u * 0.6); }
+      else if (w.kind === "bent") for (let i = 0; i + 1 < w.pts.length; i++) c = Math.min(c, seg(w.pts[i][0], w.pts[i][1], w.pts[i + 1][0], w.pts[i + 1][1]) - u * 0.45);
+      else if (w.kind === "spot") { c = Math.min(c, pt(w.x, w.y) - S * 0.045); ray(w.x, w.y, Math.atan2(P.y - w.y, P.x - w.x), 0, u * 0.6); }
+    }
+    for (const h of m.hs) {
+      if (h.kind === "moon") c = Math.min(c, pt(h.x, h.y) - h.R);
+      else if (h.kind === "panes") for (const p of h.panes) c = Math.min(c, pt(p.x, p.y) - S * 0.06);
+    }
+    return c - u * 0.75;
+  }
+  // where a man stands (11-11), picked once and kept: never within 0.32 S of you, never in an umbrella's shade, never on a
+  // man yet to strike, and clear of all its move puts up where it can be. "origin": the top middle, where its move starts
+  // with no master there (bossAt) — on that very spot where what starts there starts a step off it (적염's fire and 벽력's
+  // walk, from at his feet), else as near beside it as is clear, so that it leaves his hand: 광음's ring under his feet,
+  // 철추's lane at his side, 천안's glint at his blade. Where the bar would cover the top middle (a short screen), or you
+  // are up there, a perch. "perch": of three spots under the bar, those clear of its move first, and of them the furthest
+  // from you. No random number here.
+  function minionStand(m, u) {
+    const bar = Math.max(92, H * 0.12), top = Math.max(H * 0.24, bar + S * 0.12), ox = W / 2, oy = H * 0.24;
+    const away = (x, y) => Math.hypot(P.x - x, P.y - (y + u * 0.2));
+    const taken = (x, y, struck) => G.minions.some((o) => o !== m && o.x != null && o.leave == null && !(struck && o.swing) && Math.hypot(o.x - x, o.y - y) < S * 0.12);
+    const ok = (x, y, struck) => away(x, y) >= S * 0.32 && !minionShaded(x, y, u) && !taken(x, y, struck);
+    let at = null;
+    if (m.stand === "origin" && oy >= top - S * 0.03) { // (struck: a man whose blow is done gives the spot up)
+      if (ok(ox, oy, true) && minionClear(m, ox, oy, u) > -u * 0.4) at = [ox, oy];
+      const side = P.x >= ox ? -1 : 1; // (round it nearest first, upward first, on your far side first)
+      for (let r = 1.5; r <= 7 && !at; r += 0.5) for (let i = 0; i <= 12 && !at; i++) for (const s of i ? [side, -side] : [1]) {
+        const a = -Math.PI / 2 + s * i * (Math.PI / 12), x = ox + Math.cos(a) * r * u, y = oy + Math.sin(a) * r * u;
+        if (y - u * 1.8 >= bar + 10 && y <= oy + u && ok(x, y, true) && minionClear(m, x, y, u) >= 0) { at = [x, y]; break; }
+      }
+      if (at) for (const o of G.minions) if (o !== m && o.x != null && o.swing && o.leave == null && Math.hypot(o.x - at[0], o.y - at[1]) < S * 0.12) o.leave = 0; // (the one there before goes into the ink as this one comes out of it)
+    }
+    if (!at) {
+      const spots = [[W * 0.2, top], [W * 0.5, top], [W * 0.8, top]].filter(([x, y]) => ok(x, y, false)).map(([x, y]) => ({ x, y, c: minionClear(m, x, y, u), d: away(x, y) }));
+      if (!spots.length) return false; // (nowhere clear of you: no one comes)
+      spots.sort((a, b) => (b.c >= 0) - (a.c >= 0) || (a.c >= 0 ? b.d - a.d : b.c - a.c)); // (none clear: the one least in it)
+      at = [spots[0].x, spots[0].y];
+    }
+    [m.x, m.y] = at;
+    const fx = m.stand === "origin" && Math.abs(at[0] - ox) > u * 0.5 && Math.hypot(at[0] - ox, at[1] - oy) <= u * 7.1 ? ox : P.x; // (beside the top middle it faces it, else you)
+    m.dir = fx >= m.x ? 1 : -1;
+    return true;
+  }
+  // its men on the field (from stepWorld, so 패턴 보기 and your fall run them too): stood once what it throws has its place,
+  // out of the ink in 0.15 s, the weapon lifted over 0.24 s and held there till what it threw goes off (never sooner, so
+  // never inside that warning's 0.57 s), brought down through a crescent of the master's colour, and 0.4 s on, ink again.
+  // It never moves. Come within 0.32 S and it is gone; an umbrella's shade come over it, and it goes back into the ink.
+  function stepMinions(dt) {
+    if (!G.minions.length) return;
+    if (G.mode === "menu" || (!G.stageRun && !G.pat)) { G.minions = []; return; } // (a run left for the title: none come along)
+    const u = minionU();
+    for (const m of G.minions) {
+      if (m.x == null) { // (its warning yet to come, or to pick its spot)
+        if (m.wait || (m.w && m.w.place && !m.w.placed)) { if ((m.t += dt) > 2) m.gone = true; continue; }
+        m.t = 0; if (!minionStand(m, u)) m.gone = true;
+        continue;
+      }
+      m.t += dt;
+      if (Math.hypot(P.x - m.x, P.y - (m.y + u * 0.2)) < S * 0.32) { m.gone = true; continue; }
+      if (m.leave == null && minionShaded(m.x, m.y, u)) { m.leave = 0; m.lv = 0.1; } // (quick: the shade is yours)
+      if (m.leave != null) { if ((m.leave += dt) > (m.lv || 0.25)) m.gone = true; continue; }
+      if (m.swing) { if ((m.swing.t += dt) > 0.7) m.gone = true; continue; }
+      if (m.t < 0.39) continue; // (its weapon not up yet)
+      const off = m.w ? !G.warns.includes(m.w) : m.h ? m.h.t >= m.h.warn || !G.hazards.includes(m.h) : true;
+      if (!off && m.t < 4) continue; // (4 s: something held it — a fall, a cleared field — and it strikes anyway)
+      const tw = m.w && /^(ring|spike)$/.test(m.w.kind) && Math.hypot(m.w.x - m.x, m.w.y - m.y) > u * 2 ? m.w : m.h; // (not a burst out of its own spot)
+      let tx = tw ? tw.x : P.x, ty = tw ? tw.y : P.y; // (the blow toward where it lands — a burst, a strike, the moon — else at you)
+      if (Math.abs(Math.atan2(ty - (m.y + u * 0.3), tx - m.x) + Math.PI / 2) < 0.6) { tx = P.x; ty = P.y; } // (never up over its own head: then at you)
+      m.swing = { t: 0, ang: Math.atan2(ty - (m.y + u * 0.3), tx - m.x) };
+      if (Math.abs(tx - m.x) > u) m.dir = tx > m.x ? 1 : -1;
+    }
+    G.minions = G.minions.filter((m) => !m.gone);
+  }
   // Each boss's second 비기, in its manner, taking turns with its first (11-06: "나머지 보스들도 컨셉과 함께 다양한 고유기").
   // Each returns how many seconds it takes, like SIGS. Built from the same warned pieces as the rest.
   function bandsAt(angs, w = S * 0.075, dur = 0.75) { // blade paths through where you stand, at these angles, all at once
@@ -3885,7 +4056,7 @@ sdk.initializeAsync()
       });
     } },
     swarm: { name: "독 날개", run() { // two clouds of scales bursting about the field (burstSpot: not beside you)
-      for (let k = 0; k < 2; k++) later(k * 0.45, () => { const [x, y] = burstSpot(); burstAt(x, y, 12, rnd(0, Math.PI), 0.85, true); sfx.warn(); });
+      for (let k = 0; k < 2; k++) later(k * 0.45, () => { const [x, y] = burstSpot(); burstAt(x, y, 12, rnd(0, Math.PI), 0.85, true, "wing"); sfx.warn(); });
     } },
     wheel: { name: "불바퀴 질주", run() { // it runs a road through you on its wheels, then leaps home
       const b = G.boss; if (!b) return;
@@ -4036,8 +4207,16 @@ sdk.initializeAsync()
     ...Object.keys(PATTERNS).map((k) => ({ group: "칸 공격", name: ATTACK_NAMES[k], run: () => PATTERNS[k].spawn(), every: () => PATTERNS[k].every() })),
     ...BIG.map((b) => ({ group: "큰 공격", name: ATTACK_NAMES[b.key], run: () => runBig(b), every: () => 5.5 })),
     ...BOSS_SET.map((d, i) => ({ group: "보스 맛보기", name: `${d.stage} ${d.name}`, sg: bossWorld(i) * 5 + 1, run: () => foreshadow(d.sig), every: () => 4.5 })),
+    // (11-11) its men, at its 장's X-4 (its place and ground): the lesser move with the man who throws it, and every second
+    // time a second man 1.1 s on, as X-4's foePair. 20장 has none.
+    ...BOSS_SET.map((d, i) => d.minion && { group: "하수인", name: `${bossWorld(i) + 1}장 ${d.minion.name}`, sg: bossWorld(i) * 5 + 3, run() { devMinion(this.sg); }, every: () => 4.5 }).filter(Boolean),
   ];
-  const DEV_NOTES = { boss: $("devNote").textContent, pat: "공격 하나만 되풀이해서 보여 준다. 대나무도 다른 공격도 없다. 세기는 위에서 고른 난이도의 10장쯤이다. 보스 맛보기는 그 장 X-2에서 나오는 모습이다." };
+  const DEV_NOTES = { boss: $("devNote").textContent, pat: "공격 하나만 되풀이해서 보여 준다. 대나무도 다른 공격도 없다. 세기는 위에서 고른 난이도의 10장쯤이다. 보스 맛보기는 그 장 X-2에서 나오는 모습이다. 하수인은 그 장 X-4에서 맛보기를 던지는 졸개이고, 두 번에 한 번은 1.1초 뒤에 한 명이 더 나온다." };
+  function devMinion(sg) { // (패턴 보기's 하수인: what stageStep does at that 장's X-4, without its clock)
+    const sd = stageDef(sg), pt = G.pat;
+    foeCast(sd);
+    if (pt && (pt.n = (pt.n || 0) + 1) % 2 === 0) later(1.1, () => { if (G.phase === "fight" && G.pat === pt) foeCast(sd); });
+  }
   function startDevPattern(p) {
     begin();
     const L = STAGE_LEVELS[devLevel];
@@ -4088,7 +4267,7 @@ sdk.initializeAsync()
       head.append(who, sig);
       const what = document.createElement("p"); what.textContent = d.what;
       const lines = document.createElement("dl");
-      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["등장 대사", d.intro], ["비기 대사", d.sigLine], ["쓰러질 때", d.down]]) {
+      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["하수인", d.minion ? `${d.minion.name}. X-1~X-4에서 맛보기를 던진다` : "없음"], ["등장 대사", d.intro], ["비기 대사", d.sigLine], ["쓰러질 때", d.down]]) {
         const dt = document.createElement("dt"); dt.textContent = k;
         const dd = document.createElement("dd"); dd.textContent = withName(t);
         lines.append(dt, dd);
@@ -4600,6 +4779,7 @@ sdk.initializeAsync()
     });
     for (const p of G.parts) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= 0.93; p.vy *= 0.93; if (p.spin) p.rot += p.spin * dt; }
     G.parts = G.parts.filter((p) => p.t < p.life);
+    if (G.minions.length) minionSafe(() => stepMinions(dt)); // (after the warnings: one that went off this frame is gone from G.warns, and its man strikes now)
     for (const x of G.texts) x.t += dt;
     G.texts = G.texts.filter((x) => x.t < 0.9);
     for (const d of G.decals) d.t += dt;
@@ -4757,6 +4937,7 @@ sdk.initializeAsync()
     drawDrift(time);
     if (calm) ctx.translate(-sx, -sy);
     drawCallout(); // (under everything you have to read)
+    if (G.minions.length) minionSafe(() => drawMinions(time)); // (11-11: a stage master's men, under the warnings: they cut nothing)
     signN = 0; for (const w of G.warns) drawWarn(w, time);
     if (G.snaps.length) { // the instant a warning goes off, its shape flashes white-hot
       ctx.save(); if ("filter" in ctx) ctx.filter = "brightness(2.4) saturate(0.3)";
@@ -5613,6 +5794,420 @@ sdk.initializeAsync()
     ctx.lineTo(Math.cos(p.ang) * r * reach * (thrown ? 1 : -0.6), -r * 0.1 + Math.sin(p.ang) * r * reach * (thrown ? 1 : -0.6)); ctx.stroke();
     ctx.restore();
   }
+  // ---- (11-11) a stage master's men (minionCast): ink like the thrower's, and one colour, the master's as it fights
+  // (fightTint: a red master's is gold), worn in a different place on each. No red on them: red is a blade's way. Each its
+  // own head, weapon and way of holding it, so none reads as another; serious men of the 강호, about 0.09 S tall. Drawn
+  // about the chest, feet at 2.1u, facing right (mirrored). Every save here is mSave, so minionSafe can put the canvas back.
+  const MINK = "#2b2622";
+  const mPaper = (a) => `rgba(247,240,222,${a})`;
+  function drawMinions(time) {
+    const u = minionU(), dim = G.mode === "dying" && G.killer && G.dieT > 0.08; // (falling: all but what cut you fades back, as the hazards do)
+    for (const m of G.minions) {
+      if (m.x == null) continue; // (not stood yet)
+      const sw = m.swing, s = sw ? sw.t : 0, out = Math.max(sw ? clamp((s - 0.4) / 0.3, 0, 1) : 0, m.leave != null ? clamp(m.leave / (m.lv || 0.25), 0, 1) : 0);
+      const near = clamp((Math.hypot(P.x - m.x, P.y - (m.y + u * 0.2)) - S * 0.32) / (S * 0.06), 0, 1); // (fading as you come: never drawn by you)
+      if (near <= 0) continue;
+      // the weapon lifted once it stands (0.15–0.39 s) and held up; then brought down hard and settling, as a master's strike
+      const up = 1 - (1 - clamp((m.t - 0.15) / 0.24, 0, 1)) ** 2;
+      const arm = !sw ? 0.95 * up : s < 0.08 ? 0.95 - 1.55 * (s / 0.08) ** 2 : s < 0.18 ? -0.6 : s < 0.48 ? -0.6 * (1 - (s - 0.18) / 0.3) ** 2 : 0;
+      mSave(); ctx.globalAlpha *= near * (dim ? 0.25 : 1);
+      minionInkDrops(m, m.x, m.y, u, m.t < 0.2 ? m.t / 0.2 - 1 : out); // (out of the ink as it comes, back to it as it goes)
+      ctx.globalAlpha *= clamp(m.t / 0.15, 0, 1) * (1 - out);
+      if (sw && s < 0.26) minionCrescent(m, u, s);
+      const sy = sw && s < 0.14 ? 1 + 0.07 * Math.sin((s / 0.14) * Math.PI) : 1; // (springing up into the blow)
+      minionFigure(m, m.x, m.y - out * u * 0.4, u, { arm, sy, thrown: !!sw, shadow: true }, time);
+      mRestore();
+    }
+  }
+  function minionInkDrops(m, x, y, u, k) { // gathering out of the ink (k −1 → 0) or going back into it (0 → 1): its own drops, from its number
+    if (!k) return;
+    const far = k < 0 ? -k : 0.25 + k * 1.1, a = k < 0 ? 0.25 - 0.6 * k : 0.85 * (1 - k);
+    ctx.fillStyle = `rgba(43,38,34,${a})`;
+    for (const d of m.ink) {
+      const r = d.d * far * u * 1.6;
+      ctx.beginPath(); ctx.arc(x + Math.cos(d.a) * r, y + u * (0.3 + d.y) + Math.sin(d.a) * r * 0.7, u * d.r * (1 + Math.max(0, k)), 0, Math.PI * 2); ctx.fill();
+    }
+  }
+  function minionCrescent(m, u, s) { // its blow: a short crescent of the master's colour, drawBoss's swing at its size, rimmed in ink inside so it shows on its own ground
+    const fade = Math.max(0, 1 - s / 0.26), k = Math.min(1, s / 0.2), R = u * 3.0, d = m.dir || 1;
+    const ang = d > 0 ? m.swing.ang : Math.PI - m.swing.ang, a0 = ang - 1.2 + k * 0.6; // (mirrored with the man, so it sweeps the way his weapon goes)
+    mSave(); ctx.translate(m.x, m.y + u * 0.3); ctx.scale(d, 1);
+    ctx.fillStyle = hexA(m.tint, 0.55 * fade); ctx.beginPath(); ctx.arc(0, 0, R, a0, a0 + 1.8); ctx.arc(0, 0, R * 0.8, a0 + 1.8, a0, true); ctx.closePath(); ctx.fill();
+    ctx.strokeStyle = `rgba(43,38,34,${0.5 * fade})`; ctx.lineWidth = Math.max(1, u * 0.09); ctx.beginPath(); ctx.arc(0, 0, R * 0.8, a0 + 0.12, a0 + 1.68); ctx.stroke();
+    ctx.strokeStyle = `rgba(255,250,235,${0.75 * fade})`; ctx.lineWidth = Math.max(1.5, u * 0.18); ctx.beginPath(); ctx.arc(0, 0, R, a0 + 0.2, a0 + 1.7); ctx.stroke();
+    mRestore();
+  }
+  // 1장, 7장: a man at the rim where its move's shadow will run from, out of the ink, its blade going up (drawWarn: clone)
+  function minionClone(w, k, time) {
+    const m = w.minion, u = minionU(), up = clamp((k - 0.3) / 0.35, 0, 1); // (whole by a quarter of its warning, its blade up by two thirds)
+    mSave();
+    if (k < 0.25) minionInkDrops(m, w.x, w.y - u * 0.3, u, k / 0.25 - 1);
+    ctx.globalAlpha *= 0.3 + 0.7 * Math.min(1, k * 4);
+    minionFigure(m, w.x, w.y - u * 0.3, u, { arm: 0.95 * (1 - (1 - up) ** 2), dir: Math.cos(w.ang) >= 0 ? 1 : -1 }, time);
+    mRestore();
+  }
+  // and running its line (drawClone, as the look of that hazard): low, leaning into it, the blade through
+  function minionRun(m, x, y, ang, time) { const u = minionU(); minionFigure(m, x, y - u * 0.3, u, { arm: -0.45, dir: Math.cos(ang) >= 0 ? 1 : -1, lean: 0.3 }, time); }
+  function minionFigure(m, x, y, u, o, time) {
+    const dir = o.dir || m.dir || 1, fy = u * 2.1;
+    mSave(); ctx.translate(x, y); ctx.lineCap = "round"; ctx.lineJoin = "round";
+    if (o.shadow && m.sig !== "veil") { ctx.fillStyle = "rgba(29,26,23,0.16)"; ctx.beginPath(); ctx.ellipse(0, fy + u * 0.04, u * 1.25, u * 0.22, 0, 0, Math.PI * 2); ctx.fill(); } // (무영's men, like him, cast none)
+    const lean = (o.lean || 0) + (o.arm > 0 ? -0.07 * o.arm : -0.16 * o.arm); // (back as it lifts, into the blow as it strikes; about the feet)
+    ctx.translate(0, fy); ctx.rotate(lean * dir); ctx.scale(dir, o.sy || 1); ctx.translate(0, -fy);
+    MINION_LOOKS[m.sig](u, time, o, m.tint);
+    mRestore();
+  }
+  // what they are made of, in u about the chest: a body in a fighting stance, shoulders ±sh — "legs" a coat over trousers,
+  // feet apart; "low" crouched and wider; "robe" to the ankles (fill null: the path only, for 무영's men)
+  function mBody(u, sh, kind, fill = MINK) {
+    ctx.beginPath(); ctx.moveTo(-u * sh, -u * 0.42);
+    ctx.quadraticCurveTo(-u * (sh + 0.1), u * 0.3, -u * 0.48, u * 0.82);
+    if (kind === "robe") { ctx.quadraticCurveTo(-u * 0.78, u * 1.5, -u * 0.98, u * 2.1); ctx.lineTo(u * 1.0, u * 2.1); ctx.quadraticCurveTo(u * 0.8, u * 1.5, u * 0.48, u * 0.82); }
+    else { const w = kind === "low" ? 1.2 : 0.98, c = kind === "low" ? 1.45 : 1.28; ctx.lineTo(-u * w, u * 2.06); ctx.lineTo(-u * (w - 0.42), u * 2.12); ctx.lineTo(u * 0.02, u * c); ctx.lineTo(u * (w - 0.42), u * 2.12); ctx.lineTo(u * w, u * 2.06); ctx.lineTo(u * 0.48, u * 0.82); }
+    ctx.quadraticCurveTo(u * (sh + 0.1), u * 0.3, u * sh, -u * 0.42); ctx.quadraticCurveTo(0, -u * 0.62, -u * sh, -u * 0.42); ctx.closePath();
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+  }
+  const mHead = (u, x, y, r, c = MINK) => { ctx.fillStyle = c; ctx.beginPath(); ctx.arc(u * x, u * y, u * r, 0, Math.PI * 2); ctx.fill(); };
+  const mLimb = (u, x0, y0, x1, y1, w = 0.26) => line(MINK, Math.max(1.5, u * w), u * x0, u * y0, u * x1, u * y1);
+  const mPoly = (u, pts, c = MINK) => { ctx.fillStyle = c; ctx.beginPath(); for (const [x, y] of pts) ctx.lineTo(u * x, u * y); ctx.closePath(); ctx.fill(); };
+  // a blade from the fist to its point: ink, one edge catching the light (`edge`: its colour), a guard. (11-11: never under
+  // 0.11u a side for a sword, 0.13u for a dagger, so it reads on a phone)
+  function mBlade(u, x0, y0, x1, y1, w, guard = true, edge = mPaper(0.85)) {
+    const L = Math.hypot(x1 - x0, y1 - y0), dx = (x1 - x0) / L, dy = (y1 - y0) / L, nx = -dy, ny = dx, sx = x1 - dx * Math.min(0.3, L * 0.2), sy = y1 - dy * Math.min(0.3, L * 0.2);
+    ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(u * (x0 + nx * w), u * (y0 + ny * w)); ctx.lineTo(u * (sx + nx * w * 0.8), u * (sy + ny * w * 0.8)); ctx.lineTo(u * x1, u * y1);
+    ctx.lineTo(u * (sx - nx * w * 0.8), u * (sy - ny * w * 0.8)); ctx.lineTo(u * (x0 - nx * w), u * (y0 - ny * w)); ctx.closePath(); ctx.fill();
+    line(edge, Math.max(1, u * 0.07), u * (x0 + dx * 0.15 + nx * w * 0.45), u * (y0 + dy * 0.15 + ny * w * 0.45), u * (x1 - dx * 0.06), u * (y1 - dy * 0.06));
+    if (guard) line(MINK, Math.max(1.5, u * 0.14), u * (x0 + dx * 0.1 + nx * 0.26), u * (y0 + dy * 0.1 + ny * 0.26), u * (x0 + dx * 0.1 - nx * 0.26), u * (y0 + dy * 0.1 - ny * 0.26));
+  }
+  function mArm(u, px, py, arm, up, down) { // the weapon arm turned about its shoulder: over the head as arm → 1, through the blow as it goes below 0 (mRestore after)
+    const a = arm >= 0 ? -arm * up : -arm * down;
+    mSave(); ctx.translate(u * px, u * py); ctx.rotate(a); ctx.translate(-u * px, -u * py);
+  }
+  const qAt = (a, b, c, k) => (1 - k) * (1 - k) * a + 2 * (1 - k) * k * b + k * k * c; // (a point along a quadratic curve)
+  // a tongue of fire from (x, y), `h` long along `ang`, leaning back by `back` (in u)
+  function mFlame(u, x, y, ang, h, w, back) {
+    const c = Math.cos(ang), s = Math.sin(ang), nx = -s, ny = c, tx = x + c * h - nx * back, ty = y + s * h - ny * back;
+    ctx.beginPath(); ctx.moveTo(u * (x + nx * w), u * (y + ny * w)); ctx.quadraticCurveTo(u * (x + c * h * 0.55 + nx * w * 0.7), u * (y + s * h * 0.55 + ny * w * 0.7), u * tx, u * ty);
+    ctx.quadraticCurveTo(u * (x + c * h * 0.45 - nx * w * 0.5), u * (y + s * h * 0.45 - ny * w * 0.5), u * (x - nx * w), u * (y - ny * w)); ctx.closePath(); ctx.fill();
+  }
+  const MINION_LOOKS = {
+    twin(u, t, o, A) { // 흑월 정탐꾼: 흑월교's scout, low on its feet, hooded, half its face behind a mask of its master's colour as 쌍영's is, a short dagger in each hand
+      ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.5, u * 0.2); // the hood's tail streaming back
+      ctx.beginPath(); ctx.moveTo(-u * 0.2, -u * 1.15); ctx.quadraticCurveTo(-u * 0.9, -u * 1.25, -u * 1.55, -u * 0.85 + Math.sin(t * 9) * u * 0.15); ctx.stroke();
+      mLimb(u, -0.4, -0.3, -0.95, 0.35); mBlade(u, -0.95, 0.35, -1.5, 1.0, 0.13); // the other hand's dagger, low behind
+      mBody(u, 0.52, "low");
+      mHead(u, 0.12, -0.9, 0.42);
+      ctx.fillStyle = A; ctx.beginPath(); ctx.arc(u * 0.12, -u * 0.9, u * 0.42, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill(); // the half mask, down its face
+      line(MINK, Math.max(1.2, u * 0.1), u * 0.2, -u * 0.98, u * 0.5, -u * 0.95); // its eye, a slit in the mask
+      mArm(u, 0.4, -0.34, o.arm, 1.8, 1.3); mLimb(u, 0.4, -0.34, 0.95, 0.3); mBlade(u, 0.95, 0.3, 1.8, -0.18, 0.13); mRestore();
+    },
+    lotus(u, t, o, A) { // 수류문 제자: slender, a water-blue band over the brow whose long tails flow behind, a topknot; his long thin sword held low and forward, as water runs
+      ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.5, u * 0.15);
+      for (const k of [0, 1]) { ctx.beginPath(); ctx.moveTo(-u * 0.3, -u * 1.07); ctx.bezierCurveTo(-u * 0.9, -u * (1.2 - k * 0.3) + Math.sin(t * 6 + k) * u * 0.2, -u * 1.3, -u * (0.6 - k * 0.3), -u * (1.75 + k * 0.25), -u * (0.6 - k * 0.45) + Math.sin(t * 6 + k + 1.2) * u * 0.25); ctx.stroke(); }
+      mLimb(u, -0.36, -0.32, -0.86, 0.38); // the other arm back, low, for balance
+      mBody(u, 0.46, "robe");
+      mHead(u, 0.05, -0.97, 0.38); mHead(u, -0.06, -1.42, 0.16); // a topknot
+      line(A, Math.max(2, u * 0.2), -u * 0.34, -u * 1.08, u * 0.43, -u * 1.1); // the band over the brow
+      mArm(u, 0.4, -0.34, o.arm, 2.15, 0.9); mLimb(u, 0.4, -0.34, 1.08, 0.3); mBlade(u, 1.08, 0.3, 3.1, 0.62, 0.11); mRestore();
+    },
+    fire(u, t, o, A) { // 파계 무승: a broken monk of 적염사, broad, his head shaven, a heavy curved 계도, fire running back off its spine
+      mLimb(u, -0.62, -0.28, -1.0, 0.55, 0.34);
+      mBody(u, 0.84, "robe");
+      line(mPaper(0.22), Math.max(1, u * 0.1), -u * 0.7, -u * 0.35, u * 0.5, u * 0.8); // the fold of his robe across the chest
+      mHead(u, 0.06, -0.98, 0.5);
+      ctx.strokeStyle = mPaper(0.6); ctx.lineWidth = Math.max(1.2, u * 0.08); ctx.beginPath(); ctx.arc(-u * 0.02, -u * 1.05, u * 0.32, Math.PI * 1.1, Math.PI * 1.6); ctx.stroke(); // the shaven crown in the light
+      mArm(u, 0.55, -0.32, o.arm, 1.8, 1.3); mLimb(u, 0.55, -0.32, 1.05, 0.32, 0.34);
+      const gx = 1.05, gy = 0.32, b0 = [gx, gy - 0.12], b1 = [gx + 1.1, gy - 0.5], b2 = [gx + 2.0, gy - 1.05]; // its back, curving up to the point
+      const at = (k) => [qAt(b0[0], b1[0], b2[0], k), qAt(b0[1], b1[1], b2[1], k)];
+      ctx.fillStyle = A; ctx.beginPath(); // the fire off its spine: one blaze of three tongues, the tallest toward the point, streaming back
+      for (let i = 0; i <= 24; i++) {
+        const f = i / 24, k = 0.26 + f * 0.7, [x, y] = at(k), tx = (1 - k) * (b1[0] - b0[0]) + k * (b2[0] - b1[0]), ty = (1 - k) * (b1[1] - b0[1]) + k * (b2[1] - b1[1]), tl = Math.hypot(tx, ty);
+        const h = (0.35 + 0.65 * f) * 0.78 * Math.abs(Math.sin(f * Math.PI * 3 + Math.sin(t * 8) * 0.22)) ** 0.75;
+        ctx.lineTo(u * (x + (ty / tl) * h - (tx / tl) * h * 0.6), u * (y - (tx / tl) * h - (ty / tl) * h * 0.6));
+      }
+      for (let i = 24; i >= 0; i--) { const [x, y] = at(0.26 + (i / 24) * 0.7); ctx.lineTo(u * x, u * y); }
+      ctx.closePath(); ctx.fill();
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(u * b0[0], u * b0[1]); ctx.quadraticCurveTo(u * b1[0], u * b1[1], u * b2[0], u * b2[1]); ctx.quadraticCurveTo(u * (gx + 1.25), u * (gy + 0.1), u * gx, u * (gy + 0.16)); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = mPaper(0.85); ctx.lineWidth = Math.max(1, u * 0.08); ctx.beginPath(); ctx.moveTo(u * (gx + 0.15), u * (gy + 0.12)); ctx.quadraticCurveTo(u * (gx + 1.25), u * (gy + 0.06), u * (b2[0] - 0.05), u * (b2[1] + 0.05)); ctx.stroke(); // its edge, white-hot
+      mRestore();
+    },
+    frost(u, t, o, A) { // 얼어붙은 무사: one who met 설귀 on the pass and never came down: stooped and stiff, a torn cloak, rime on his helmet and icicles hanging off it and his shoulder, his broad blade held low, frozen so
+      ctx.translate(0, u * 2.1); ctx.rotate(0.07); ctx.translate(0, -u * 2.1); // (stooped)
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(-u * 0.55, -u * 0.5); ctx.quadraticCurveTo(-u * 1.05, u * 0.3, -u * 1.25, u * 1.45); // the torn cloak behind him, hanging stiff
+      for (const [x, y] of [[-1.05, 1.25], [-0.98, 1.62], [-0.78, 1.32], [-0.66, 1.7], [-0.5, 1.3]]) ctx.lineTo(u * x, u * y);
+      ctx.lineTo(-u * 0.1, -u * 0.2); ctx.closePath(); ctx.fill();
+      mLimb(u, -0.45, -0.3, -0.7, 0.55);
+      mBody(u, 0.66, "legs");
+      mHead(u, 0.08, -0.92, 0.4);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.arc(u * 0.06, -u * 0.98, u * 0.47, Math.PI * 0.98, Math.PI * 2.02); ctx.lineTo(u * 0.58, -u * 0.9); ctx.lineTo(-u * 0.5, -u * 0.72); ctx.closePath(); ctx.fill(); // the 투구, its neck guard flaring behind
+      ctx.strokeStyle = A; ctx.lineWidth = Math.max(1, u * 0.1); ctx.beginPath(); ctx.arc(u * 0.06, -u * 0.98, u * 0.47, Math.PI * 1.12, Math.PI * 1.85); ctx.stroke(); // a thin line of rime over its crown
+      ctx.fillStyle = A; // icicles hanging off the brim, the neck guard and the shoulder
+      for (const [x, y, l] of [[0.5, -0.9, 0.3], [0.32, -0.88, 0.2], [-0.42, -0.76, 0.28], [-0.64, -0.4, 0.34], [-0.45, -0.46, 0.22]]) { ctx.beginPath(); ctx.moveTo(u * (x - 0.07), u * y); ctx.lineTo(u * x, u * (y + l)); ctx.lineTo(u * (x + 0.07), u * y); ctx.closePath(); ctx.fill(); }
+      mArm(u, 0.42, -0.34, o.arm, 2.25, 0.8); mLimb(u, 0.42, -0.34, 0.9, 0.34);
+      const bx = 0.9, by = 0.34, ex = 2.55, ey = 1.12; mBlade(u, bx, by, ex, ey, 0.12); // the blade, low, frozen as it was held
+      const turn = o.arm >= 0 ? -o.arm * 2.25 : -o.arm * 0.8, flat = clamp(Math.cos(Math.atan2(ey - by, ex - bx) + turn) * 1.6 - 0.6, 0, 1); // (icicles hang under it only while it lies near level)
+      if (flat > 0) { ctx.fillStyle = A; for (const k of [0.38, 0.62, 0.84]) { const x = bx + (ex - bx) * k, y = by + (ey - by) * k + 0.1; ctx.beginPath(); ctx.moveTo(u * (x - 0.07), u * y); ctx.lineTo(u * (x + 0.02), u * (y + (0.22 + k * 0.08) * flat)); ctx.lineTo(u * (x + 0.08), u * y); ctx.closePath(); ctx.fill(); } }
+      mRestore();
+    },
+    void(u, t, o, A) { // 흑월교 호법: a guardian of the black moon's temple, big, a horned half-helmet, a crescent glaive (언월도) whose edge is its master's colour
+      mLimb(u, -0.6, -0.3, -0.95, 0.5, 0.32);
+      mBody(u, 0.86, "legs");
+      mHead(u, 0.05, -0.95, 0.44);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.arc(u * 0.05, -u * 0.99, u * 0.53, Math.PI, Math.PI * 2); ctx.fill(); // the half-helmet over the brow
+      line(mPaper(0.5), Math.max(1, u * 0.07), -u * 0.48, -u * 0.99, u * 0.58, -u * 0.99);
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(u * (0.05 + s * 0.22), -u * 1.36); ctx.quadraticCurveTo(u * (0.05 + s * 1.0), -u * 1.5, u * (0.05 + s * 0.42), -u * 2.15); ctx.quadraticCurveTo(u * (0.05 + s * 0.64), -u * 1.62, u * (0.05 + s * 0.04), -u * 1.5); ctx.closePath(); ctx.fill(); } // its horns, curving in at the tips as a crescent does
+      mArm(u, 0.5, -0.32, o.arm, 1.3, 1.5); mLimb(u, 0.5, -0.32, 1.0, 0.3, 0.32);
+      const da = -0.85, dx = Math.cos(da), dy = Math.sin(da), hx = 1.0, hy = 0.3, tx = hx + dx * 2.0, ty = hy + dy * 2.0; // the shaft through the fist, its blade up ahead
+      line(MINK, Math.max(1.5, u * 0.15), u * (hx - dx * 1.05), u * (hy - dy * 1.05), u * tx, u * ty);
+      mSave(); ctx.translate(u * tx, u * ty); ctx.rotate(da); // the 언월도's blade: ink, a back spike, its cutting edge gold
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(-u * 0.18, -u * 0.14); ctx.quadraticCurveTo(u * 0.75, -u * 0.5, u * 1.12, u * 0.4); ctx.quadraticCurveTo(u * 0.55, u * 0.02, -u * 0.18, u * 0.22); ctx.lineTo(-u * 0.08, u * 0.42); ctx.lineTo(-u * 0.34, u * 0.2); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.5, u * 0.13); ctx.beginPath(); ctx.moveTo(-u * 0.05, -u * 0.17); ctx.quadraticCurveTo(u * 0.75, -u * 0.5, u * 1.08, u * 0.34); ctx.stroke(); mRestore();
+      mRestore();
+    },
+    charge(u, t, o, A) { // 호피 산적: a bandit of the burnt grove, hunched and broad, a tiger's skin over his head and down his back, its fangs over his brow, iron claws on his fist
+      mLimb(u, -0.62, -0.25, -1.05, 0.55, 0.36);
+      mBody(u, 0.92, "low");
+      const skin = () => { ctx.beginPath(); ctx.moveTo(u * 0.6, -u * 0.86); ctx.quadraticCurveTo(u * 0.55, -u * 1.45, -u * 0.05, -u * 1.42); ctx.quadraticCurveTo(-u * 0.72, -u * 1.36, -u * 0.95, -u * 0.6); // the skin: the beast's head for a hood, its pelt down his back, ragged
+        for (const [x, y] of [[-1.14, -0.15], [-0.94, 0.02], [-1.16, 0.38], [-0.9, 0.5], [-1.04, 0.86], [-0.62, 0.72]]) ctx.lineTo(u * x, u * y);
+        ctx.quadraticCurveTo(-u * 0.4, -u * 0.25, u * 0.15, -u * 0.55); ctx.closePath(); };
+      skin(); ctx.fillStyle = MINK; ctx.fill(); ctx.strokeStyle = A; ctx.lineWidth = Math.max(1, u * 0.08); ctx.stroke(); // ink, edged with the master's colour
+      mSave(); skin(); ctx.clip(); ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.5, u * 0.18); // its four stripes
+      for (const [x0, y0, x1, y1] of [[-0.3, -1.5, -0.05, -1.08], [-0.85, -1.0, -0.42, -0.86], [-1.15, -0.25, -0.6, -0.3], [-1.15, 0.45, -0.62, 0.3]]) { ctx.beginPath(); ctx.moveTo(u * x0, u * y0); ctx.quadraticCurveTo(u * (x0 + x1) / 2, u * ((y0 + y1) / 2 + 0.12), u * x1, u * y1); ctx.stroke(); }
+      mRestore();
+      for (const [x, y] of [[-0.34, -1.36], [0.24, -1.42]]) mPoly(u, [[x - 0.13, y + 0.06], [x - 0.2, y - 0.14], [x + 0.08, y + 0.02]]); // its ears, small, laid back
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.ellipse(u * 0.3, -u * 0.84, u * 0.27, u * 0.3, 0, 0, Math.PI * 2); ctx.fill(); // his face, in its shadow
+      ctx.fillStyle = mPaper(0.92); for (const x of [0.18, 0.46]) { ctx.beginPath(); ctx.moveTo(u * (x - 0.07), -u * 1.1); ctx.lineTo(u * (x + 0.01), -u * 0.86); ctx.lineTo(u * (x + 0.07), -u * 1.1); ctx.closePath(); ctx.fill(); } // its fangs over his brow
+      mArm(u, 0.5, -0.3, o.arm, 1.7, 1.3); mLimb(u, 0.5, -0.3, 1.0, 0.3, 0.36);
+      for (const k of [-1, 0, 1]) { // three iron claws off the fist, curved as sickles
+        const bx = 1.02, by = 0.3 + k * 0.16, ex = 2.18, ey = 0.32 + k * 0.2, cx = 1.8, cy = -0.22 + k * 0.14;
+        ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(u * bx, u * (by - 0.12)); ctx.quadraticCurveTo(u * cx, u * (cy - 0.12), u * ex, u * ey); ctx.quadraticCurveTo(u * (cx - 0.1), u * (cy + 0.16), u * bx, u * (by + 0.12)); ctx.closePath(); ctx.fill();
+        ctx.strokeStyle = mPaper(0.85); ctx.lineWidth = Math.max(1, u * 0.06); ctx.beginPath(); ctx.moveTo(u * (bx + 0.2), u * (by - 0.1)); ctx.quadraticCurveTo(u * cx, u * (cy - 0.1), u * (ex - 0.04), u * (ey - 0.05)); ctx.stroke();
+      }
+      mHead(u, 1.0, 0.3, 0.2); mRestore();
+    },
+    veil(u, t, o, A) { // 무영문 살수: an assassin of 무영's school, drawn like its master in outline only: crouched, cowled, its cloak streaming back, nothing in it but a shadow thinning toward its feet, over three pools of ink; a dagger held reversed
+      for (let i = 0; i < 3; i++) { ctx.fillStyle = `rgba(29,26,23,${0.28 - i * 0.08})`; ctx.beginPath(); ctx.ellipse(Math.sin(t * 2.5 + i) * u * 0.25 + (i - 1) * u * 0.45, u * (2.12 + i * 0.05), u * (0.55 - i * 0.12), u * 0.13, 0, 0, Math.PI * 2); ctx.fill(); }
+      ctx.globalAlpha *= 0.88 + 0.1 * Math.sin(t * 7) * Math.sin(t * 3.1);
+      const fill = ctx.createLinearGradient(0, -u * 1.5, 0, u * 2.1); fill.addColorStop(0, "rgba(43,38,34,0.7)"); fill.addColorStop(1, "rgba(43,38,34,0.28)");
+      const shade = () => { ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.5, u * 0.13); ctx.stroke(); };
+      const w = Math.sin(t * 4) * 0.08; // its cloak, streaming back off the shoulders and down to the knee, torn at its end
+      ctx.beginPath(); ctx.moveTo(-u * 0.25, -u * 0.58); ctx.quadraticCurveTo(-u * 1.1, -u * 0.45 + u * w, -u * 1.75, u * (0.55 + w)); ctx.lineTo(-u * 1.42, u * 0.62); ctx.lineTo(-u * 1.55, u * (1.2 + w)); ctx.lineTo(-u * 1.15, u * 0.98); ctx.lineTo(-u * 1.05, u * (1.42 + w)); ctx.quadraticCurveTo(-u * 0.75, u * 0.8, -u * 0.42, u * 0.62); ctx.closePath(); shade();
+      mLimb(u, -0.4, -0.3, -0.88, 0.42, 0.16); // (the far arm: a line, as if drawn round)
+      mBody(u, 0.55, "legs", null); shade(); // a man's shape, and nothing in it but shadow
+      const hy = -u * 0.92; // its cowl, peaked, the point fallen back
+      ctx.beginPath(); ctx.moveTo(-u * 0.5, -u * 0.42); ctx.quadraticCurveTo(-u * 0.8, hy - u * 0.15, -u * 0.66, hy - u * 0.68); ctx.quadraticCurveTo(-u * 0.1, hy - u * 0.7, u * 0.42, hy - u * 0.36);
+      ctx.quadraticCurveTo(u * 0.75, hy + u * 0.12, u * 0.58, -u * 0.42); ctx.closePath(); shade();
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.ellipse(u * 0.32, hy + u * 0.08, u * 0.2, u * 0.3, 0.25, 0, Math.PI * 2); ctx.fill(); // no face in the cowl, only dark
+      line(A, Math.max(1.2, u * 0.09), u * 0.2, hy + u * 0.02, u * 0.48, hy + u * 0.08); // a thin seam where a gaze would be
+      mArm(u, 0.42, -0.3, o.arm, 1.7, 1.3); mLimb(u, 0.42, -0.3, 0.98, 0.28, 0.2);
+      mBlade(u, 1.0, 0.28, 0.12, -0.66, 0.13, false, A); // the dagger, reversed along the forearm, steel of its master's grey
+      mHead(u, 0.98, 0.28, 0.15); mRestore();
+    },
+    drum(u, t, o, A) { // 전고수: a war drummer of the red temple, a barrel drum slung across his back, rising over his shoulder, gold tacks round its heads; an iron helmet; a stick in each hand
+      const L = 0.72, R = 0.62, cx = -0.62, cy = -0.62; // the drum's middle, its axis up over the far shoulder
+      mSave(); ctx.translate(u * cx, u * cy); ctx.rotate(-0.95);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.ellipse(-u * L, 0, u * R * 0.38, u * R, 0, Math.PI / 2, Math.PI * 1.5); ctx.lineTo(u * L, -u * R); ctx.ellipse(u * L, 0, u * R * 0.38, u * R, 0, -Math.PI / 2, Math.PI / 2); ctx.closePath(); ctx.fill(); // its barrel
+      ctx.strokeStyle = mPaper(0.25); ctx.lineWidth = Math.max(1, u * 0.06); ctx.beginPath(); ctx.moveTo(-u * L * 0.9, -u * R * 0.55); ctx.quadraticCurveTo(0, -u * R * 0.75, u * L * 0.9, -u * R * 0.55); ctx.stroke(); // its swell catching the light
+      ctx.strokeStyle = mPaper(0.85); ctx.lineWidth = Math.max(1.2, u * 0.08); ctx.beginPath(); ctx.ellipse(u * L, 0, u * R * 0.38, u * R, 0, 0, Math.PI * 2); ctx.stroke(); // its two heads, the near whole, the far its rim
+      ctx.beginPath(); ctx.ellipse(-u * L, 0, u * R * 0.38, u * R, 0, Math.PI / 2, Math.PI * 1.5); ctx.stroke();
+      ctx.fillStyle = A; for (const e of [-L, L]) for (let i = 0; i < 7; i++) { const a = -Math.PI / 2 + (i / 6) * Math.PI * (e > 0 ? 1 : -1); ctx.beginPath(); ctx.arc(u * (e + Math.cos(a) * R * 0.38 * 0.82), u * Math.sin(a) * R * 0.86, Math.max(0.8, u * 0.075), 0, Math.PI * 2); ctx.fill(); } // gold tacks round both its heads
+      mRestore();
+      const hit = Math.sin(t * 8) * 0.08; // the other stick up behind, keeping time
+      mLimb(u, -0.45, -0.34, -0.98, -0.82 + hit); mSave(); ctx.translate(-u * 0.98, u * (-0.82 + hit)); ctx.rotate(-1.95);
+      mPoly(u, [[0, -0.11], [1.15, -0.06], [1.15, 0.06], [0, 0.11]]); line(A, Math.max(1.5, u * 0.16), 0, 0, u * 0.22, 0); mRestore();
+      mBody(u, 0.7, "legs");
+      mHead(u, 0.05, -0.95, 0.42);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.arc(u * 0.05, -u * 1.0, u * 0.5, Math.PI, Math.PI * 2); ctx.fill(); // the helmet, a spike on top
+      ctx.beginPath(); ctx.moveTo(-u * 0.06, -u * 1.45); ctx.lineTo(u * 0.05, -u * 1.85); ctx.lineTo(u * 0.16, -u * 1.45); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = mPaper(0.45); ctx.lineWidth = Math.max(1, u * 0.07); ctx.beginPath(); ctx.arc(u * 0.05, -u * 1.0, u * 0.36, Math.PI * 1.2, Math.PI * 1.55); ctx.stroke(); // iron, catching the light
+      mArm(u, 0.42, -0.34, o.arm, 1.8, 1.3); mLimb(u, 0.42, -0.34, 0.95, 0.3);
+      mSave(); ctx.translate(u * 0.95, u * 0.3); ctx.rotate(-0.62); // the 북채: thick at the grip, tapering, wrapped in gold where he holds it
+      mPoly(u, [[-0.12, -0.13], [1.2, -0.07], [1.2, 0.07], [-0.12, 0.13]]); line(A, Math.max(1.5, u * 0.17), -u * 0.02, 0, u * 0.24, 0); mRestore();
+      mRestore();
+    },
+    mirror(u, t, o, A) { // 빙경궁 호위: a guard of the ice-mirror palace, a crested helmet with three spikes of ice, a round shield of ice out on her arm that flashes like a mirror, her thin sword raised behind it
+      mLimb(u, -0.3, -0.32, 0.72, 0.12); // the far arm, out before her, the shield on it
+      mBody(u, 0.54, "robe");
+      mHead(u, 0.06, -0.95, 0.39);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.arc(u * 0.06, -u * 0.99, u * 0.46, Math.PI * 0.95, Math.PI * 2.05); ctx.closePath(); ctx.fill(); // the helmet, its crest
+      mPoly(u, [[-0.32, -1.36], [-0.05, -1.58], [0.4, -1.42], [0.06, -1.36]]);
+      ctx.fillStyle = A; for (const [x, h] of [[-0.18, 0.32], [0.06, 0.46], [0.3, 0.3]]) { ctx.beginPath(); ctx.moveTo(u * (x - 0.08), -u * 1.42); ctx.lineTo(u * (x + 0.02), -u * (1.42 + h)); ctx.lineTo(u * (x + 0.09), -u * 1.42); ctx.closePath(); ctx.fill(); } // three spikes of ice
+      const sx = 1.0, sy = 0.2; // the shield: an ellipse of ice turned toward you
+      mSave(); ctx.translate(u * sx, u * sy); ctx.rotate(-0.35);
+      ctx.fillStyle = A; ctx.beginPath(); ctx.ellipse(0, 0, u * 0.5, u * 0.78, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.5, u * 0.14); ctx.stroke();
+      ctx.strokeStyle = mPaper(0.6); ctx.lineWidth = Math.max(1, u * 0.07); ctx.beginPath(); ctx.ellipse(0, 0, u * 0.34, u * 0.58, 0, Math.PI * 1.1, Math.PI * 1.55); ctx.stroke();
+      mRestore();
+      const fl = Math.max(0, o.arm) * (0.75 + 0.25 * Math.sin(t * 14)), gx = u * (sx - 0.12), gy = u * (sy - 0.25), g = u * (0.25 + 0.4 * fl); // its glint, a sharp four-point star, flashing as she lifts the sword
+      ctx.fillStyle = mPaper(0.55 + 0.4 * fl); ctx.beginPath();
+      for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2, r = i % 2 ? g * 0.16 : g; ctx.lineTo(gx + Math.cos(a) * r, gy + Math.sin(a) * r); }
+      ctx.closePath(); ctx.fill();
+      mArm(u, 0.42, -0.34, o.arm, 1.2, 1.3); mLimb(u, 0.42, -0.34, 0.62, -0.32); mBlade(u, 0.62, -0.32, 1.42, -1.95, 0.11); mRestore(); // her sword, high behind the shield
+    },
+    rain(u, t, o, A) { // 도롱이 낭인: a masterless swordsman under a straw rain cape (도롱이), wet through, bareheaded, his wet hair in a low knot, a short blade
+      mBody(u, 0.6, "legs");
+      for (const [y0, y1, w0, w1, n] of [[0.55, 1.42, 0.82, 1.1, 9], [-0.05, 0.85, 0.72, 0.98, 8], [-0.66, 0.2, 0.3, 0.86, 7]]) { // the 도롱이: three layers of straw, each hanging over the next, ragged at its edge
+        ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(-u * w0, u * y0); ctx.lineTo(u * w0, u * y0);
+        for (let i = 0; i <= n; i++) { const x = w1 - (2 * w1 * i) / n; ctx.lineTo(u * x, u * (y1 + (i % 2 ? -0.16 : 0.04) + ((i * 7) % 3) * 0.04)); }
+        ctx.closePath(); ctx.fill();
+        for (let i = 0; i < n - 2; i++) { const j = (i * 7 + n) % 5, x = -w1 * 0.92 + (2 * w1 * 0.92 * (i + 0.3 + j * 0.09)) / (n - 2), len = 0.24 + j * 0.05, lean = 0.08 + j * 0.035; line(mPaper(0.5), Math.max(1, u * 0.06), u * x, u * (y1 - 0.1 - j * 0.03), u * (x + lean), u * (y1 - 0.1 - j * 0.03 - len)); } // its straw, a little against the rain's slant, never along it
+      }
+      line(A, Math.max(1.2, u * 0.1), -u * 0.22, -u * 0.6, u * 0.24, -u * 0.6); // the cord at his throat
+      mHead(u, 0.05, -0.97, 0.4); mHead(u, -0.34, -1.04, 0.16); // bareheaded, his wet hair in a low knot
+      ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.2, u * 0.09); ctx.beginPath(); ctx.moveTo(-u * 0.42, -u * 0.97); ctx.quadraticCurveTo(-u * 0.55, -u * 0.72, -u * 0.5, -u * 0.52 + Math.sin(t * 4) * u * 0.04); ctx.stroke();
+      mArm(u, 0.42, -0.34, o.arm, 1.8, 1.3); mLimb(u, 0.42, -0.34, 0.98, 0.32); mBlade(u, 0.98, 0.32, 3.05, -0.32, 0.11, true, A); mRestore();
+    },
+    swords(u, t, o, A) { // 검총 묘지기: the keeper of the sword grave, hooded and bent, three swords of the grave crossed on his back, their hilts up over his shoulders at odd heights like markers, roped; a broad heavy blade in his hand
+      for (const [x0, y0, x1, y1] of [[-0.2, 1.5, -0.4, -2.15], [-0.75, 1.5, 0.92, -1.55], [0.55, 1.45, -1.1, -1.42]]) {
+        const L = Math.hypot(x1 - x0, y1 - y0), c = (x1 - x0) / L, s = (y1 - y0) / L, gx = x1 - c * 0.6, gy = y1 - s * 0.6;
+        line(A, Math.max(1.5, u * 0.2), u * x0, u * y0, u * gx, u * gy); // its blade, of the master's grey
+        line(MINK, Math.max(1.5, u * 0.15), u * (gx - s * 0.25), u * (gy + c * 0.25), u * (gx + s * 0.25), u * (gy - c * 0.25)); // its guard
+        line(MINK, Math.max(1.5, u * 0.14), u * gx, u * gy, u * x1, u * y1); mHead(u, x1, y1, 0.1); // its grip
+      }
+      line(mPaper(0.8), Math.max(1.2, u * 0.1), -u * 0.98, -u * 0.86, u * 0.78, -u * 0.98); // the rope round them
+      mLimb(u, -0.42, -0.3, -0.7, 0.55);
+      mBody(u, 0.64, "robe");
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(-u * 0.42, -u * 0.6); ctx.quadraticCurveTo(-u * 0.48, -u * 1.45, u * 0.2, -u * 1.5); ctx.quadraticCurveTo(u * 0.62, -u * 1.2, u * 0.55, -u * 0.62); ctx.closePath(); ctx.fill(); // his hood
+      mHead(u, 0.12, -0.92, 0.4);
+      line(mPaper(0.45), Math.max(1, u * 0.07), -u * 0.6, u * 0.1, u * 0.1, -u * 0.35); // the bundle's strap across him
+      mArm(u, 0.42, -0.34, o.arm, 1.75, 1.3); mLimb(u, 0.42, -0.34, 0.95, 0.3, 0.3); mBlade(u, 0.95, 0.3, 2.65, -0.55, 0.15); mRestore();
+    },
+    time(u, t, o, A) { // 일귀 무사: a robed swordsman of 광음's valley, who throws a sundial (日晷) of bronze, its rim ground sharp; wide sleeves, a soft cap
+      mBody(u, 0.62, "robe");
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(-u * 0.35, -u * 0.4); ctx.lineTo(-u * 0.6, -u * 0.25); ctx.quadraticCurveTo(-u * 1.3, u * 0.35, -u * 1.25, u * 0.95); ctx.lineTo(-u * 0.75, u * 0.85); ctx.quadraticCurveTo(-u * 0.75, u * 0.25, -u * 0.35, u * 0.1); ctx.closePath(); ctx.fill(); // a wide sleeve, hanging
+      mHead(u, 0.05, -0.95, 0.4);
+      ctx.beginPath(); ctx.moveTo(-u * 0.38, -u * 1.0); ctx.quadraticCurveTo(-u * 0.38, -u * 1.62, u * 0.08, -u * 1.6); ctx.quadraticCurveTo(u * 0.5, -u * 1.58, u * 0.48, -u * 1.0); ctx.closePath(); ctx.fill(); // the 복건, a soft cap
+      ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.5, u * 0.14); ctx.beginPath(); ctx.moveTo(-u * 0.3, -u * 1.25); ctx.quadraticCurveTo(-u * 0.85, -u * 1.1, -u * 0.95, -u * 0.45 + Math.sin(t * 3) * u * 0.08); ctx.stroke(); // its tail behind
+      mArm(u, 0.42, -0.34, o.arm, 1.9, 1.2);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(u * 0.3, -u * 0.42); ctx.lineTo(u * 0.55, -u * 0.25); ctx.quadraticCurveTo(u * 1.05, u * 0.15, u * 1.15, u * 0.55); ctx.lineTo(u * 0.7, u * 0.62); ctx.quadraticCurveTo(u * 0.55, u * 0.15, u * 0.28, -u * 0.05); ctx.closePath(); ctx.fill(); // the other sleeve, on the throwing arm
+      if (!o.thrown) { // the sundial, ready to throw: a bronze disc seen aslant, its rim notched sharp, its hours, the blade of its gnomon standing up
+        mSave(); ctx.translate(u * 1.3, u * 0.52); ctx.rotate(-0.3);
+        const rx = u * 0.66, ry = u * 0.3;
+        ctx.fillStyle = MINK; ctx.beginPath(); for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2, r = i % 2 ? 1 : 1.16; ctx.lineTo(Math.cos(a) * rx * r, Math.sin(a) * ry * r); } ctx.closePath(); ctx.fill(); // its teeth
+        ctx.fillStyle = A; ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, Math.PI * 2); ctx.fill();
+        for (let i = 0; i < 8; i++) { const a = Math.PI * (0.05 + i * 0.13); line(mPaper(0.85), Math.max(1, u * 0.06), Math.cos(a) * rx * 0.62, Math.sin(a) * ry * 0.62, Math.cos(a) * rx * 0.86, Math.sin(a) * ry * 0.86); } // the hours
+        mPoly(u, [[-0.05, 0.04], [0.42, 0.02], [0.02, -0.5]]); // the gnomon's blade
+        mRestore();
+      }
+      mRestore();
+    },
+    thunder(u, t, o, A) { // 뇌검수: a swordsman of the thunder peak, a topknot, a broad sword he lifts straight up to the sky with the lightning crawling over it; two paper charms tied to its hilt
+      mLimb(u, -0.42, -0.3, -0.8, 0.5);
+      mBody(u, 0.62, "legs");
+      mHead(u, 0.05, -0.95, 0.4); mHead(u, -0.04, -1.42, 0.17); // a topknot
+      mArm(u, 0.42, -0.34, o.arm, 1.15, 1.6); mLimb(u, 0.42, -0.34, 0.95, 0.3);
+      const bx = 0.95, by = 0.3, ex = 2.35, ey = -1.0, L = Math.hypot(ex - bx, ey - by), dx = (ex - bx) / L, dy = (ey - by) / L; mBlade(u, bx, by, ex, ey, 0.13);
+      for (const k of [0, 1]) { const sw = Math.sin(t * 9 + k * 2) * 0.12; mPoly(u, [[bx - 0.05, by + 0.05], [bx + 0.06, by + 0.1], [bx - 0.3 + k * 0.12 + sw, by + 0.78 + k * 0.1], [bx - 0.43 + k * 0.12 + sw, by + 0.72 + k * 0.1]], mPaper(0.92)); line(A, Math.max(1, u * 0.06), u * (bx - 0.12 + k * 0.06 + sw * 0.5), u * (by + 0.3 + k * 0.05), u * (bx - 0.22 + k * 0.1 + sw), u * (by + 0.58 + k * 0.08)); } // two 부적 off the hilt, a stroke of gold on each
+      const seed = Math.floor(t * 12), rr = (i) => { const v = Math.sin(seed * 12.9898 + i * 78.233) * 43758.5453; return v - Math.floor(v) - 0.5; }; // (re-drawn 12 times a second, from the clock)
+      ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.2, u * 0.1); ctx.beginPath(); // the lightning crackling along the blade, within it, and a spark or two off its point
+      for (let i = 0; i <= 8; i++) { const k = 0.22 + (i / 8) * 0.72, side = (i % 2 ? 1 : -1) * (0.04 + Math.abs(rr(i)) * 0.08); ctx.lineTo(u * (bx + dx * L * k - dy * side), u * (by + dy * L * k + dx * side)); }
+      ctx.stroke(); ctx.lineWidth = Math.max(1, u * 0.08);
+      for (let i = 0; i < 2; i++) { const a = Math.atan2(dy, dx) + (i ? 0.75 : -0.75) + rr(9 + i) * 0.4; ctx.beginPath(); ctx.moveTo(u * (ex + Math.cos(a) * 0.12), u * (ey + Math.sin(a) * 0.12)); ctx.lineTo(u * (ex + Math.cos(a) * 0.36), u * (ey + Math.sin(a) * 0.36)); ctx.stroke(); }
+      mRestore();
+    },
+    shadow(u, t, o, A) { // 저승 차사: a messenger of the underworld, the long black robe and wide black 갓, a chain for binding souls hanging from his fist, a hook at its end
+      mBody(u, 0.58, "robe");
+      mHead(u, 0.05, -0.95, 0.4);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.ellipse(u * 0.05, -u * 1.2, u * 1.3, u * 0.17, 0, 0, Math.PI * 2); ctx.fill(); // the 갓: its brim, its tall crown
+      ctx.beginPath(); ctx.moveTo(-u * 0.3, -u * 1.22); ctx.lineTo(-u * 0.24, -u * 1.88); ctx.lineTo(u * 0.34, -u * 1.88); ctx.lineTo(u * 0.4, -u * 1.22); ctx.closePath(); ctx.fill();
+      line(mPaper(0.35), Math.max(1, u * 0.05), -u * 1.1, -u * 1.14, u * 1.2, -u * 1.14);
+      ctx.fillStyle = A; for (const s of [-1, 1]) for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.arc(u * (0.05 + s * (0.7 - i * 0.1)), -u * (1.0 - i * 0.28), u * 0.075, 0, Math.PI * 2); ctx.fill(); } // its strings of beads
+      mArm(u, 0.42, -0.34, o.arm, 1.6, 1.2); mLimb(u, 0.42, -0.34, 0.95, 0.3);
+      const pts = []; for (let i = 0; i <= 7; i++) { const k = i / 7, sw = Math.sin(t * 2.4) * 0.22 * k; pts.push([0.95 + 0.95 * k + sw, 0.3 + 1.05 * k - 0.42 * k * k]); } // the chain, link through link
+      ctx.lineWidth = Math.max(1.2, u * 0.1);
+      for (let i = 1; i < pts.length; i++) { const [x0, y0] = pts[i - 1], [x1, y1] = pts[i], a = Math.atan2(y1 - y0, x1 - x0); ctx.strokeStyle = i === 3 || i === 5 ? A : MINK; ctx.beginPath(); ctx.ellipse(u * (x0 + x1) / 2, u * (y0 + y1) / 2, u * 0.13, u * (i % 2 ? 0.08 : 0.05), a, 0, Math.PI * 2); ctx.stroke(); }
+      const [hx, hy] = pts[pts.length - 1]; ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.5, u * 0.13); ctx.beginPath(); ctx.moveTo(u * hx, u * hy); ctx.lineTo(u * hx, u * (hy + 0.3)); ctx.arc(u * (hx - 0.14), u * (hy + 0.3), u * 0.14, 0, Math.PI * 0.9); ctx.stroke(); // its hook
+      mRestore();
+    },
+    swarm(u, t, o, A) { // 철선 자객: an assassin of the butterfly valley, slim and low, her hair in a long tail, an iron fan open behind her like a wing, the other shut and pointed like a dagger
+      const fan = (x, y, a0, a1, R) => { // an iron fan open: an ink leaf on its ribs, its rim of the master's colour, the ribs' points just past it
+        ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, R, a0, a1); ctx.closePath(); ctx.fill();
+        for (let i = 1; i < 5; i++) { const a = a0 + ((a1 - a0) * i) / 5; line(mPaper(0.4), Math.max(1, u * 0.05), x + Math.cos(a) * R * 0.18, y + Math.sin(a) * R * 0.18, x + Math.cos(a) * R * 0.92, y + Math.sin(a) * R * 0.92); }
+        ctx.strokeStyle = A; ctx.lineWidth = Math.max(1, u * 0.09); ctx.beginPath(); ctx.arc(x, y, R * 0.96, a0, a1); ctx.stroke();
+        ctx.fillStyle = A; for (let i = 0; i <= 5; i++) { const a = a0 + ((a1 - a0) * i) / 5; ctx.beginPath(); ctx.moveTo(x + Math.cos(a - 0.05) * R, y + Math.sin(a - 0.05) * R); ctx.lineTo(x + Math.cos(a) * R * 1.13, y + Math.sin(a) * R * 1.13); ctx.lineTo(x + Math.cos(a + 0.05) * R, y + Math.sin(a + 0.05) * R); ctx.closePath(); ctx.fill(); }
+      };
+      mLimb(u, -0.4, -0.3, -0.95, 0.5); fan(-u * 0.95, u * 0.5, Math.PI * 0.62, Math.PI * 1.12, u * 1.05); // the far fan, open low behind her, a wing
+      mBody(u, 0.46, "low");
+      ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.5, u * 0.17); ctx.beginPath(); ctx.moveTo(-u * 0.05, -u * 1.3); ctx.quadraticCurveTo(-u * 0.75, -u * 1.1, -u * 0.95, -u * 0.25 + Math.sin(t * 5) * u * 0.1); ctx.stroke(); // her hair in a long tail
+      mHead(u, 0.06, -0.93, 0.38);
+      mArm(u, 0.42, -0.34, o.arm, 1.7, 1.2); mLimb(u, 0.42, -0.34, 0.98, 0.25);
+      mSave(); ctx.translate(u * 0.98, u * 0.25); ctx.rotate(-0.42); // the near fan, shut, its ribs together into a point
+      mPoly(u, [[-0.1, -0.12], [1.35, -0.1], [1.62, 0], [1.35, 0.1], [-0.1, 0.12]]); line(A, Math.max(1, u * 0.08), u * 0.12, -u * 0.1, u * 1.38, -u * 0.08);
+      mPoly(u, [[1.35, -0.07], [1.85, 0], [1.35, 0.07]], A); mRestore();
+      mRestore();
+    },
+    wheel(u, t, o, A) { // 화창병: a fire-spear soldier of the burning plain, lunging low, a felt 전립 with an ink tassel and one bead of the master's colour, a long spear held level at the hip, fire streaming back from its head
+      mLimb(u, -0.45, -0.3, -0.75, 0.42);
+      mBody(u, 0.62, "low");
+      mHead(u, 0.1, -0.92, 0.4);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.ellipse(u * 0.1, -u * 1.14, u * 0.98, u * 0.12, -0.04, 0, Math.PI * 2); ctx.fill(); // the 전립: a wide flat brim, a low round crown
+      ctx.beginPath(); ctx.ellipse(u * 0.1, -u * 1.2, u * 0.36, u * 0.3, 0, Math.PI, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.2, u * 0.11); // its tassel, hanging back off the crown
+      for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.moveTo(u * 0.1, -u * 1.48); ctx.quadraticCurveTo(-u * (0.15 + i * 0.05), -u * 1.6, -u * (0.34 + i * 0.07), -u * (1.25 - i * 0.05) + Math.sin(t * 5 + i) * u * 0.05); ctx.stroke(); }
+      mHead(u, 0.1, -1.5, 0.11, A);
+      mArm(u, 0.42, -0.34, o.arm, 1.25, 1.1); mLimb(u, 0.42, -0.34, 0.82, 0.5);
+      const da = -0.12, c = Math.cos(da), s = Math.sin(da), hx = 0.82, hy = 0.5, tx = hx + c * 2.1, ty = hy + s * 2.1; // the shaft, level at the hip
+      line(MINK, Math.max(1.5, u * 0.15), u * (hx - c * 0.9), u * (hy - s * 0.9), u * tx, u * ty);
+      ctx.fillStyle = A; for (let i = 0; i < 3; i++) mFlame(u, tx - c * 0.05, ty - s * 0.05 + (i - 1) * 0.11, Math.PI + da + (i - 1) * 0.16, 0.75 + 0.3 * (1 - Math.abs(i - 1)) + 0.15 * Math.sin(t * 10 + i * 2.1), 0.1, (i - 1) * 0.08); // its fire, streaming back along it
+      mBlade(u, tx, ty, tx + c * 0.8, ty + s * 0.8, 0.14, false); // the point, ink, its edge in the light
+      line(MINK, Math.max(1.5, u * 0.13), u * (tx - s * 0.2), u * (ty + c * 0.2), u * (tx + s * 0.2), u * (ty - c * 0.2));
+      mRestore();
+    },
+    pendulum(u, t, o, A) { // 철추 역사: a strongman of the iron hills, a giant bare to the waist, broad as a door at the shoulder, the chain wound twice round his forearm, a great spiked ball of iron hanging by his feet
+      mLimb(u, -0.85, -0.3, -1.15, 0.6, 0.44);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(-u * 1.12, -u * 0.5); ctx.lineTo(u * 1.12, -u * 0.5); ctx.lineTo(u * 0.62, u * 0.9); ctx.lineTo(-u * 0.62, u * 0.9); ctx.closePath(); ctx.fill(); // his chest, wide at the shoulder
+      mBody(u, 0.7, "low");
+      line(A, Math.max(2, u * 0.24), -u * 0.6, u * 0.84, u * 0.62, u * 0.86); // his sash
+      mHead(u, 0.18, -0.9, 0.42);
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(-u * 0.08, -u * 0.74); ctx.lineTo(u * 0.25, -u * 0.32); ctx.lineTo(u * 0.58, -u * 0.76); ctx.closePath(); ctx.fill(); // a beard on his jaw
+      mArm(u, 0.75, -0.36, o.arm, 2.3, 1.3); mLimb(u, 0.75, -0.36, 1.2, 0.36, 0.44);
+      ctx.strokeStyle = A; ctx.lineWidth = Math.max(1.2, u * 0.1); for (const k of [0.4, 0.72]) { ctx.beginPath(); ctx.ellipse(u * (0.75 + 0.45 * k), u * (-0.36 + 0.72 * k), u * 0.17, u * 0.26, -0.55, 0, Math.PI * 2); ctx.stroke(); } // the chain wound round his forearm
+      const bx = 1.42, by = 1.62; // and from the fist down to the ball
+      ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.2, u * 0.09); for (let i = 1; i <= 4; i++) { const k = i / 5; ctx.beginPath(); ctx.ellipse(u * (1.2 + (bx - 1.2) * k), u * (0.38 + (by - 0.38) * k), u * 0.08, u * 0.13, 0.15, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.fillStyle = MINK; for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2 + 0.2; ctx.beginPath(); ctx.moveTo(u * (bx + Math.cos(a - 0.28) * 0.5), u * (by + Math.sin(a - 0.28) * 0.5)); ctx.lineTo(u * (bx + Math.cos(a) * 0.86), u * (by + Math.sin(a) * 0.86)); ctx.lineTo(u * (bx + Math.cos(a + 0.28) * 0.5), u * (by + Math.sin(a + 0.28) * 0.5)); ctx.closePath(); ctx.fill(); }
+      ctx.fillStyle = A; ctx.beginPath(); ctx.arc(u * bx, u * by, u * 0.55, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.2, u * 0.08); ctx.stroke(); // the ball, iron of the master's grey
+      ctx.fillStyle = mPaper(0.55); ctx.beginPath(); ctx.arc(u * (bx - 0.18), u * (by - 0.18), u * 0.12, 0, Math.PI * 2); ctx.fill();
+      mRestore();
+    },
+    crumble(u, t, o, A) { // 장승탈 무사: a warrior in the mask of a village 장승, the tall post's face carved in dark wood, its lines picked out in gold, the post's 사모 with its wings; a great six-sided club, studded
+      mLimb(u, -0.55, -0.3, -0.9, 0.55, 0.34);
+      mBody(u, 0.78, "legs");
+      const mx = 0.08, top = -1.78, bot = -0.42, hw = 0.42; // the mask: taller than a head, dark wood
+      ctx.fillStyle = MINK; ctx.beginPath(); ctx.moveTo(u * (mx - hw), u * bot); ctx.lineTo(u * (mx - hw), u * (top + 0.2)); ctx.quadraticCurveTo(u * mx, u * (top - 0.1), u * (mx + hw), u * (top + 0.2)); ctx.lineTo(u * (mx + hw), u * bot); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = mPaper(0.3); ctx.lineWidth = Math.max(1, u * 0.06); ctx.stroke(); // (its edge, so the mask reads apart from him)
+      ctx.beginPath(); ctx.ellipse(u * mx, u * (top - 0.05), u * hw * 0.86, u * 0.48, 0, Math.PI, Math.PI * 2); ctx.fill(); ctx.fillRect(u * (mx - hw * 1.02), u * (top - 0.08), u * hw * 2.04, u * 0.2); // the 사모: its round crown
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(u * (mx + s * hw * 1.55), u * (top - 0.14), u * 0.36, u * 0.08, s * -0.08, 0, Math.PI * 2); ctx.fill(); } // and its two wings, out flat
+      ctx.strokeStyle = A; ctx.lineWidth = Math.max(1, u * 0.08); // its face, carved: heavy brows, ring eyes, a fanged grin
+      for (const s of [-1, 1]) { ctx.beginPath(); ctx.moveTo(u * (mx + s * hw * 0.12), u * (top + 0.4)); ctx.lineTo(u * (mx + s * hw * 0.82), u * (top + 0.28)); ctx.stroke(); ctx.beginPath(); ctx.arc(u * (mx + s * hw * 0.45), u * (top + 0.63), u * 0.13, 0, Math.PI * 2); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(u * mx, u * (top + 0.7)); ctx.lineTo(u * (mx - 0.1), u * (top + 1.0)); ctx.lineTo(u * (mx + 0.1), u * (top + 1.0)); ctx.stroke(); // its nose
+      ctx.beginPath(); ctx.moveTo(u * (mx - hw * 0.68), u * (bot - 0.28)); for (let i = 1; i <= 6; i++) ctx.lineTo(u * (mx - hw * 0.68 + i * hw * 0.227), u * (bot - 0.28 + (i % 2 ? 0.12 : 0) + (i === 1 || i === 5 ? 0.09 : 0))); ctx.stroke(); // its grin, two fangs down
+      mArm(u, 0.5, -0.32, o.arm, 1.25, 1.3); mLimb(u, 0.5, -0.32, 1.0, 0.3, 0.34);
+      mSave(); ctx.translate(u * 1.0, u * 0.3); ctx.rotate(-0.55); // the 육모방망이: six-sided, swelling to its head, studded
+      mPoly(u, [[-0.25, -0.1], [0.4, -0.13], [1.85, -0.3], [2.05, -0.17], [2.05, 0.17], [1.85, 0.3], [0.4, 0.13], [-0.25, 0.1]]);
+      line(mPaper(0.25), Math.max(1, u * 0.06), u * 0.5, 0, u * 1.95, 0); // (an edge of its six)
+      ctx.fillStyle = mPaper(0.85); for (const [x, y] of [[1.1, -0.15], [1.45, 0.12], [1.75, -0.2], [1.8, 0.2], [1.35, -0.02]]) { ctx.beginPath(); ctx.arc(u * x, u * y, Math.max(0.8, u * 0.07), 0, Math.PI * 2); ctx.fill(); }
+      mRestore();
+      mRestore();
+    },
+    glare(u, t, o, A) { // 맹검사: a blind swordsman of the temple of the eye, a white band over his eyes, hair loose and long; his sword at his hip till he draws, a gold bell swinging from its guard
+      ctx.strokeStyle = MINK; ctx.lineWidth = Math.max(1.5, u * 0.14); // his hair, falling loose down his back
+      for (let i = 0; i < 4; i++) { ctx.beginPath(); ctx.moveTo(-u * 0.12, -u * 1.28); ctx.quadraticCurveTo(-u * (0.7 + i * 0.1), -u * 0.95, -u * (0.72 + i * 0.13), u * (0.1 + i * 0.14) + Math.sin(t * 2.5 + i) * u * 0.06); ctx.stroke(); }
+      mLimb(u, -0.42, -0.3, -0.75, 0.5);
+      mBody(u, 0.56, "robe");
+      mHead(u, 0.05, -0.95, 0.4);
+      line(mPaper(0.9), Math.max(1.2, u * 0.14), -u * 0.35, -u * 0.99, u * 0.45, -u * 0.97); // the band over his eyes, its ends behind
+      ctx.strokeStyle = mPaper(0.9); ctx.lineWidth = Math.max(1, u * 0.09); ctx.beginPath(); ctx.moveTo(-u * 0.33, -u * 0.99); ctx.quadraticCurveTo(-u * 0.72, -u * 0.9, -u * 0.82, -u * 0.62 + Math.sin(t * 4) * u * 0.06); ctx.stroke();
+      const bell = (x, y) => { const sw = Math.sin(t * 5) * 0.45, bx = x + Math.sin(sw) * u * 0.45, by = y + Math.cos(sw) * u * 0.45; line(MINK, Math.max(1, u * 0.06), x, y, bx, by); ctx.fillStyle = A; ctx.beginPath(); ctx.arc(bx, by + u * 0.12, u * 0.3, Math.PI, Math.PI * 2); ctx.lineTo(bx + u * 0.34, by + u * 0.2); ctx.lineTo(bx - u * 0.34, by + u * 0.2); ctx.closePath(); ctx.fill(); mHead(u, bx / u, by / u + 0.3, 0.08); };
+      if (o.arm < 0.25 && !o.thrown) { // 발도: the sword sheathed at his hip, his hand on its hilt
+        mSave(); ctx.translate(u * 0.2, u * 0.72); ctx.rotate(0.22);
+        mPoly(u, [[-1.55, -0.1], [0.1, -0.12], [0.1, 0.12], [-1.55, 0.08]]); line(mPaper(0.4), Math.max(1, u * 0.06), -u * 1.45, -u * 0.04, u * 0.02, -u * 0.05); // the scabbard
+        line(MINK, Math.max(1.5, u * 0.15), u * 0.14, -u * 0.24, u * 0.14, u * 0.24); line(MINK, Math.max(1.5, u * 0.15), u * 0.14, 0, u * 0.68, -u * 0.06); // its guard, its hilt
+        mRestore();
+        mLimb(u, 0.42, -0.34, 0.78, 0.55); bell(u * 0.42, u * 0.72);
+      } else {
+        mArm(u, 0.42, -0.34, o.arm, 1.75, 1.3); mLimb(u, 0.42, -0.34, 0.95, 0.3); mBlade(u, 0.95, 0.3, 2.65, -0.5, 0.11); bell(u * 1.0, u * 0.36); mRestore();
+      }
+    },
+  };
   function drawKillLine() { // the last stroke: the world black for a blink, then one white line from where you were to where you are
     const c = G.killLine, age = (performance.now() - c.at) / 1000;
     if (!reduced && age < 0.09) { ctx.fillStyle = "rgba(20,16,12,0.85)"; ctx.fillRect(0, 0, W, H); }
@@ -5801,7 +6396,8 @@ sdk.initializeAsync()
     } else if (w.kind === "clone") { // a shadow at the edge, its line through you
       const reach = S * 4 * Math.min(1, k * 2);
       glowLine(w.x, w.y, w.x + Math.cos(w.ang) * reach, w.y + Math.sin(w.ang) * reach, S * 0.005, 0.3 + pulse * 0.4);
-      if (!w.noShadow) ninja(w.x, w.y, w.ang, S * 0.026, 0.25 + k * 0.65, time); // (a monster rushing is already standing there)
+      if (w.minion && !minionsOff) minionSafe(() => minionClone(w, k, time)); // (11-11: 1장's and 7장's are the master's men, lifting their blades before they run)
+      else if (!w.noShadow) ninja(w.x, w.y, w.ang, S * 0.026, 0.25 + k * 0.65, time); // (a monster rushing is already standing there)
     } else if (w.kind === "spiral") { // a vortex winding up, the arms its stars will fly along already traced
       ctx.translate(w.x, w.y);
       ctx.strokeStyle = `rgba(200,50,31,${0.12 + k * 0.3})`; ctx.lineWidth = 1.5; ctx.setLineDash([S * 0.012, S * 0.014]); ctx.lineDashOffset = -time * 30;
@@ -5976,6 +6572,19 @@ sdk.initializeAsync()
       ctx.fillStyle = "rgba(170,215,240,0.9)"; ctx.beginPath(); ctx.arc(0, 0, r * 0.22, 0, Math.PI * 2); ctx.fill();
       return true;
     }
+    if (s.skin === "wing") { // (11-11: 터지는 칼 is out of the stages, so 호접's 독 날개, which burst as the same plain kunai, is
+      // drawn as her own: a violet moth wing edged in ink with pale eyes and a dark body, never taken for the one that went)
+      const rw = r * 1.25;
+      ctx.fillStyle = "#7b4a9e"; ctx.strokeStyle = "#2b1838"; ctx.lineWidth = 1.2;
+      for (const sx of [-1, 1]) {
+        ctx.beginPath(); ctx.ellipse(sx * rw * 0.5, -rw * 0.25, rw * 0.6, rw * 0.42, sx * 0.55, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.ellipse(sx * rw * 0.38, rw * 0.42, rw * 0.36, rw * 0.26, -sx * 0.5, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      ctx.fillStyle = "rgba(236,220,248,0.85)";
+      for (const sx of [-1, 1]) { ctx.beginPath(); ctx.arc(sx * rw * 0.55, -rw * 0.3, rw * 0.13, 0, Math.PI * 2); ctx.fill(); }
+      ctx.fillStyle = "#2b1838"; ctx.fillRect(-rw * 0.08, -rw * 0.55, rw * 0.16, rw * 1.1);
+      return true;
+    }
     if (s.skin === "fire") {
       face();
       const g = ctx.createLinearGradient(0, 0, -r * 3, 0);
@@ -6075,7 +6684,7 @@ sdk.initializeAsync()
     // the ink stroke it leaves behind
     const from = Math.max(0, head - h.tail * 3);
     if (head > from) {
-      const g = ctx.createLinearGradient(from, 0, head, 0), ink = h.look ? "70,40,110" : "29,26,23";
+      const g = ctx.createLinearGradient(from, 0, head, 0), ink = h.ink || (h.look ? "70,40,110" : "29,26,23"); // (a stage master's man leaves ink, not purple)
       g.addColorStop(0, `rgba(${ink},0)`); g.addColorStop(1, `rgba(${ink},${0.8 * fadeOut})`);
       ctx.fillStyle = g;
       ctx.beginPath(); ctx.moveTo(from, 0); ctx.lineTo(head, -h.w * 0.7); ctx.lineTo(head, h.w * 0.7); ctx.closePath(); ctx.fill();
@@ -6085,8 +6694,8 @@ sdk.initializeAsync()
     ctx.restore();
     if (done) return;
     const [hx, hy] = h.headPos();
-    if (h.look) { // a creature rushing: its afterimages, then itself
-      for (let i = 3; i >= 1; i--) { ctx.save(); ctx.globalAlpha = 0.28 - i * 0.07; h.look(hx - h.ux * S * 0.06 * i, hy - h.uy * S * 0.06 * i, h.ang, time); ctx.restore(); }
+    if (h.look) { // a creature rushing: its afterimages, then itself (a stage master's man only itself: its ink streak is its trail)
+      if (!h.ink) for (let i = 3; i >= 1; i--) { ctx.save(); ctx.globalAlpha = 0.28 - i * 0.07; h.look(hx - h.ux * S * 0.06 * i, hy - h.uy * S * 0.06 * i, h.ang, time); ctx.restore(); }
       h.look(hx, hy, h.ang, time);
       return;
     }
