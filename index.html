@@ -5657,7 +5657,7 @@ sdk.initializeAsync()
         const bw3 = S * (ez ? 0.2 : 0.24), D3 = 1.0, at3 = 0.1, g0 = rnd(-0.35, 0.35), cut = {};
         const heart3 = () => {
           if (cut.set) return;
-          cut.set = true; cut.x = P.x; cut.y = P.y; cut.ang = finAng(P.x, P.y, bw3, [g0, g0 + 0.6, g0 - 0.6, Math.PI / 2 + g0]);
+          cut.set = true; [cut.ang, cut.x, cut.y] = finFit(P.x, P.y, bw3, [g0, g0 + 0.6, g0 - 0.6, Math.PI / 2 + g0]); // (by a wall: two ways out, its line moved off you if need be)
           const bb = G.boss; if (bb) bb.castT = bb.castDur = D3;
           G.dark = Math.max(G.dark, 0.85); sfx.gather();
           if (!reduced && bb) for (const [x, y] of bossBodies(bb)) fxPillar(x, y + bossUnit(bb.def) * 2.2, bossUnit(bb.def) * 1.4, H, tint, D3);
@@ -5767,9 +5767,14 @@ sdk.initializeAsync()
     // beside you opens, its petals go out together and come home together, and it closes on them in a burst of light.
     // (11-17 제작자: "연꽃 수를 줄여 쉽게" — the second boss's last ran harder than most later ones', three lotuses' petals out
     // and home across each other at once: two lotuses now, not three, and the great one a little after the second)
-    lotus: { name: ["千瓣蓮華", "천판연화"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 雙蓮: lotuses two at a time, one each side of you, their petals crossing where you
+    // stand; each pair laid as the last pair's petals come home (never more than two lotuses' petals out at once, two
+    // petals fewer each: no more of them in the air than in act one); 쉬움 one pair. Act three, the execution: the great
+    // lotus opens under you, lit a full second, and closes on what is in it: out of it, any way
+    lotus: { name: ["千瓣蓮華", "천판연화"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
       const L = lvl(), q = clamp((L - 9) / 13, 0, 1), tint = fightTint(b.def), u = bossUnit(b.def);
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       const sp = S * (0.7 + 0.12 * q), retK = 1.3, gap = 0.48 - 0.05 * q, dur = 0.85, n = 9 + Math.round(2 * q), NB = 2; // (NB: lotuses before the great one)
       const x0 = S * 0.08, x1 = W - S * 0.08, y0 = H * 0.16, y1 = H - S * 0.08;
       // where a lotus may open: `d` from you along `th` (or the other ways round), on the field, never beside you nor on its master
@@ -5796,6 +5801,66 @@ sdk.initializeAsync()
           s.range = 2 * Math.hypot(s.vx, s.vy) * T * 0.995;
         }
       };
+      if (act === 2) { // 雙蓮: a pair at a time; the second of a pair opposite the first, or failing that well away from it
+        const np = ez ? 1 : 3, pg = hi ? 0.95 : 1.0, n2 = n - 2, a0 = rnd(0, Math.PI * 2), tn = Math.random() < 0.5 ? 1 : -1;
+        const prs = Array.from({ length: np }, (_, k) => ({ th: a0 + tn * k * (Math.PI * 0.4 + rnd(-0.2, 0.2)), d: S * rnd(0.3, 0.38) }));
+        prs.forEach((pr, k) => [0, Math.PI].forEach((s) => G.warns.push({ kind: "ring", x: 0, y: 0, n: n2, off: 0, t: 0, dur, delay: k * pg,
+          place(w) {
+            let p = spot(pr.th + s, pr.d);
+            if (s && pr.at) for (const e of [Math.PI / 2, -Math.PI / 2, Math.PI / 4, -Math.PI / 4]) { if (Math.hypot(p[0] - pr.at[0], p[1] - pr.at[1]) >= S * 0.3) break; p = spot(pr.th + s + e, pr.d); }
+            if (!s) { pr.at = p; sfx.warn(); }
+            [w.x, w.y] = p; w.d = Math.hypot(P.x - w.x, P.y - w.y); w.off = Math.atan2(P.y - w.y, P.x - w.x); // (one petal straight at you)
+          },
+          fire(w) {
+            throwPetals(w.x, w.y, n2, w.off, clamp(w.d / sp + 0.18, 0.5, 0.9), [sp]); bloomFx(w.x, w.y, false);
+            const bb = G.boss; if (bb && !s) { bb.castT = bb.castDur = 0.35; bb.swing = { t: 0, ang: Math.atan2(w.y - bb.y, w.x - bb.x) }; }
+          } })));
+        return (np - 1) * pg + dur + clamp(S * 0.38 / sp + 0.18, 0.5, 0.9) * (ez ? 1 : 1 + 1 / retK) + (ez ? 0.15 : 0.25); // (쉬움: it ends as its petals turn home, and they break with its rage)
+      }
+      if (act === 3) { // the great lotus under you: lit a full second, it closes (by a wall it hangs off the edge, never shuts you in)
+        const R3 = S * (ez ? 0.22 : 0.26), D3 = 1.0, at3 = 0.1, sd = rnd(0, 6);
+        G.warns.push({ kind: "spike", x: 0, y: 0, r: R3, seed: sd, t: 0, dur: D3, delay: at3,
+          place(w) {
+            w.x = clamp(P.x, R3 * 0.2, W - R3 * 0.2); w.y = clamp(P.y, H * 0.16, H - R3 * 0.2);
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.85);
+            if (reduced || !fxOn()) return;
+            if (bb) fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H, tint, D3);
+            G.parts.push({ kind: "lotusArt", x: w.x, y: w.y, vx: 0, vy: 0, keep: true, life: D3 + 0.25, t: 0, draw(p, a, time) { // (its flower, opening over the red)
+              const k = clamp(p.t / (D3 * 0.7), 0, 1), shut = clamp((p.t - D3) / 0.2, 0, 1), open = (1 - (1 - k) ** 3) * (1 - 0.8 * shut);
+              ctx.translate(p.x, p.y); ctx.rotate(time * 0.25); ctx.globalAlpha = 0.5 * (1 - 0.5 * shut);
+              for (let ly = 0; ly < 2; ly++) for (let i = 0; i < 8; i++) {
+                const rr = R3 * (ly ? 0.55 : 0.92) * open; if (rr < 1) continue;
+                ctx.save(); ctx.rotate(((i + ly * 0.5) / 8) * Math.PI * 2);
+                ctx.beginPath(); ctx.ellipse(rr * 0.55, 0, rr * 0.48, rr * 0.2, 0, 0, Math.PI * 2);
+                ctx.fillStyle = ly ? "rgba(247,240,222,0.85)" : "rgba(61,106,138,0.45)"; ctx.fill();
+                ctx.strokeStyle = "rgba(29,26,23,0.35)"; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
+              }
+            } });
+          },
+          fire(w) {
+            const x = w.x, y = w.y, bb = G.boss;
+            G.hazards.push({ kind: "lotusShut", x, y, r: R3, t: 0, dur: 0.45, best: Infinity, near: false,
+              dist() { return this.t < 0.28 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - this.r) : Infinity; },
+              draw(h) { // its petals folding in over it, white water, gone
+                const e = clamp(h.t / 0.45, 0, 1), rr = h.r * (1 - 0.55 * e);
+                ctx.save(); ctx.translate(h.x, h.y); ctx.globalAlpha = 1 - e;
+                ctx.fillStyle = "rgba(214,232,244,0.55)"; ctx.beginPath(); ctx.arc(0, 0, h.r * (1 - 0.3 * e), 0, Math.PI * 2); ctx.fill();
+                for (let i = 0; i < 8; i++) { ctx.save(); ctx.rotate((i / 8) * Math.PI * 2 + e); ctx.beginPath(); ctx.ellipse(rr * 0.5, 0, rr * 0.5, rr * 0.18, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(247,240,222,0.9)"; ctx.fill(); ctx.strokeStyle = "rgba(61,106,138,0.7)"; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore(); }
+                ctx.restore();
+              } });
+            if (bb) { bb.castT = bb.castDur = 0.7; bb.raise = null; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+            sfx.issen(); sfx.burst(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("220,238,248", 0.6);
+            impact(x, y, 1.6, tint);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            fxWave(x, y, S * 1.2, tint, 0.8, S * 0.05); fxWave(x, y, S * 0.6, "#dff0fa", 0.55, S * 0.025);
+            fxPillar(x, y + S * 0.04, S * 0.1, H, tint, 0.85);
+            fxStreaks(x, y, 22, tint, S * 1.4, S * 0.08, 0.5); fxStreaks(x, y, 12, "#fffdf4", S * 1.1, S * 0.06, 0.45);
+            for (let i = 0; i < 26; i++) fxMote("petal", x + frnd(-R3, R3), y + frnd(-R3, R3), moteOf(b.def), true);
+          } });
+        return at3 + D3 + (ez ? 0.45 : 0.6);
+      }
       const th0 = rnd(0, Math.PI * 2), turn = Math.random() < 0.5 ? 1 : -1, blooms = [];
       for (let k = 0; k < NB; k++) blooms.push({ th: th0 + turn * k * (Math.PI * 2 / 3 + rnd(-0.35, 0.35)), d: S * rnd(0.3, 0.4) });
       blooms.forEach((bl, k) => G.warns.push({ kind: "ring", x: 0, y: 0, n, off: 0, t: 0, dur, delay: k * gap,
@@ -5856,20 +5921,25 @@ sdk.initializeAsync()
     // out), and the whole of it goes up in one column of light.
     // (11-19 법당 무너짐, 제작자 11-18 "잔불과 법당이 무너짐 둘다": what came down in its 종전 stays down — its hall is kept — and
     // the house burns in what is left of it: between the fallen columns its stripes roll three cells long, its cross is three wide)
-    fire: { name: ["三界火宅", "삼계화택"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 業火燎原: the stripes again, more beats and quicker, two cells in three at every level,
+    // rolling back and forth (each beat the other way); no cross. 쉬움 two beats. Act three, the execution: one great blaze
+    // through where you stand, lit a full second, across what is left of the hall (out up or down) or, with no room above
+    // or below you, down it (out to either side)
+    fire: { name: ["三界火宅", "삼계화택"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
       for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); } // (alone on the field: what its 종전 left in the air breaks as the name goes up)
       const hall = G.fight && G.fight.hall && G.fight.hall.b === b ? G.fight.hall : null;
       G.warns = []; G.hazards = G.hazards.filter((h) => !!hall && (h === hall || h.hall === hall)); for (const c of G.cuts) c.checked = true;
       const L = lvl(), q = clamp((L - 9) / 13, 0, 1), u = bossUnit(b.def), tint = fightTint(b.def);
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       const cols = 5, rows = 8, cw = W / cols, ch = H / rows;
       let c0 = 0, c1 = cols - 1; // (the columns still standing)
       if (hall) { while (c0 < c1 && hall.down(c0)) c0++; while (c1 > c0 && hall.down(c1)) c1--; }
-      const mod = q >= 0.85 ? 3 : 4, sx = Math.random() < 0.5 ? 1 : -1; // (stripes two cells in three or two in four; rolling down-right or down-left)
-      const durs = [0.86, 0.8, 0.75].map((d) => Math.max(0.75, d - 0.03 * q)), durX = 0.95;
-      let s = Math.floor(rnd(0, mod)); // (the stripes' first place: the only die it casts)
+      const mod = act === 2 && !ez ? 3 : q >= 0.85 ? 3 : 4, sx = Math.random() < 0.5 ? 1 : -1; // (stripes two cells in three or two in four; rolling down-right or down-left)
+      const durs = (act === 2 ? (ez ? [0.8, 0.78] : hi ? [0.8, 0.78, 0.76, 0.75, 0.75] : [0.8, 0.78, 0.76, 0.75]) : [0.86, 0.8, 0.75]).map((d) => Math.max(0.75, d - 0.03 * q)), durX = 0.95;
+      let s = Math.floor(rnd(0, mod)), dir = sx; // (the stripes' first place: the only die it casts; dir: the way they roll, act two's turning each beat)
       const cellOf = () => [clamp(Math.floor(P.x / cw), c0, c1), clamp(Math.floor(P.y / ch), 0, rows - 1)];
-      const burns = (c, r, sh) => (((sx * c + r - sh) % mod) + mod) % mod < 2;
+      const burns = (c, r, sh) => (((dir * c + r - sh) % mod) + mod) % mod < 2;
       const nearBoss = (c, r) => { // a cell its body stands in or reaches over is no way out
         const bb = G.boss || b, bx = bb.x, by = bb.y + u * 0.8;
         return Math.hypot(Math.max(c * cw - bx, 0, bx - (c + 1) * cw), Math.max(r * ch - by, 0, by - (r + 1) * ch)) < u * 2;
@@ -5894,9 +5964,41 @@ sdk.initializeAsync()
       });
       const cell = (c, r, dur, fire) => G.warns.push({ kind: "cell", x0: c * cw, y0: r * ch, x1: (c + 1) * cw, y1: (r + 1) * ch, t: 0, dur, delay: 0, fire });
       const staff = () => { const bb = G.boss; if (!bb) return; bb.castT = bb.castDur = 0.5; bb.swing = { t: 0, ang: Math.PI / 2 }; if (!reduced) fxWave(bb.x, bb.y + u * 2.2, S * 0.5, tint, 0.45, S * 0.02); }; // (his ring staff struck down on each beat)
+      if (act === 3) { // 業火: the great blaze through you, as wide as a 0.26 S band, across the hall or down it
+        const hb = S * (ez ? 0.22 : 0.26), D3 = 1.0, xa = c0 * cw, xb = (c1 + 1) * cw;
+        later(0.1, () => {
+          const x = P.x, y = P.y, up = y - hb / 2 - barTop(), dn = H - (y + hb / 2), lf = x - hb / 2 - xa, rt = xb - (x + hb / 2);
+          const across = Math.min(up, dn) >= HIT() + S * 0.1 || Math.min(up, dn) >= Math.min(lf, rt); // (room past its edge on both sides)
+          const bx = across ? [xa, y - hb / 2, xb, y + hb / 2] : [x - hb / 2, 0, x + hb / 2, H];
+          // (11-20 제작자 "탈출 방향 2개 이상": with a wall along its side, its far end comes short on the open side, off that end
+          // a way out too — in a corner, out along each wall)
+          const E = hb / 2 + S * 0.1, near = HIT() + S * 0.05;
+          if (across && Math.min(up, dn) < near) { if (lf < rt) bx[2] = Math.min(bx[2], x + E); else bx[0] = Math.max(bx[0], x - E); }
+          if (!across && Math.min(lf, rt) < near) { if (up < dn) bx[3] = Math.min(bx[3], y + E); else bx[1] = Math.max(bx[1], y - E); }
+          G.warns.push({ kind: "cell", big: true, x0: bx[0], y0: bx[1], x1: bx[2], y1: bx[3], cx: x, cy: y, t: 0, dur: D3, delay: 0,
+            fire(w) {
+              burnCell(w);
+              const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.7; bb.raise = null; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+              sfx.issen(); sfx.thud(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("255,214,150", 0.6);
+              impact(x, y, 1.6, tint);
+              if (reduced) return;
+              G.stopT = Math.max(G.stopT, 0.12);
+              const ang = across ? 0 : Math.PI / 2;
+              fxFlare(x, y, S * 0.22, "#ffb04a", 0.7); fxFlare(x, y, S * 0.11, "#fffdf4", 0.45);
+              for (let i = 0; i < 5; i++) { const f = (i + 0.5) / 5, px = across ? w.x0 + f * (w.x1 - w.x0) : x, py = across ? y : w.y0 + f * (w.y1 - w.y0); fxPillar(px, py + hb * 0.5, hb * 0.45, H * 0.6, "#e8862a", 0.8); }
+              fxWave(x, y, S * 1.1, tint, 0.75, S * 0.045); fxWave(x, y, S * 0.55, "#ffd27a", 0.5, S * 0.022);
+              for (const e of [0, Math.PI]) { fxStreaks(x, y, 10, "#ffb04a", S * 1.4, S * 0.09, 0.5, 0.3, ang + e); fxStreaks(x, y, 5, "#fffdf4", S * 1.1, S * 0.06, 0.45, 0.2, ang + e); }
+              for (let i = 0; i < 28; i++) fxMote("ember", frnd(w.x0, w.x1), frnd(Math.max(0, w.y0), Math.min(H, w.y1)), moteOf(b.def), true);
+            } });
+          staff(); sfx.taiko(); sfx.gather(); sfx.warn(); G.dark = Math.max(G.dark, 0.85);
+          const bb = G.boss; if (bb) bb.raise = { t: 0, dur: D3 * 0.82 };
+        });
+        return 0.1 + D3 + (ez ? 0.45 : 0.6);
+      }
       let t = 0;
-      durs.forEach((d) => {
+      durs.forEach((d, k) => {
         later(t, () => {
+          if (act === 2 && k) dir = -dir; // (act two: the other way each beat)
           const [pc, pr] = cellOf();
           // the fire rolls on, the least it can, till it burns where you stand and leaves two cells beside it cold, the
           // nearer of them no more than 0.24 S off (0.22 at most from anywhere in your cell: 0.28 S is what 0.75 s holds
@@ -5912,13 +6014,14 @@ sdk.initializeAsync()
           const ok = pick != null && best < S * 0.26;
           const f = ok ? (c, r) => burns(c, r, pick) : (c, r) => (c + r) % 2 === (pc + pr) % 2; // (else the checkerboard: four sides cold)
           if (ok) s = pick;
-          const lo = Math.min(0, sx * (cols - 1));
-          for (let c = c0; c <= c1; c++) for (let r = 0; r < rows; r++) if (f(c, r)) cell(c, r, d, (w) => { burnCell(w); flare(c, r, sx * c + r - lo); });
+          const lo = Math.min(0, dir * (cols - 1));
+          for (let c = c0; c <= c1; c++) for (let r = 0; r < rows; r++) if (f(c, r)) cell(c, r, d, (w) => { burnCell(w); flare(c, r, dir * c + r - lo); });
           sfx.taiko(); staff();
         });
         later(t + d, () => { sfx.thud(); G.shake = Math.max(G.shake, reduced ? 0 : 8); });
         t += d + 0.1; // (the next stripes light only once these are out: never a dash through a burning cell)
       });
+      if (act === 2) return t + (ez ? 0 : 0.1); // (act two: its stripes only)
       // the cross: your row and your column, all at once (from a corner cell, the X through it); out of it to a cell off it
       later(t, () => {
         const [pc, pr] = cellOf(), cx = (pc + 0.5) * cw, cy = (pr + 0.5) * ch, corner = (pc === c0 || pc === c1) && (pr === 0 || pr === rows - 1);
@@ -5950,9 +6053,14 @@ sdk.initializeAsync()
     // white with its six ways lit, one of them through you, and breaks down them into needles: dodge up or down, again and
     // again. Last, the great flower of frost spreads over the ground under you, its six arms along three ways through you,
     // and shatters in one white burst. Its dice all cast here; nothing ever comes from under you (your thumb).
-    frost: { name: ["六花葬送", "육화장송"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 六花陣: the great flower's frost again and again, smaller: a star of three ways through
+    // where you stand, each turned a half step from the last and laid before the last has broken (two lit at once); no
+    // needles. 쉬움 three, further apart. Act three, the execution, 葬: the snow of a hundred years over the ground under you,
+    // lit a full second, and it shatters as act one's great flower: out of it, any way (by a wall it hangs off the edge)
+    frost: { name: ["六花葬送", "육화장송"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
       const L = lvl(), q = clamp((L - 9) / 13, 0, 1), u = bossUnit(b.def), tint = fightTint(b.def), ICE = "#cfe8f6", BLUE = "#5f8fb4";
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       const n = 6, gap = 0.29 - 0.02 * q, born = 0.4, tele = 0.8, fuse = 1.2, R0 = S * 0.3; // (each flower: harmless while it glides in, its ways lit 0.8 s before it breaks; never more than three lit at once)
       const nsp = S * (0.72 + 0.12 * q), len = S * 0.05, DR = 5; // (DR: how hard it slows as it glides: settled by the time its ways light)
       const turn = Math.random() < 0.5 ? 1 : -1, phis = [0, 1, 2, 3, 4, 5].map(() => rnd(0.08, 0.55)), g0 = rnd(0, Math.PI / 3);
@@ -5976,7 +6084,7 @@ sdk.initializeAsync()
         } });
       };
       // 六花: six flowers, one every `gap`, flung off its blade to your left and right by turns
-      for (let k = 0; k < n; k++) later(k * gap, () => {
+      if (act === 1) for (let k = 0; k < n; k++) later(k * gap, () => {
         const bb = G.boss; if (!bb) return;
         const side = (k % 2 ? -1 : 1) * turn, [tx, ty] = spot(side, phis[k]);
         const hx = bb.x - u * 1.7, hy = bb.y + u * 2.1; // (its ice blade's tip)
@@ -5992,13 +6100,13 @@ sdk.initializeAsync()
       });
       // the great flower of frost: spread over the ground under you, its six arms along three ways through you, and broken
       const tB = (n - 1) * gap + fuse + 0.2, durB = 0.95, wB = S * 0.08, heart = {};
-      const crystal = (x, y) => G.hazards.push({ kind: "frostArt", x, y, t: 0, dur: durB + 0.02, best: Infinity, near: true, dist: () => Infinity,
+      const crystal = (x, y, g = g0, Lc = S * 0.44, dc = durB) => G.hazards.push({ kind: "frostArt", x, y, t: 0, dur: dc + 0.02, best: Infinity, near: true, dist: () => Infinity,
         draw(h, time) { // (it cuts nothing: the three red ways are the warning; this is the frost they are made of)
-          const k = clamp(h.t / (durB * 0.75), 0, 1), e = 1 - (1 - k) ** 3, Lr = S * 0.44 * e, br = 0.5 + 0.5 * Math.sin(time * (10 + 22 * k));
+          const k = clamp(h.t / (dc * 0.75), 0, 1), e = 1 - (1 - k) ** 3, Lr = Lc * e, br = 0.5 + 0.5 * Math.sin(time * (10 + 22 * k));
           ctx.save(); ctx.translate(h.x, h.y); ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.globalAlpha = 0.4 + 0.5 * k;
           ctx.beginPath();
           for (let i = 0; i < 6; i++) {
-            const a = g0 + (i * Math.PI) / 3, c = Math.cos(a), s = Math.sin(a);
+            const a = g + (i * Math.PI) / 3, c = Math.cos(a), s = Math.sin(a);
             ctx.moveTo(c * S * 0.03, s * S * 0.03); ctx.lineTo(c * Lr, s * Lr);
             for (const f of [0.34, 0.6, 0.82]) {
               const tw = Lr * (0.3 - f * 0.22);
@@ -6007,7 +6115,7 @@ sdk.initializeAsync()
           }
           ctx.strokeStyle = "rgba(95,143,180,0.6)"; ctx.lineWidth = Math.max(3, S * 0.012); ctx.stroke();
           ctx.strokeStyle = `rgba(255,255,255,${0.65 + 0.35 * br})`; ctx.lineWidth = Math.max(1.4, S * 0.005); ctx.stroke();
-          ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = g0 + (i * Math.PI) / 3 + Math.PI / 6; ctx.lineTo(Math.cos(a) * S * 0.04 * e, Math.sin(a) * S * 0.04 * e); } ctx.closePath();
+          ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = g + (i * Math.PI) / 3 + Math.PI / 6; ctx.lineTo(Math.cos(a) * S * 0.04 * e, Math.sin(a) * S * 0.04 * e); } ctx.closePath();
           ctx.fillStyle = "rgba(225,240,250,0.85)"; ctx.fill(); ctx.strokeStyle = "rgba(29,26,23,0.6)"; ctx.lineWidth = 1.2; ctx.stroke();
           ctx.restore();
         } });
@@ -6029,6 +6137,52 @@ sdk.initializeAsync()
         }
         for (let i = 0; i < 26; i++) fxMote("flake", x + frnd(-S * 0.08, S * 0.08), y + frnd(-S * 0.08, S * 0.08), moteOf(b.def), true);
       };
+      if (act === 2) { // 六花陣: a star at a time under you, three ways through you, a half step turned each time
+        const cnt = ez ? 2 : hi ? 6 : 5, iv = ez ? 0.6 : hi ? 0.5 : 0.55, dS = 0.8, wS = S * 0.07;
+        for (let k = 0; k < cnt; k++) {
+          const g = g0 + (turn * k * Math.PI) / 6, st = {};
+          for (let i = 0; i < 3; i++) G.warns.push({ kind: "band", x: 0, y: 0, ang: g + (i * Math.PI) / 3, w: wS, t: 0, dur: dS, delay: k * iv,
+            place(w) {
+              if (!st.set) {
+                st.set = true; st.x = P.x; st.y = P.y; crystal(st.x, st.y, g, S * 0.3, dS); sfx.warn();
+                const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.3; bb.swing = { t: 0, ang: Math.atan2(st.y - bb.y, st.x - bb.x) }; }
+              }
+              w.x = st.x; w.y = st.y;
+            },
+            fire(w) {
+              landCut({ ...w, tint: "95,143,180" });
+              if (i || reduced) return;
+              frostPop(st.x, st.y, S * 0.06, g); fxFlare(st.x, st.y, S * 0.08, BLUE, 0.35);
+              for (let j = 0; j < 6; j++) fxStreaks(st.x, st.y, 3, ICE, S * 0.9, S * 0.05, 0.35, 0.2, g + (j * Math.PI) / 3);
+            } });
+        }
+        return (cnt - 1) * iv + dS + (ez ? 0.2 : 0.35);
+      }
+      if (act === 3) { // 葬: lit a full second, then act one's white burst over all of it
+        const R3 = S * (ez ? 0.22 : 0.26), D3 = 1.0, sd = rnd(0, 6);
+        G.warns.push({ kind: "spike", x: 0, y: 0, r: R3, seed: sd, t: 0, dur: D3, delay: 0.1,
+          place(w) {
+            w.x = clamp(P.x, R3 * 0.2, W - R3 * 0.2); w.y = clamp(P.y, H * 0.16, H - R3 * 0.2);
+            crystal(w.x, w.y, g0, R3 * 0.95, D3);
+            const bb = G.boss; if (bb) { bb.raise = { t: 0, dur: D3 * 0.82 }; bb.castT = bb.castDur = D3; }
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.85);
+            if (!reduced && bb) { fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H, ICE, D3); for (let i = 0; i < 16; i++) fxMote("flake", w.x + frnd(-R3, R3), w.y + frnd(-R3, R3), moteOf(b.def), false); }
+          },
+          fire(w) {
+            G.hazards.push({ kind: "frostTomb", x: w.x, y: w.y, r: R3, t: 0, dur: 0.45, best: Infinity, near: false,
+              dist() { return this.t < 0.28 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - this.r) : Infinity; },
+              draw(h) { // the frost over it, white, breaking up
+                const e = clamp(h.t / 0.45, 0, 1);
+                ctx.save(); ctx.globalAlpha = 1 - e; ctx.fillStyle = "rgba(236,244,250,0.75)"; ctx.beginPath(); ctx.arc(h.x, h.y, h.r * (1 + 0.1 * e), 0, Math.PI * 2); ctx.fill();
+                ctx.strokeStyle = "rgba(95,143,180,0.8)"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
+              } });
+            heart.x = w.x; heart.y = w.y; shatter(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12); fxWave(w.x, w.y, S * 1.3, BLUE, 0.8, S * 0.05);
+            for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; frostPop(w.x + Math.cos(a) * R3 * 0.8, w.y + Math.sin(a) * R3 * 0.8, S * 0.04, a); }
+          } });
+        return 0.1 + D3 + (ez ? 0.35 : 0.6);
+      }
       later(tB, () => {
         const bb = G.boss; if (!bb) return;
         heart.x = P.x; heart.y = P.y; heart.lit = false;
@@ -6163,7 +6317,10 @@ sdk.initializeAsync()
         });
       }
     } },
-    charge: { name: ["破竹之勢", "파죽지세"], run() { // 맹호's last: down a lit road through you to the wall and straight off it down
+    // (11-20, 세 막: FIN_ACTS) act two, 猛虎亂舞: wall to wall again, more roads and quicker legs (the next two roads lit at
+    // once as it runs), no great road; one great leap home, raging in the air. 쉬움 one road. Act three, the execution: the great road alone,
+    // wider, lit a full second, from the spot on its ground whose road through you leaves room on both its sides (finAng)
+    charge: { name: ["破竹之勢", "파죽지세"], acts: 3, run(o = {}) { // 맹호's last: down a lit road through you to the wall and straight off it down
       // the next, never pulling up (4-2 #3, 제작자 plan: 벽 튕김 돌진, "다음 길은 벽 직전에 미리 빛남": each next road lights
       // while it is still running at the wall, aimed at where you are then), quicker off every wall, three times (four at its
       // fiercest); at the last wall it crouches, claws up, and comes back down a road as wide as its reach, tearing it open
@@ -6174,9 +6331,11 @@ sdk.initializeAsync()
       for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); } // (alone on the field: what its 종전 left in the air breaks as the name goes up)
       G.warns = []; G.hazards = []; for (const c of G.cuts) c.checked = true;
       const L = lvl(), u = bossUnit(b.def), up = u * 0.8, tint = "199,120,42", gold = "#e2a24a";
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       if (b.dash || b.home > 0 || b.y > H * 0.33) { b.dash = null; b.home = 0; bossBlink(clamp(b.x, W * 0.25, W * 0.75), H * 0.24); } // (back on its own ground first, never onto you)
-      const n = L >= 21.5 ? 4 : 3, legRun = (k) => Math.max(0.42, 0.5 - 0.03 * k); // bounces before the last; a leg, wall to wall, in this long
-      const big = S * 0.3, bigRun = 0.42, legs = [];
+      const n = act === 2 ? (ez ? 1 : 5) : L >= 21.5 ? 4 : 3; // bounces before the last
+      const legRun = (k) => (act === 2 ? Math.max(hi ? 0.34 : 0.36, (ez ? 0.5 : hi ? 0.4 : 0.42) - 0.015 * k) : Math.max(0.42, 0.5 - 0.03 * k)); // a leg, wall to wall, in this long
+      const big = S * (act === 3 && !ez ? 0.34 : 0.3), bigRun = 0.42, legs = [];
       const wall = (x, y, ang) => { // where a run from (x, y) along ang pulls up, measured as runAt does
         const ux = Math.cos(ang), uy = Math.sin(ang), m = u * 1.2; let d = Infinity;
         if (ux > 1e-3) d = Math.min(d, (W - m - x) / ux); if (ux < -1e-3) d = Math.min(d, (m - x) / ux);
@@ -6201,18 +6360,27 @@ sdk.initializeAsync()
         runAt(g.ang, g.x0, g.y0, Math.max(0.6, g.len / (S * dur)));
         kick(g.x0, g.y0, g.ang); bb.castT = bb.castDur = 0.4;
       };
+      const pick3 = () => { // act three: from its ground, the spot whose road through you leaves room on both its sides
+        // (11-20 제작자 "탈출 방향 2개 이상": last, a wall's middle — in a bottom corner a road from its ground runs down the wall
+        // you stand by, one way out; from the far wall's middle it comes across the corner, a way out along each wall)
+        const bb = G.boss || b, y0 = H * 0.24, xs = [bb.x, W * 0.5, W * 0.22, W * 0.78, W * 0.88, W * 0.12], ys = [bb.y, y0, y0, y0, H * 0.5, H * 0.5];
+        const angs = xs.map((x, i) => Math.atan2(P.y - (ys[i] + up), P.x - x)), i = Math.max(0, angs.indexOf(finAng(P.x, P.y, big, angs, false)));
+        if (i && G.boss) bossBlink(xs[i], ys[i]);
+        return G.boss ? [G.boss.x, G.boss.y] : [xs[i], ys[i]]; // (bossBlink leaves it where it was rather than put it on you)
+      };
       b.tx = b.x; b.ty = b.y; b.next = null;
       const T = [0.8]; for (let k = 1; k < n; k++) T.push(T[k - 1] + legRun(k - 1)); // each leg goes the moment the last reaches its wall
       const A = T[n - 1] + legRun(n - 1), F = A + 0.55; // at the last wall it crouches; the great road goes at F
-      for (let k = 0; k < n; k++) {
+      if (act !== 3) for (let k = 0; k < n; k++) {
         const dur = 0.8;
         G.warns.push({ kind: "band", x: 0, y: 0, ang: 0, w: u * 2.3, t: 0, dur, delay: T[k] - dur,
           place(w) { const [x0, y0] = from(k), g = lay(k, x0, y0); w.x = g.x0; w.y = g.y0 + up; w.ang = g.ang; const bb = G.boss; if (bb && !bb.dash) bb.castT = bb.castDur = 0.4; sfx.warn(); },
           fire() { go(legs[k], legRun(k)); } });
       }
-      G.warns.push({ kind: "band", x: 0, y: 0, ang: 0, w: big, t: 0, dur: 0.95, delay: F - 0.95,
+      if (act !== 2) G.warns.push({ kind: "band", x: 0, y: 0, ang: 0, w: big, t: 0, dur: act === 3 ? 1.0 : 0.95, delay: act === 3 ? 0.1 : F - 0.95,
         place(w) {
-          const [x0, y0] = from(n), g = lay(n, x0, y0); w.x = g.x0; w.y = g.y0 + up; w.ang = g.ang;
+          const [x0, y0] = act === 3 ? pick3() : from(n), g = lay(n, x0, y0); w.x = g.x0; w.y = g.y0 + up; w.ang = g.ang;
+          if (act === 3) { const bb = G.boss; if (bb) bb.castT = bb.castDur = 1.0; G.dark = Math.max(G.dark, 0.85); sfx.gather(); }
           const bb = G.boss; if (bb) bb.tg = { kind: "claw", w }; // its claws going up over its head as the road is drawn
           sfx.warn(); sfx.roar(); G.shake = Math.max(G.shake, reduced ? 0 : 6);
         },
@@ -6220,6 +6388,7 @@ sdk.initializeAsync()
           const g = legs[n], bb = G.boss; if (!bb) return;
           if (bb.tg && bb.tg.kind === "claw") bb.tg.f = 0; // raked down
           landCut({ x: w.x, y: w.y, ang: w.ang, w: big, tint }); go(g, bigRun); bb.castT = bb.castDur = 0.6;
+          if (act === 3 && !reduced) { G.stopT = Math.max(G.stopT, 0.12); G.shake = Math.max(G.shake, 24); } // (act three: the world holds its breath)
           if (!reduced) { // its claws torn through the whole road, three great strokes of its colour
             const nx = -Math.sin(g.ang), ny = Math.cos(g.ang);
             for (const o of [-1, 0, 1]) fxSlash(w.x + nx * big * 0.3 * o, w.y + ny * big * 0.3 * o, g.ang, S * 0.05, gold, 0.5);
@@ -6236,22 +6405,52 @@ sdk.initializeAsync()
           });
         } });
       const leap = () => { const bb = G.boss; if (!bb) return; if (bb.dash) return later(0.04, leap); bb.home = 1.0; bb.wT = 0; }; // one great leap home, over your head (wT 0: moveBoss picks the spot)
-      later(F + bigRun + 0.06, leap);
-      return F + bigRun + 0.85;
+      const end = act === 2 ? A : act === 3 ? 1.1 + bigRun : F + bigRun; // (act two: its legs only; act three: the great road alone)
+      later(end + 0.06, leap);
+      return end + (act === 2 ? 0.1 : act === 3 ? (ez ? 0.16 : 0.46) : 0.85); // (act two: it rages as it leaps, its body harmless in the air)
     } },
     // 千影一刀: 무영's last (11-16, "얼굴 없는 자의 마지막 춤이다."). He is gone; out of the edges his afterimages run
     // through where you stand one after another, from the top and the sides by turns, quicker each time, each leaving its way
     // on the paper as a hair of ink. When the last has run every line of the dance lights at once, he is there again where he stood,
     // his sword goes home in its sheath — click — and every line opens. (Its end: all the ways he ran, cut together;
     // stand where none of them is.) Its dice all cast here; never from the bottom, where your thumb is.
-    veil: { name: ["千影一刀", "천영일도"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 千影亂舞: his afterimages two at a time, from ways at right angles (crossing where you
+    // stand), each pair laid as the last runs; no 一刀 at its end, he is back as it ends. 쉬움 two pairs. Act three, the
+    // execution, 一刀: he stands, sword held a full second, and one stroke, the widest, through you; it lies the way that
+    // leaves room on both its sides (finAng), and his sword goes home as it opens
+    veil: { name: ["千影一刀", "천영일도"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
       const L = lvl(), q = clamp((L - 9) / 13, 0, 1), u = bossUnit(b.def), K = G.bossK || 1, PALE = "#dfe3e8";
-      const n = 5 + (q >= 0.5 ? 1 : 0), gap = 0.36 - 0.04 * q, m = S * 0.03, top = Math.max(S * 0.05, H * 0.14, barTop());
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
+      if (act === 3) { // 一刀
+        const w3 = S * (ez ? 0.22 : 0.26), D3 = 1.0, g = rnd(0, Math.PI), cut = {}, tint = fightTint(b.def);
+        G.warns.push({ kind: "band", x: 0, y: 0, ang: 0, w: w3, t: 0, dur: D3, delay: 0.1,
+          place(w) {
+            [cut.ang, cut.x, cut.y] = finFit(P.x, P.y, w3, [g, g + 0.6, g - 0.6, g + Math.PI / 2]); w.x = cut.x; w.y = cut.y; w.ang = cut.ang;
+            const bb = G.boss; if (bb) { bb.vanish = 0; bb.castT = bb.castDur = D3; burstInk(bb.x, bb.y + u, 14); }
+            G.dark = Math.max(G.dark, 0.85); sfx.gather(); sfx.warn(); later(D3 - 0.12, () => sfx.sheath());
+            if (!reduced && bb) { fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H, PALE, D3); fxFlare(bb.x - u * 1.2, bb.y - u * 0.9, S * 0.06, PALE, 0.6); }
+          },
+          fire(w) {
+            landCut(w);
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.7; bb.swing = { t: 0, ang: Math.atan2(cut.y - bb.y, cut.x - bb.x) }; }
+            sfx.issen(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("255,253,244", 0.6);
+            impact(cut.x, cut.y, 1.6, tint);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            fxWave(cut.x, cut.y, S * 1.2, tint, 0.8, S * 0.05); fxWave(cut.x, cut.y, S * 0.6, PALE, 0.55, S * 0.025);
+            for (const s of [0, Math.PI]) { fxStreaks(cut.x, cut.y, 12, PALE, S * 1.5, S * 0.1, 0.5, 0.25, cut.ang + s); fxStreaks(cut.x, cut.y, 6, "#fffdf4", S * 1.2, S * 0.07, 0.45, 0.2, cut.ang + s); }
+            for (let i = 0; i < 24; i++) fxMote("ash", cut.x + frnd(-S * 0.08, S * 0.08), cut.y + frnd(-S * 0.08, S * 0.08), moteOf(b.def), true);
+          } });
+        return 0.1 + D3 + (ez ? 0.45 : 0.6);
+      }
+      const np = ez ? 2 : hi ? 7 : 6; // (act two: pairs)
+      const n = act === 2 ? np * 2 : 5 + (q >= 0.5 ? 1 : 0), gap = act === 2 ? (ez ? 0.6 : hi ? 0.4 : 0.44) : 0.36 - 0.04 * q, m = S * 0.03, top = Math.max(S * 0.05, H * 0.14, barTop());
       // the ways its afterimages run, as lines: spread round the half turn (so no two lie side by side), in an order that
       // jumps about, each coming from the top or a side (the line's end that lies above you)
       const l0 = rnd(0, Math.PI), order = n === 6 ? [0, 3, 1, 4, 2, 5] : [0, 3, 1, 4, 2], jit = order.map(() => rnd(-0.12, 0.12));
-      const from = order.map((p, k) => { const l = (((l0 + (p * Math.PI) / n + jit[k]) % Math.PI) + Math.PI) % Math.PI; return l - Math.PI; }); // (in [-π, 0): up, or level from a side)
+      const from = act === 2 ? Array.from({ length: np }, (_, k) => l0 + k * 1.94 + rnd(-0.15, 0.15)).flatMap((l) => [l, l + Math.PI / 2].map((v) => (((v % Math.PI) + Math.PI) % Math.PI) - Math.PI)) // (each pair at right angles, from above or a side)
+        : order.map((p, k) => { const l = (((l0 + (p * Math.PI) / n + jit[k]) % Math.PI) + Math.PI) % Math.PI; return l - Math.PI; }); // (in [-π, 0): up, or level from a side)
       const reach = (x, y, a) => { // from (x, y) along a, how far to the field's edge
         const ux = Math.cos(a), uy = Math.sin(a); let d = Infinity;
         if (ux > 1e-6) d = Math.min(d, (W - m - x) / ux); else if (ux < -1e-6) d = Math.min(d, (m - x) / ux);
@@ -6279,9 +6478,9 @@ sdk.initializeAsync()
       // he is gone (out of sight and out of reach, by the wall clock) till his dance is done
       let t = 0.15;
       const runs = [];
-      for (let k = 0; k < n; k++) { runs.push(t); t += gap * (1 - 0.07 * k); }
+      for (let k = 0; k < n; k++) { runs.push(t); if (act !== 2) t += gap * (1 - 0.07 * k); else if (k % 2) t += gap; } // (act two: two at a time)
       const tEnd = runs[n - 1] + 0.8 + 0.25, durF = 0.9, wF = S * 0.06;
-      b.vanish = b.home = (tEnd + 0.5) / K; burstInk(b.x, b.y + u, 14); sfx.whoosh();
+      b.vanish = b.home = (act === 2 ? tEnd - 0.15 : tEnd + 0.5) / K; burstInk(b.x, b.y + u, 14); sfx.whoosh();
       if (!reduced) { fxFlare(b.x, b.y + u * 0.6, S * 0.06, PALE, 0.3); for (let i = 0; i < 12; i++) fxMote("ash", b.x + frnd(-u, u), b.y + frnd(-u, u * 2), moteOf(b.def), true); }
       for (let k = 0; k < n; k++) {
         const th = from[k], ln = { x0: 0, y0: 0, ang: 0, at: null };
@@ -6298,6 +6497,7 @@ sdk.initializeAsync()
           } });
       }
       // 一刀: every way he ran, lit at once; he is back where he stood, and as his sword goes home they all open
+      if (act === 2) return tEnd + 0.1; // (act two: its afterimages only)
       later(tEnd, () => {
         sc.lit = 1; G.dark = Math.max(G.dark, 0.85);
         let first = true;
@@ -6332,13 +6532,20 @@ sdk.initializeAsync()
     // he brings both sticks down on the drum with all he has and it tears: its great head spreads under you, the two
     // sticks' paths crossed on it, and it goes up in one thunderclap, a bolt out of the sky into it. Each stroke shown a
     // beat and a half (the last a little longer, alone on the field); its dice all cast here.
-    drum: { name: ["雷鼓裂天", "뇌고열천"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 急長短: the 장단 again with no beat held, straight on into a quicker second run of it
+    // (each stroke round from the last, more 덩 at 어려움); no tear. 쉬움 three strokes. Act three, the execution: the great
+    // drum's head alone, wide, under you, lit a full second, and it tears on the beat: out of it, any way (no hit-stop: on
+    // the music's beat)
+    drum: { name: ["雷鼓裂天", "뇌고열천"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
       const B = drumBeat(), show = B * 1.4, u = bossUnit(b.def), tint = fightTint(b.def), HOT = "#ffd27a", EMBER = "#ff9a3a";
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       if (ac) { M.step = 0; M.next = ac.currentTime + 0.03; } // (its music's bar starts with its first stroke)
       const g0 = rnd(0, Math.PI), turn = Math.random() < 0.5 ? 1 : -1, cracks = [0, 1, 2, 3, 4, 5, 6, 7].map(() => rnd(0, 6)), aF = g0 + turn * rnd(0.6, 1.0);
-      const wD = S * 0.075, wd = S * 0.065, Rk = S * 0.085, RF = S * 0.15, tF = 4.5 * B, durF = Math.min(1.0, B * 1.8);
-      const seq = [[0, "덩"], [1, "덕"], [1.5, "덕"], [2, "쿵"], [2.5, "덕"], [3, "덩"]]; // [beat, stroke]: quicker from the second beat; then a beat held
+      const wD = S * 0.075, wd = S * 0.065, Rk = S * 0.085, RF = S * (act === 3 ? (ez ? 0.22 : 0.26) : 0.15), tF = act === 3 ? Math.max(0.1, 2 * B - 1) : 4.5 * B, durF = act === 3 ? 1.0 : Math.min(1.0, B * 1.8);
+      const seq = act === 3 ? [] : act === 2 ? (ez ? [[0, "덩"], [1, "덕"], [1.5, "덩"]] : hi ? [[0, "덩"], [1, "덕"], [1.5, "덩"], [2, "쿵"], [2.5, "덕"], [3, "덩"], [3.5, "덕"], [4, "덩"], [4.5, "쿵"], [5, "덩"], [5.5, "덩"]]
+        : [[0, "덩"], [1, "덕"], [1.5, "덕"], [2, "쿵"], [2.5, "덕"], [3, "덩"], [3.5, "덕"], [4, "덩"], [4.5, "쿵"], [5, "덕"], [5.5, "덩"]])
+        : [[0, "덩"], [1, "덕"], [1.5, "덕"], [2, "쿵"], [2.5, "덕"], [3, "덩"]]; // [beat, stroke]: quicker from the second beat; then a beat held
       const stroke = (kind) => { // his sticks come down on the drum: its sound, and light off its head
         const bb = G.boss; if (!bb) return;
         bb.castT = bb.castDur = 0.3;
@@ -6353,7 +6560,7 @@ sdk.initializeAsync()
       seq.forEach(([at, kind], k) => {
         const a = g0 + turn * k * ((3 * Math.PI) / 8); // (each stroke round from the last by 3/8 of a half turn: never along it)
         if (kind === "쿵") {
-          G.warns.push({ kind: "spike", x: 0, y: 0, r: Rk, seed: cracks[k], t: 0, dur: show, delay: at * B, beat: true,
+          G.warns.push({ kind: "spike", x: 0, y: 0, r: Rk, seed: cracks[k % 8], t: 0, dur: show, delay: at * B, beat: true,
             place(w) { w.x = clamp(P.x, w.r, W - w.r); w.y = clamp(P.y, w.r, H - w.r); stroke(kind); sfx.warn(); },
             fire(w) { spikeErupt(w.x, w.y, w.r, "fire"); sfx.taiko(); G.shake = Math.max(G.shake, reduced ? 0 : 8); } });
           return;
@@ -6362,11 +6569,13 @@ sdk.initializeAsync()
           place(w) { w.x = P.x; w.y = P.y; if (j === 0) stroke(kind); },
           fire(w) { landCut(w); if (kind === "덩" && j === 0) flash("255,236,190", 0.2); } }));
       });
+      if (act === 2) return seq[seq.length - 1][0] * B + show + 0.4; // (act two: its strokes only)
       // 裂天: both sticks down on the drum, and its head tears
       const fin = {};
       const placeF = () => {
         if (fin.set) return;
-        fin.set = true; fin.x = clamp(P.x, RF, W - RF); fin.y = clamp(P.y, RF, H - RF);
+        const m3 = act === 3 ? RF * 0.2 : RF; // (act three: by a wall it hangs off the edge, never shuts you in)
+        fin.set = true; fin.x = clamp(P.x, m3, W - m3); fin.y = clamp(P.y, act === 3 ? H * 0.16 : RF, H - m3);
         const bb = G.boss; if (bb) bb.raise = { t: 0, dur: durF * 0.82 };
         sfx.warn(); sfx.gather(); sfx.taiko(); G.dark = Math.max(G.dark, 0.8);
         G.hazards.push({ kind: "drumArt", x: fin.x, y: fin.y, t: 0, dur: durF + 0.02, best: Infinity, near: true, dist: () => Infinity, draw(h, time) {
@@ -6381,7 +6590,7 @@ sdk.initializeAsync()
           ctx.strokeStyle = "rgba(58,36,24,0.8)"; ctx.lineWidth = Math.max(2.5, S * 0.011); ctx.beginPath(); ctx.arc(0, 0, R * 0.88, 0, Math.PI * 2); ctx.stroke(); // (its rim of dark wood)
           ctx.fillStyle = "#d9a23a"; for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; ctx.beginPath(); ctx.arc(Math.cos(a) * R * 0.88, Math.sin(a) * R * 0.88, S * 0.007, 0, Math.PI * 2); ctx.fill(); }
           for (const s of [1, -1]) { // its sticks, coming down onto the head along their two paths
-            const a = aF + s * Math.PI / 4, l = RF * 1.35, lift = (1 - e) * S * 0.08;
+            const a = aF + s * Math.PI / 4, l = RF * (act === 3 ? 0.8 : 1.35), lift = (1 - e) * S * 0.08;
             ctx.save(); ctx.rotate(a); ctx.translate(0, -lift); ctx.globalAlpha = 0.5 + 0.4 * k; ctx.lineCap = "round";
             ctx.strokeStyle = "#5b3a2a"; ctx.lineWidth = Math.max(3, S * 0.012); ctx.beginPath(); ctx.moveTo(-l, 0); ctx.lineTo(l * 0.55, 0); ctx.stroke();
             ctx.fillStyle = "#d9a23a"; ctx.beginPath(); ctx.arc(l * 0.55, 0, S * 0.012, 0, Math.PI * 2); ctx.fill();
@@ -6424,9 +6633,9 @@ sdk.initializeAsync()
       };
       G.warns.push({ kind: "spike", x: 0, y: 0, r: RF, seed: cracks[7], t: 0, dur: durF, delay: tF, beat: true,
         place(w) { placeF(); w.x = fin.x; w.y = fin.y; }, fire() { tear(); } });
-      for (const s of [1, -1]) G.warns.push({ kind: "band", x: 0, y: 0, ang: aF + (s * Math.PI) / 4, w: wD, t: 0, dur: durF, delay: tF, beat: true,
+      if (act !== 3) for (const s of [1, -1]) G.warns.push({ kind: "band", x: 0, y: 0, ang: aF + (s * Math.PI) / 4, w: wD, t: 0, dur: durF, delay: tF, beat: true,
         place(w) { placeF(); w.x = fin.x; w.y = fin.y; }, fire(w) { landCut(w); } });
-      return tF + durF + 0.5;
+      return tF + durF + (act === 3 ? (ez ? 0.45 : 0.6) : 0.5);
     } },
     // 鏡花水月 (11-16): 빙경's last. Five panes of ice rise about the field and frost creeps in from the edges of the screen;
     // three of her icicles glance off two panes each and come at you (the whole bent way lit first, each pane turning to it);
@@ -6434,12 +6643,72 @@ sdk.initializeAsync()
     // each pane, meeting where you stand like the petals of one flower — and the five icicles meet there in the same instant
     // and burst into a flower of ice; the panes shatter. Out of the meeting point, between the petals. (Her fight itself is
     // untouched.)
-    mirror: { name: ["鏡花水月", "경화수월"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 鏡花三疊: new panes rise, and the flower of ice comes again and again — three times
+    // (어려움 four, quicker) the panes farthest from you, not the last flower's if it can, turn on you at once and their
+    // icicles meet where you stand, each flower lit before the last has bloomed. Three icicles a flower (four at 어려움):
+    // never more of them in the air than in act one. 쉬움 one flower. Act three, the execution: her mirror itself, a great
+    // pane of ice, hangs over you a full second and comes down flat: out of it past either long edge (finAng: room on both
+    // sides), or off its ends
+    mirror: { name: ["鏡花水月", "경화수월"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       // (alone on the field: whatever her 종전 still had lit or in the air breaks as she begins — the breaking a frame on,
       // so its sparks' dice are never this move's)
       G.warns = []; later(0, () => { for (const s of G.shots) if (!s.dead && !s.drift && !s.fin) { s.dead = true; shatter(s); } });
       for (const h of G.hazards) if (h.kind === "panes") h.dur = Math.min(h.dur, h.t + 0.3); // (and the panes of its 返照 melt as hers rise)
+      if (act === 3) { // 鏡: her great pane over you, lit a full second, down flat (by a wall it hangs off the edge)
+        const A3 = S * 0.36, B3 = S * (ez ? 0.17 : hi ? 0.21 : 0.2), D3 = 1.0, at3 = 0.1, g0 = rnd(0, Math.PI), tint = fightTint(b.def), u = bossUnit(b.def);
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const pane = (x0, y0) => { // (11-20 "탈출 방향 2개 이상": finFit, else a step off the walls — finPick; under the bar too if you are)
+              const [ang, x, y] = finFit(x0, y0, B3 * 2, [g0, g0 + Math.PI / 2, g0 + Math.PI / 4, g0 - Math.PI / 4]), ux = Math.cos(ang), uy = Math.sin(ang);
+              const c = (a, s) => [x + ux * a - uy * s, y + uy * a + ux * s];
+              return Object.assign([{ p: [c(-A3, -B3), c(A3, -B3), c(A3, B3), c(-A3, B3)] }], { ang, x, y });
+            };
+            const [, , parts] = finPick(clamp(P.x, S * 0.04, W - S * 0.04), clamp(P.y, Math.min(H * 0.16, P.y), H - S * 0.04), pane), { ang, x, y } = parts;
+            w.x = x; w.y = y; w.ang = ang; w.parts = parts;
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
+            sfx.warn(); sfx.gather(); sfx.shing(); G.dark = Math.max(G.dark, 0.85);
+            if (reduced || !fxOn()) return;
+            if (bb) { fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H * 0.7, "#cfe6f3", D3); fxFlare(bb.x + u * 0.25, bb.y + u * 0.35, S * 0.07, "#eef7fc", 0.9); }
+            G.parts.push({ kind: "mirrorArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.1, t: 0, draw(p, a, time) { // the pane itself, coming down onto the red
+              const k = clamp(p.t / D3, 0, 1), sc = 1.1 - 0.1 * k * k;
+              ctx.translate(p.x, p.y - S * 0.05 * (1 - k)); ctx.rotate(ang); ctx.scale(sc, sc); ctx.globalAlpha = 0.35 + 0.35 * k;
+              ctx.fillStyle = "rgba(214,234,246,0.35)"; ctx.fillRect(-A3, -B3, A3 * 2, B3 * 2);
+              ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = Math.max(2, S * 0.008); ctx.strokeRect(-A3, -B3, A3 * 2, B3 * 2);
+              ctx.strokeStyle = "rgba(127,182,212,0.8)"; ctx.lineWidth = 1.2; ctx.strokeRect(-A3 * 0.92, -B3 * 0.85, A3 * 1.84, B3 * 1.7);
+              const gx = (((time * 0.9) % 1) * 2 - 1) * (A3 - B3 * 0.5); // (a glint running along it)
+              ctx.globalAlpha *= 0.7; ctx.strokeStyle = "rgba(255,255,255,0.9)"; ctx.lineWidth = Math.max(2, S * 0.01);
+              ctx.beginPath(); ctx.moveTo(gx - B3 * 0.5, -B3 * 0.85); ctx.lineTo(gx + B3 * 0.5, B3 * 0.85); ctx.stroke();
+            } });
+          },
+          fire(w) {
+            const { x, y, ang } = w;
+            finBlow(w.parts, x, y, (h, e) => { // the pane flat on the ground, cracking across and gone
+              ctx.translate(h.x, h.y); ctx.rotate(ang); ctx.globalAlpha = 1 - e;
+              ctx.fillStyle = "rgba(232,244,251,0.6)"; ctx.fillRect(-A3, -B3, A3 * 2, B3 * 2);
+              ctx.strokeStyle = "rgba(127,182,212,0.95)"; ctx.lineWidth = 2; ctx.strokeRect(-A3, -B3, A3 * 2, B3 * 2);
+              ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = 1.4; ctx.beginPath();
+              for (let i = 0; i < 7; i++) { const a = i * 0.9 + 0.3, l = A3 * (0.3 + 0.7 * Math.min(1, e * 4)); ctx.moveTo(0, 0); ctx.lineTo(Math.cos(a) * l, Math.sin(a) * l * (B3 / A3) * 1.6); }
+              ctx.stroke();
+            });
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.7; bb.raise = null; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+            sfx.issen(); sfx.shing(); sfx.burst(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("232,244,251", 0.6);
+            impact(x, y, 1.6, tint); frostPop(x, y, S * 0.08, ang); frostPop(x, y, S * 0.12, ang + Math.PI / 6);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            fxWave(x, y, S * 1.2, tint, 0.8, S * 0.05); fxWave(x, y, S * 0.6, "#eef7fc", 0.55, S * 0.025); fxFlare(x, y, S * 0.18, "#cfe6f3", 0.6);
+            for (let i = 0; i < 4; i++) fxStreaks(x, y, 5, i % 2 ? "#eef7fc" : "#cfe6f3", S * 1.3, S * 0.08, 0.45, 0.35, ang + (i * Math.PI) / 2);
+            for (let i = 0; i < 22; i++) { // shards of it flying
+              const a = frnd(0, Math.PI * 2), v = S * frnd(0.3, 0.9), r0 = S * frnd(0.01, 0.02), sp = frnd(-12, 12), ox = frnd(-A3, A3), oy = frnd(-B3, B3);
+              G.parts.push({ kind: "fxshard", x: x + Math.cos(ang) * ox - Math.sin(ang) * oy, y: y + Math.sin(ang) * ox + Math.cos(ang) * oy, vx: Math.cos(a) * v, vy: Math.sin(a) * v - S * 0.2, ay: S * 1.6, rot: frnd(0, 6), spin: sp, t: 0, life: frnd(0.45, 0.8), keep: true,
+                draw(q2, al) { ctx.translate(q2.x, q2.y); ctx.rotate(q2.rot); ctx.globalAlpha = al; ctx.fillStyle = "rgba(232,244,251,0.95)"; ctx.strokeStyle = "rgba(127,182,212,0.9)"; ctx.lineWidth = 1;
+                  ctx.beginPath(); ctx.moveTo(0, -r0 * 1.6); ctx.lineTo(r0, r0); ctx.lineTo(-r0, r0 * 0.6); ctx.closePath(); ctx.fill(); ctx.stroke(); } });
+            }
+            for (let i = 0; i < 16; i++) fxMote("flake", x + frnd(-A3, A3) * 0.5, y + frnd(-B3, B3), moteOf(b.def), true);
+          } });
+        return at3 + D3 + (ez ? 0.45 : 0.6);
+      }
       const L = lvl(), q = clamp((L - 18) / 8, 0, 1), u = bossUnit(b.def), m = S * 0.07, top = barTop() + S * 0.08;
       const SP = S * (2.3 + 0.3 * q), BENT = 0.8, FLOWER = 1.75 + (q >= 0.5 ? 0.3 : 0), FW = 0.95, meet = { T: 0.42 };
       const ice = "#cfe6f3", glow = "#eef7fc", tint = fightTint(b.def);
@@ -6455,7 +6724,8 @@ sdk.initializeAsync()
       }
       const n = q >= 0.5 ? 4 : 3, orders = [];
       for (let k = 0; k < n; k++) { const o = spots.map((_, i) => i); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } orders.push(o); }
-      const END = FLOWER + FW + 0.9;
+      const nF = ez ? 1 : hi ? 4 : 3, per = hi ? 4 : 3, FG = hi ? 0.85 : 0.95, FW2 = ez ? 0.95 : 0.9, F0 = 0.35; // (act two's flowers)
+      const END = act === 2 ? F0 + (nF - 1) * FG + FW2 + 0.95 : FLOWER + FW + 0.9;
       // ---- the panes: hers (drawPanes), each turning to meet the icicle due at it next
       const panes = spots.map(([x, y], i) => ({ x, y, ang: (i * 1.3) % Math.PI, used: 0, faces: [] }));
       const ph = { kind: "panes", panes, t: 0, dur: END, best: Infinity, near: true, dist: () => Infinity,
@@ -6507,6 +6777,59 @@ sdk.initializeAsync()
       if (!reduced) for (const p of panes) { fxPillar(p.x, p.y, S * 0.05, S * 0.45, ice, 0.55); fxStreaks(p.x, p.y, 5, glow, S * 0.6, S * 0.04, 0.3, Math.PI * 0.8, -Math.PI / 2); frostPop(p.x, p.y, S * 0.04, 0.3); }
       const mirrorAt = () => { const bb = G.boss; if (!bb) return [W / 2, H * 0.24]; const uu = bossUnit(bb.def); return [bb.x + uu * 0.25, bb.y + uu * 0.35]; };
       const far = Math.hypot(W, H), done = (p, f) => () => { p.faces = p.faces.filter((g) => g !== f); };
+      if (act === 2) { // 鏡花三疊: flower after flower, each out of the panes farthest from you (not the last one's, if it can)
+        let prev = new Set();
+        const fls = [];
+        for (let k = 0; k < nF; k++) {
+          const f = { set: false };
+          fls.push(f);
+          const lay = () => { // (once, as its first icicle is lit: from where you stand now)
+            if (f.set) return; f.set = true;
+            f.x = P.x; f.y = P.y; f.at = ph.t; [f.ox, f.oy] = mirrorAt();
+            const d = (p) => Math.hypot(p.x - f.x, p.y - f.y), by = panes.slice().sort((a, c) => d(c) - d(a));
+            const use = by.filter((p) => d(p) >= S * 0.25 && !prev.has(p)).slice(0, per);
+            for (const p of by) if (use.length < per && d(p) >= S * 0.25 && !use.includes(p)) use.push(p);
+            for (const p of by) if (use.length < 3 && !use.includes(p)) use.push(p); // (never fewer than three)
+            f.use = new Set(use); prev = f.use;
+            let Lm = 0; for (const p of f.use) Lm = Math.max(Lm, d(p));
+            f.T = Math.max(0.3, Lm / (S * 2.8)); // (all of them there in the same instant)
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.4; bb.raise = { t: 0, dur: (FW2 * 0.8) / (G.bossK || 1) }; if (!reduced) fxFlare(f.ox, f.oy, S * 0.06, glow, 0.7); }
+            flash("232,244,251", 0.18); sfx.shing(); sfx.warn();
+          };
+          panes.forEach((pane) => G.warns.push({ kind: "bent", pts: [[0, 0], [0, 0]], t: 0, dur: FW2, delay: F0 + k * FG,
+            place(w) {
+              lay();
+              if (!f.use.has(pane)) { w.kind = "none"; w.dur = 0; w.skip = true; return; }
+              const din = Math.atan2(pane.y - f.oy, pane.x - f.ox), dout = Math.atan2(f.y - pane.y, f.x - pane.x), L2 = Math.hypot(f.x - pane.x, f.y - pane.y);
+              pane.faces.push({ at: ph.t + 0.25, ang: faceOf(din, dout) });
+              w.pts = [[pane.x, pane.y], [f.x + Math.cos(dout) * S * 0.05, f.y + Math.sin(dout) * S * 0.05]];
+              w.go = { dout, L2 };
+            },
+            fire(w) {
+              if (w.skip) return;
+              shoot("sword", pane.x, pane.y, w.go.dout, w.go.L2 / f.T, { len: S * 0.11, r: S * 0.009, ice: true, range: w.go.L2 });
+              if (!reduced) fxFlare(pane.x, pane.y, S * 0.04, glow, 0.25);
+              if (f.fired) return; f.fired = true;
+              sfx.whoosh(); sfx.shing();
+              later(f.T, () => bloom(f.x, f.y, k === nF - 1)); // (the last flower breaks the panes)
+            } }));
+        }
+        G.hazards.push({ kind: "fxmirrorL", t: 0, dur: END, best: Infinity, near: true, dist: () => Infinity, // her mirror's light on the panes, flower by flower
+          draw() {
+            if (reduced) return;
+            ctx.save(); ctx.lineCap = "round";
+            for (const f of fls) {
+              if (!f.set) continue;
+              const e = ph.t - f.at, k = Math.min(1, e / 0.25), off = Math.max(0, 1 - Math.max(0, e - FW2) / 0.3); if (off <= 0) continue;
+              for (const p of f.use) {
+                ctx.strokeStyle = `rgba(238,247,252,${0.6 * k * off})`; ctx.lineWidth = S * (0.008 + 0.008 * k);
+                ctx.beginPath(); ctx.moveTo(f.ox, f.oy); ctx.lineTo(f.ox + (p.x - f.ox) * k, f.oy + (p.y - f.oy) * k); ctx.stroke();
+              }
+            }
+            ctx.restore();
+          } });
+        return END;
+      }
       // ---- 反照: an icicle off two panes, then at you
       for (let k = 0; k < n; k++) G.warns.push({ kind: "bent", pts: [[0, 0], [0, 0]], t: 0, dur: BENT, delay: 0.15 + k * (q >= 0.5 ? 0.38 : 0.45),
         place(w) {
@@ -6583,9 +6906,8 @@ sdk.initializeAsync()
           later(meet.T, bloom);
         } }));
       // ---- the flower of ice where they met, and every pane breaking
-      function bloom() {
-        const x = fl.x, y = fl.y;
-        ph.dur = Math.min(ph.dur, ph.t + 0.3);
+      function bloom(x = fl.x, y = fl.y, brk = true) { // (brk: the panes break with it; act two's flowers but its last leave them)
+        if (brk) ph.dur = Math.min(ph.dur, ph.t + 0.3);
         flash("232,244,251", 0.5); sfx.issen(); sfx.shing(); buzz([30, 20, 50]); if (!reduced) G.shake = Math.max(G.shake, 16);
         frostPop(x, y, S * 0.06, 0); frostPop(x, y, S * 0.1, Math.PI / 6);
         const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.6; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
@@ -6608,7 +6930,7 @@ sdk.initializeAsync()
         fxWave(x, y, S * 0.8, tint, 0.7, S * 0.035); fxWave(x, y, S * 0.45, "#ffffff", 0.5, S * 0.02);
         for (let i = 0; i < 6; i++) fxStreaks(x, y, 4, i % 2 ? glow : ice, S * 1.2, S * 0.08, 0.45, 0.25, rot + (i * Math.PI) / 3);
         for (let i = 0; i < 16; i++) fxMote("flake", x + frnd(-S * 0.05, S * 0.05), y + frnd(-S * 0.05, S * 0.05), moteOf(bb ? bb.def : b.def), true);
-        for (const p of panes) { // each pane breaks into glittering shards
+        if (brk) for (const p of panes) { // each pane breaks into glittering shards
           frostPop(p.x, p.y, S * 0.035, p.ang); fxFlare(p.x, p.y, S * 0.04, glow, 0.3);
           for (let i = 0; i < 7; i++) {
             const a = frnd(0, Math.PI * 2), v = S * frnd(0.25, 0.7), r0 = S * frnd(0.008, 0.016), sp = frnd(-12, 12);
@@ -6626,14 +6948,78 @@ sdk.initializeAsync()
     // cut goes through and the hanging rain bursts along it; then he gives his umbrella one turn (우산 돌리기), the water
     // flies off it, and every drop still hanging falls at once and breaks on the ground. Between the lanes; out of the cut,
     // to either side of it.
-    rain: { name: ["一刀斷雨", "일도단우"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 驟雨: the lanes again, quicker and more of them, from above and from the side by
+    // turns (the side from the right and the left by turns), each volley lit before the last has gone by — a grid of them
+    // round where you stand; seven lanes a volley, not nine, so no more blades in the air than in act one; no cut. 보통 seven
+    // volleys, 어려움 eight, 쉬움 two. Act three, the execution: 一刀, his draw: an arc round him as far out as you stand,
+    // thinning to its two points as a sword's sweep of light does, lit a full second while the rain slows to a stop, and
+    // cut all at once: out of it toward him, away from him, or round its ends
+    rain: { name: ["一刀斷雨", "일도단우"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       // (alone on the field: his 종전's umbrella still turning — 우산 돌리기, its vortex lives 2.6 s — is put away as he begins,
       // and anything of it still lit or in the air goes with it)
       G.warns = []; for (const h of G.hazards) if (h.kind === "spiral") h.dur = Math.min(h.dur, h.t + 0.05);
       later(0, () => { for (const s of G.shots) if (!s.dead && !s.drift && !s.fin) { s.dead = true; shatter(s); } }); // (and what it had in the air breaks, a frame on: its sparks' dice never this move's)
+      if (act === 3) { // 一刀: an arc round him at your distance (by him it reaches into him: out of it away from him, or off its ends)
+        const D3 = 1.0, at3 = 0.1, HW3 = S * (ez ? 0.17 : hi ? 0.22 : 0.21), u = bossUnit(b.def), tint = fightTint(b.def), water = "#9fc6d2", glow = "#e6f3f6";
+        G.hazards.push({ kind: "fxrain", t: 0, rt: 0, dur: at3 + D3 + 0.7, best: Infinity, near: true, dist: () => Infinity, // the rain slowing to a stop in the air as he draws
+          step(dt) { this.rt += dt * (1 - 0.92 * clamp(this.t / 0.6, 0, 1)); },
+          draw(h) {
+            if (reduced) return;
+            const s2 = clamp(h.t / 0.6, 0, 1), a = Math.min(1, h.t / 0.3) * Math.min(1, Math.max(0, (h.dur - h.t) / 0.4));
+            ctx.save(); ctx.fillStyle = `rgba(40,62,74,${0.14 * a})`; ctx.fillRect(0, 0, W, H);
+            rainStreaks(Math.round(120 - 50 * s2), S * (0.1 - 0.075 * s2), 0.42 * a, h.rt * 2.2, 0.6);
+            ctx.restore();
+          } });
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const bb = G.boss || b, cx = bb.x, cy = bb.y + u * 0.6, d = Math.hypot(P.x - cx, P.y - cy);
+            const r0 = Math.max(S * 0.12, d), a0 = d > 1 ? Math.atan2(P.y - cy, P.x - cx) : Math.PI / 2, ri = Math.max(0, r0 - HW3), ro = r0 + HW3, n = 14;
+            const sweep = (span) => { // (thinning to its two points, as a sword's sweep of light)
+              const out = [], inn = [], parts = [];
+              for (let i = 0; i <= n; i++) {
+                const t = (2 * i) / n - 1, a = a0 + span * t, h = HW3 * (0.4 + 0.6 * Math.cos((Math.PI / 2) * t)), r1 = Math.max(0, r0 - h), r2 = r0 + h;
+                out.push([cx + Math.cos(a) * r2, cy + Math.sin(a) * r2]); inn.push([cx + Math.cos(a) * r1, cy + Math.sin(a) * r1]);
+              }
+              for (let i = 0; i < n; i++) parts.push({ p: [inn[i], out[i], out[i + 1], inn[i + 1]] });
+              parts.look = [{ p: [...out, ...inn.slice().reverse()] }]; parts.span = span; return parts;
+            };
+            // (11-20 제작자 "탈출 방향 2개 이상": by a wall, where its far side is the wall, its sweep is shorter — off its thin
+            // ends, along the wall, are ways out too)
+            let parts = sweep(clamp((S * 0.46) / r0, 0.4, 1.1));
+            if (finWays(parts) < 2) for (const hl of [0.3, 0.22, 0.15]) { const p2 = sweep(clamp((S * hl) / r0, 0.05, 1.1)); if (finWays(p2) >= 2) { parts = p2; break; } }
+            const span = parts.span;
+            w.parts = parts; w.look = parts.look;
+            Object.assign(w, { x: P.x, y: P.y, cx, cy, r0, a0, span, ri, ro });
+            bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; // (his hand on the hilt)
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.8);
+            if (!reduced) { fxPillar(bb.x, bb.y + u * 2.2, u * 1.0, H * 0.6, glow, 0.8); fxFlare(bb.x - u * 0.15, bb.y + u * 0.6, S * 0.05, glow, 0.8); }
+          },
+          fire(w) {
+            const { cx, cy, r0, a0, span, ri, ro } = w, look = w.look;
+            finBlow(w.parts, w.x, w.y, (h, e) => { // the arc of his cut, white, thinning away
+              ctx.globalAlpha = 1 - e; finPath(look); ctx.fillStyle = "rgba(230,243,246,0.75)"; ctx.fill();
+              ctx.lineCap = "round"; ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = Math.max(2, (ro - ri) * 0.18 * (1 - e));
+              ctx.beginPath(); ctx.arc(cx, cy, r0, a0 - span, a0 + span); ctx.stroke();
+            });
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.6; bb.swing = { t: 0, ang: a0 }; }
+            flash("230,243,246", 0.6); G.shake = Math.max(G.shake, reduced ? 0 : 22); sfx.issen(); sfx.burst(); buzz([40, 30, 90]);
+            impact(w.x, w.y, 1.6, "#3f7f8f");
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            for (let i = 0; i <= 12; i++) { // the hanging rain bursting along it
+              const a = a0 - span + (2 * span * i) / 12, x = cx + Math.cos(a) * r0, y = cy + Math.sin(a) * r0;
+              if (x < 0 || x > W || y < 0 || y > H) continue;
+              fxFlare(x, y, S * 0.04, glow, 0.35); fxStreaks(x, y, 2, water, S * 0.9, S * 0.05, 0.35, 0.6, a); fxStreaks(x, y, 2, water, S * 0.7, S * 0.05, 0.35, 0.6, a + Math.PI);
+              fxMote("drop", x, y, water, true);
+            }
+            fxWave(cx, cy, r0 + S * 0.4, tint, 0.7, S * 0.04);
+          } });
+        return at3 + D3 + (ez ? 0.45 : 0.6);
+      }
       const L = lvl(), q = clamp((L - 18) / 8, 0, 1), m = S * 0.03;
-      const gap = S * (0.115 - 0.01 * q), LANE = 0.78, CUT = 1.7 + (q >= 0.5 ? 0.3 : 0), CW = 0.95, BW = S * (0.15 + 0.02 * q);
+      const gap = S * (0.115 - 0.01 * q), LANE = 0.78, CUT = act === 2 ? 99 : 1.7 + (q >= 0.5 ? 0.3 : 0), CW = 0.95, BW = S * (0.15 + 0.02 * q); // (act two: no cut, the rain never hangs)
       const water = "#9fc6d2", glow = "#e6f3f6", tint = fightTint(b.def);
       // ---- its dice, all cast now
       const side = Math.random() < 0.5 ? 1 : 3, jit = () => rnd(-S * 0.025, S * 0.025);
@@ -6642,7 +7028,9 @@ sdk.initializeAsync()
         // the last from above, so the way out of the cut (up or down, it lies across) runs along the lanes, not over them
         [0.1, true, false, 4, nine()], [0.6, false, true, 4, nine()], [1.1, true, false, 4, nine()]];
       if (q >= 0.5) { vol[1][0] = 0.55; vol[2][0] = 1.0; vol.push([1.45, false, true, 3, seven()]); } // (어려움: the side once more, gone by before the cut goes)
-      const cutAng = rnd(-0.32, 0.32), SNAP = CUT + CW + 0.4, END = CUT + CW + 0.85; // (SNAP: the umbrella's turn, the hanging rain let fall)
+      const nV = ez ? 2 : hi ? 8 : 7, VG = ez ? 0.45 : 0.4; // (act two: [when, above, the side, lanes, jitters, -, which side])
+      if (act === 2) { vol.length = 0; for (let i = 0; i < nV; i++) vol.push([0.1 + i * VG, i % 2 === 0, i % 2 === 1, 3, seven(), undefined, i % 4 === 3 ? 4 - side : side]); }
+      const cutAng = rnd(-0.32, 0.32), SNAP = CUT + CW + 0.4, END = act === 2 ? 0.1 + (nV - 1) * VG + LANE + ((nV - 1) % 2 ? 0.55 : 0.8) + 0.3 : CUT + CW + 0.85; // (SNAP: the umbrella's turn, the hanging rain let fall)
       // ---- the sky opened: rain over everything (faint, so the lanes read through it); it hangs still from the moment the
       // cut is laid till his umbrella turns, and then all of it falls at once
       const sky = { rt: 0, k: 1, gone: null, fall: 0 };
@@ -6672,7 +7060,7 @@ sdk.initializeAsync()
       later(0.9, () => sfx.hiss());
       if (!reduced) { const u = bossUnit(b.def); fxPillar(b.x, b.y + u * 2.2, u * 1.2, H, water, 0.7); fxWave(b.x, b.y - u * 2.2, S * 0.5, tint, 0.6, S * 0.02); for (let i = 0; i < 14; i++) fxMote("drop", b.x + frnd(-u * 2, u * 2), b.y - u * 2.2 + frnd(-u * 0.3, u * 0.3), water, true); }
       // ---- the rain as blades: lanes round you, lit, the middle one through where you stand as they light
-      vol.forEach(([at, top, flank, n, jt, jt2]) => {
+      vol.forEach(([at, top, flank, n, jt, jt2, sd]) => {
         const c = {};
         const lane = (s, k, j) => G.warns.push({ kind: "drop", side: s, p: 0, t: 0, dur: LANE, delay: at + Math.abs(k) * 0.035,
           place(w) {
@@ -6682,11 +7070,11 @@ sdk.initializeAsync()
           },
           fire(w) { if (s) return fireDrop(w); shoot("sword", w.p, -S * 0.12, Math.PI / 2, S * 2.9, { len: S * 0.15, r: S * 0.007 }); if (!k) sfx.shing(); } }); // (from above, quicker than the side's: down the screen and gone before the next comes)
         if (top) for (let k = -n; k <= n; k++) lane(0, k, jt[k + n]);
-        if (flank) for (let k = -n; k <= n; k++) lane(side, k, (jt2 || jt)[k + n]);
+        if (flank) for (let k = -n; k <= n; k++) lane(sd || side, k, (jt2 || jt)[k + n]);
         later(at + LANE, () => { if (!reduced) sfx.shing(); });
       });
-      // ---- 一刀: the rain stops; one wide cut laid through you; he draws
-      G.warns.push({ kind: "band", x: 0, y: 0, ang: cutAng, w: BW, t: 0, dur: CW, delay: CUT,
+      // ---- 一刀: the rain stops; one wide cut laid through you; he draws (not in act two)
+      if (act !== 2) G.warns.push({ kind: "band", x: 0, y: 0, ang: cutAng, w: BW, t: 0, dur: CW, delay: CUT,
         place(w) {
           w.x = P.x; w.y = P.y; sfx.warn(); sfx.gather();
           const bb = G.boss; if (bb) { bb.raise = { t: 0, dur: (CW * 0.92) / (G.bossK || 1) }; if (!reduced) { const u = bossUnit(bb.def); fxPillar(bb.x, bb.y + u * 2.2, u * 1.0, H * 0.6, glow, 0.8); fxFlare(bb.x - u * 0.15, bb.y + u * 0.6, S * 0.05, glow, 0.8); } }
@@ -6719,7 +7107,14 @@ sdk.initializeAsync()
         } });
       return END;
     } },
-    swords: { name: ["萬劍歸一", "만검귀일"], run() { // 검총주's last (11-16; 제작자 on 11-5: "화려하기만 하지 너무 쉽다", so this one
+    // (11-20, 세 막: FIN_ACTS) act two, 萬劍亂下: the storms again, more of them and closer together (보통 six, 어려움
+    // seven, each called on where you are by then while the last two are still lit: run, and keep running), and the
+    // swords of the last three fly home to his hand down their lit lines as in act one, with the three behind you (the
+    // ones before crumble: never more swords in the air than in act one); no great sword. 쉬움 two storms, nothing flies.
+    // Act three, the execution: 一劍, the one great sword out of the sky, flat across where you stand — its blade as wide
+    // as two fifths of the field, its guard and its grip far off along it — its shadow lit a full second and it comes down:
+    // out from under it past either edge of the blade (finAng: room on both sides), or off its point
+    swords: { name: ["萬劍歸一", "만검귀일"], acts: 3, run(o = {}) { // 검총주's last (11-16; 제작자 on 11-5: "화려하기만 하지 너무 쉽다", so this one
       // asks you to run, not to step). He calls the tomb's swords up out of his fan into the sky, and they come down in a
       // storm on where you stand — a whole patch of the field lit, seven swords and the blades of the tomb bursting up with
       // them — and again a breath later where you ran to: out of it by a good stride, three times. Then every sword that fell
@@ -6732,14 +7127,74 @@ sdk.initializeAsync()
       const b = G.boss; if (!b) return 1;
       for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); } // (alone on the field: what its 종전 left in the air breaks as the name goes up)
       G.warns = []; G.hazards = []; for (const c of G.cuts) c.checked = true;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       const turns = [rnd(0, Math.PI / 3), rnd(0, Math.PI / 3), rnd(0, Math.PI / 3)], tilts = []; for (let i = 0; i < 24; i++) tilts.push(rnd(-0.22, 0.22)); // (its dice, first:
       const pass = [rnd(0.08, 0.1), rnd(0.08, 0.1)]; // bossBlink below throws ink only with motion on) (how far the side lines behind you pass you, each side, × S)
+      const NS2 = ez ? 2 : hi ? 7 : 6; // (act two's storms, and their dice; act three's: the great sword's way, where you lie along it, which end its point)
+      if (act === 2) { while (turns.length < NS2) turns.push(rnd(0, Math.PI / 3)); while (tilts.length < NS2 * 7 + 3) tilts.push(rnd(-0.22, 0.22)); }
+      const d3 = act === 3 ? [rnd(0, Math.PI), rnd(0.38, 0.55), Math.random() < 0.5 ? 0 : Math.PI] : null;
       if (b.y < H * 0.17 || b.y > H * 0.33) bossBlink(clamp(b.x, W * 0.25, W * 0.75), H * 0.24); // (on its own ground first, never onto you)
+      if (act === 3) { // 一劍: the one great sword, flat across where you stand (by a wall it hangs off the edge)
+        const [g0, along, flip] = d3, D3 = 1.0, at3 = 0.1, BH = S * (ez ? 0.18 : hi ? 0.23 : 0.22), BL = S * 1.2, u = bossUnit(b.def), tint = fightTint(b.def);
+        const a0 = -along * BL, a1 = (1 - along) * BL, tipL = S * 0.3, gw = S * 0.3, gt = S * 0.045, gl = S * 0.2, gh = S * 0.035;
+        const out = [[a1, 0], [a1 - tipL, BH * 0.85], [a0 + gt, BH], [a0 + gt, BH + gw], [a0 - gt, BH + gw], [a0 - gt, gh], [a0 - gt - gl, gh], [a0 - gt - gl, -gh],
+          [a0 - gt, -gh], [a0 - gt, -BH - gw], [a0 + gt, -BH - gw], [a0 + gt, -BH], [a1 - tipL, -BH * 0.85]], knob = [a0 - gt - gl - S * 0.03, 0, S * 0.045]; // (its outline along it, from its point)
+        const sword = (fill, edge) => { // drawn along +x from where you stood
+          ctx.beginPath(); out.forEach(([a, s], i) => (i ? ctx.lineTo(a, s) : ctx.moveTo(a, s))); ctx.closePath();
+          ctx.moveTo(knob[0] + knob[2], knob[1]); ctx.arc(knob[0], knob[1], knob[2], 0, Math.PI * 2);
+          ctx.fillStyle = fill; ctx.fill(); ctx.strokeStyle = edge; ctx.lineWidth = Math.max(2, S * 0.007); ctx.lineJoin = "round"; ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(a0 + gt, 0); ctx.lineTo(a1 - tipL * 0.5, 0); ctx.strokeStyle = "rgba(255,253,244,0.8)"; ctx.lineWidth = Math.max(1.5, S * 0.005); ctx.stroke(); // (its ridge)
+        };
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const blade = (x0, y0) => { // (11-20 "탈출 방향 2개 이상": finFit, else a step off the walls — finPick; under the bar too if you are)
+              const [a3, x, y] = finFit(x0, y0, BH * 2, [g0, g0 + Math.PI / 2, g0 + Math.PI / 4, g0 - Math.PI / 4]);
+              const ang = a3 + flip, ux = Math.cos(ang), uy = Math.sin(ang), at = (a, s) => [x + ux * a - uy * s, y + uy * a + ux * s];
+              return Object.assign([
+                { p: [at(a0, -BH), at(a1 - tipL, -BH * 0.85), at(a1 - tipL, BH * 0.85), at(a0, BH)] }, { p: [at(a1 - tipL, -BH * 0.85), at(a1, 0), at(a1 - tipL, BH * 0.85)] }, // its blade and point
+                { p: [at(a0 - gt, -BH - gw), at(a0 + gt, -BH - gw), at(a0 + gt, BH + gw), at(a0 - gt, BH + gw)] }, { p: [at(a0 - gt - gl, -gh), at(a0 - gt, -gh), at(a0 - gt, gh), at(a0 - gt - gl, gh)] }, // its guard, its grip
+                { c: [...at(knob[0], knob[1]), knob[2]] }], { ang, x, y, at });
+            };
+            const [, , parts] = finPick(clamp(P.x, S * 0.04, W - S * 0.04), clamp(P.y, Math.min(H * 0.16, P.y), H - S * 0.04), blade), { ang, x, y, at } = parts, ux = Math.cos(ang), uy = Math.sin(ang);
+            w.parts = parts;
+            w.look = [{ p: out.map(([a, s]) => at(a, s)) }, { c: [...at(knob[0], knob[1]), knob[2]] }];
+            w.x = x; w.y = y; w.ang = ang;
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; bb.swing = { t: 0, ang: -Math.PI / 2 }; }
+            sfx.warn(); sfx.gather(); sfx.shing(); G.dark = Math.max(G.dark, 0.85);
+            if (reduced || !fxOn()) return;
+            if (bb) { fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H * 0.6, "#c9ccce", D3); fxFlare(bb.x, bb.y - u * 0.4, S * 0.07, "#e3e6ea", 0.9); }
+            G.parts.push({ kind: "swordArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.05, t: 0, draw(p) { // the sword itself, coming down out of the sky onto its shadow
+              const k = clamp(p.t / D3, 0, 1), sc = 1.06 - 0.06 * k * k;
+              ctx.translate(p.x, p.y - S * 0.06 * (1 - k * k)); ctx.rotate(ang); ctx.scale(sc, sc); ctx.globalAlpha = 0.15 + 0.45 * k;
+              sword("rgba(201,204,206,0.3)", "rgba(29,26,23,0.5)");
+            } });
+          },
+          fire(w) {
+            const { x, y, ang } = w;
+            finBlow(w.parts, x, y, (h, e) => { // the great sword flat on the ground a breath, and gone
+              ctx.translate(h.x, h.y); ctx.rotate(ang); ctx.globalAlpha = 1 - e * e;
+              sword("rgba(214,217,220,0.9)", "rgba(29,26,23,0.85)");
+            });
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.7; bb.raise = null; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+            sfx.issen(); sfx.burst(); sfx.clang(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 26); flash("236,238,240", 0.6);
+            impact(x, y, 1.8, "#7a7f86");
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            const ux = Math.cos(ang), uy = Math.sin(ang);
+            fxWave(x, y, S * 1.2, tint, 0.8, S * 0.05); fxWave(x, y, S * 0.6, GOLD, 0.55, S * 0.025);
+            for (let d = a0; d <= a1; d += S * 0.15) { // sparks and dust off its length, both sides
+              const px = x + ux * d, py = y + uy * d; if (px < 0 || px > W || py < 0 || py > H) continue;
+              fxFlare(px, py, S * 0.05, "#c9ccce", 0.4); fxStreaks(px, py, 2, "#e3e6ea", S * 1.0, S * 0.06, 0.35, 0.5, ang + Math.PI / 2); fxStreaks(px, py, 2, "#e3e6ea", S * 1.0, S * 0.06, 0.35, 0.5, ang - Math.PI / 2);
+            }
+            for (let i = 0; i < 16; i++) fxMote("mote", x + ux * frnd(a0, a1), y + uy * frnd(a0, a1), moteOf(b.def), true);
+          } });
+        return at3 + D3 + (ez ? 0.45 : 0.6);
+      }
       const L = lvl(), k = clamp((L - 18) / 8, 0, 1), u0 = bossUnit(b.def);
       const steel = "#c9ccce", glow = "#e3e6ea";
       // a storm: seven spots, one on you and six round it, overlapping so the patch is whole (no gap to stand in); each
       // spot r 0.095 S, the ring 0.16 S out — out of it is 0.2 S at the narrowest, 0.27 S at the widest
-      const R = S * 0.095, RING = S * 0.16, DUR = 0.85, gap2 = 0.36 - 0.1 * k, NS = 3; // (NS: storms)
+      const R = S * 0.095, RING = S * 0.16, DUR = 0.85, gap2 = act === 2 ? (ez ? 0.36 : hi ? 0.28 : 0.3) : 0.36 - 0.1 * k, NS = act === 2 ? NS2 : 3; // (NS: storms)
       const planted = [];
       const dropFx = (x, y, tilt) => { if (!reduced) G.parts.push({ kind: "fxsword", x, y, vx: 0, vy: 0, life: 0.14, t: 0, draw(p) { // a great sword dropping point first onto its spot
         const e = p.t / p.life, L0 = S * 0.13, top = p.y - S * 0.6 * (1 - e);
@@ -6757,7 +7212,7 @@ sdk.initializeAsync()
           G.warns.push({ kind: "spike", x, y, r: R, seed: (i * 1.7 + j) % 6, t: 0, dur: DUR, delay: 0,
             fire(w) {
               spikeErupt(w.x, w.y, w.r, "blade");
-              const h = plantSword(w.x, w.y, 9, true); h.tilt = tilt; planted.push(h); // (it stands there after, cutting nothing)
+              const h = plantSword(w.x, w.y, 9, true); h.tilt = tilt; h.storm = j; planted.push(h); // (it stands there after, cutting nothing)
               if (!reduced) { fxStreaks(w.x, w.y, 5, glow, S * 0.6, S * 0.045, 0.26, 1.4, -Math.PI / 2); fxFlare(w.x, w.y - S * 0.02, S * 0.03, steel, 0.22); }
             } });
           later(DUR - 0.14, () => dropFx(x, y, tilt));
@@ -6777,6 +7232,7 @@ sdk.initializeAsync()
       b.castT = b.castDur = 0.6; b.swing = { t: 0, ang: -Math.PI / 2 }; sfx.whoosh(); sfx.shing();
       storm(0);
       for (let j = 1; j < NS; j++) later(gap2 * j, () => storm(j));
+      if (act === 2 && ez) return (NS - 1) * gap2 + DUR + 0.35; // (쉬움's act two: the storms only)
       // 萬劍歸一: every sword up out of the ground and home to his hand, each down its own lit line
       const HOME = (NS - 1) * gap2 + DUR + 0.12, FLY = 0.85, CUT = HOME + FLY - (0.1 + 0.12 * k), CUTW = S * (0.32 + 0.04 * k), CUTD = 0.8;
       later(HOME, () => {
@@ -6786,11 +7242,12 @@ sdk.initializeAsync()
         [0, pass[0], -pass[1]].forEach((o, j) => { // three lying behind you, seen from him: their lines pass you 0 and o S to the side
           const d = S * (j ? 0.27 : 0.22), lat = clamp(o * S * (D + d) / D, -S * 0.2, S * 0.2);
           const x = clamp(P.x + Math.cos(back) * d - Math.sin(back) * lat, S * 0.06, W - S * 0.06), y = clamp(P.y + Math.sin(back) * d + Math.cos(back) * lat, H * 0.3, H - S * 0.06);
-          if (Math.hypot(x - P.x, y - P.y) > S * 0.14) { const h = plantSword(x, y, 9, true); h.tilt = tilts[21 + j]; planted.push(h); }
+          if (Math.hypot(x - P.x, y - P.y) > S * 0.14) { const h = plantSword(x, y, 9, true); h.tilt = tilts[NS * 7 + j]; planted.push(h); }
         });
+        if (act === 2) for (const h of planted) if (h.storm < NS - 3) { h.gone = true; h.t = Math.max(h.t, h.dur - 0.25); } // (act two: only the last three storms' fly; the rest crumble)
         let far = 0;
         for (const h of planted) {
-          if (h.t >= h.dur) continue;
+          if (h.t >= h.dur || h.gone) continue;
           const ang = Math.atan2(ty - h.y, tx - h.x), range = Math.hypot(tx - h.x, ty - h.y); far = Math.max(far, range);
           G.warns.push({ kind: "line", x: h.x, y: h.y, ang, t: 0, dur: FLY, delay: 0, fire(w) { h.t = h.dur; shoot("sword", w.x, w.y, w.ang, S * 1.7, { len: S * 0.12, r: S * 0.008, range }); if (!reduced) fxFlare(w.x, w.y, S * 0.03, glow, 0.2); } });
         }
@@ -6799,6 +7256,7 @@ sdk.initializeAsync()
         later(FLY, () => { sfx.whoosh(); sfx.shing(); }); // (they fly)
         later(FLY + far / (S * 1.7), () => { const b = G.boss; if (b && !reduced) { const u = bossUnit(b.def); fxFlare(b.x, b.y + u * 0.2, S * 0.08, glow, 0.5); fxPillar(b.x, b.y + u * 2.2, u * 1.2, H * 0.5, steel, 0.5); } });
       });
+      if (act === 2) return HOME + FLY + 0.7; // (act two: no great sword)
       // and in his hand they are one great sword, brought down through you
       later(CUT, () => {
         const b = G.boss; if (!b) return;
@@ -6854,8 +7312,15 @@ sdk.initializeAsync()
     // line. Off every lit line (keep moving while they are set: each points where you were); out from under the hand, to
     // either side. (11-17 제작자: "장 순서에 맞게 세게" — eight arrows, nine at its fiercest, flying quicker in a quicker
     // snap of time, and the hand laid the moment time comes right, 0.8 s)
-    time: { name: ["光陰如箭", "광음여전"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 逆流三連: time no longer stops; the arrows come in volleys of four from the two sides
+    // (each set level with you or a little above or below, lit as it is set), loosed, and home again quicker along the
+    // same lines, each volley set while the last is still in the air (two volleys at most: never more arrows in the air
+    // than in act one); 보통 three volleys, 어려움 three quicker and closer, 쉬움 one of three. Act three, the execution: 時, the
+    // great hand swings round to you and the whole hour it stands on — the dial's slice from its middle out past you — is
+    // lit a full second and struck: out of it to either side, or out past its rim
+    time: { name: ["光陰如箭", "광음여전"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       // (alone on the field: what its 종전 still had in the air breaks as the clock stops — its stars would come back)
       G.warns = []; later(0, () => { for (const s of G.shots) if (!s.dead && !s.drift && !s.fin) { s.dead = true; shatter(s); } }); // (a frame on: its sparks' dice never this move's)
       const L = lvl(), q = clamp((L - 18) / 8, 0, 1), u = bossUnit(b.def), m = S * 0.06;
@@ -6867,19 +7332,26 @@ sdk.initializeAsync()
       // ---- its dice, cast now: where on the edges each arrow is set (top, the sides; never the bottom, under your thumb)
       const sides = [0, 1, 2, 0, 2, 1, 0, 2, 1].slice(0, N), top0 = barTop() + S * 0.08;
       const at = sides.map((s) => (s === 0 ? [rnd(W * 0.08, W * 0.92), -m * 0.4] : [s === 1 ? -m * 0.4 : W + m * 0.4, rnd(top0, H * 0.82)]));
+      // (act two: volleys of four from the two sides, each set level with you or a little above or below, × S; act three: the
+      // hour. Neither stops time or hurries it: tREL, tFAST 0, its clock runs on)
+      const nV2 = ez ? 1 : 3, PER = ez ? 3 : 4, VG2 = hi ? 0.8 : 0.9, LIT2 = ez ? 0.8 : 0.85, SP2 = S * (hi ? 1.7 : 1.6), GAP2 = 0.09, D3 = 1.0, at3 = 0.1;
+      const offs2 = act === 2 ? Array.from({ length: nV2 * PER }, () => rnd(-0.55, 0.55)) : [], first2 = act === 2 && Math.random() < 0.5 ? 1 : 0;
+      const tREL = act === 1 ? REL : 0, tFAST = act === 1 ? FAST : 0;
+      const tEND = act === 1 ? END : act === 2 ? 0.05 + (nV2 - 1) * VG2 + (PER - 1) * GAP2 + LIT2 + (S * 1.15) / SP2 + 0.25 + (ez ? 0.05 : 0.4) : at3 + D3 + (ez ? 0.45 : 0.6);
       const cx = b.x, cy = b.y - u * 0.5, R1 = Math.max(H * 0.56, W * 0.3); // (its dial's middle, and how far it opens: its rim and hours over the field)
       const NAMES = ["子", "丑", "寅", "卯", "辰", "巳", "午", "未", "申", "酉", "戌", "亥"];
       const hand = { ang: -Math.PI / 2, aim: null, struck: -1 }, wall = { last: performance.now(), tick: 0 };
       // ---- time itself, and the great dial over the field (thin and faint: everything lit reads through it)
-      G.hazards.push({ kind: "fxtime", t: 0, dur: END, best: Infinity, near: true, dist: () => Infinity,
+      G.hazards.push({ kind: "fxtime", t: 0, dur: tEND, best: Infinity, near: true, dist: () => Infinity,
         step(dt) {
-          const t = this.t, k = t < REL ? SLOW : t < FAST ? QUICK : 1;
+          const t = this.t, k = t < tREL ? SLOW : t < tFAST ? QUICK : 1;
           if (k !== G.timeK) { G.timeK = k; if (k > 1) { sfx.whoosh(); sfx.whoosh(); } else if (k === 1) { sfx.release(); } }
           const now = performance.now(), rd = Math.min(0.1, (now - wall.last) / 1000); wall.last = now; // (its hands keep the wall clock)
-          if (t < REL) { hand.ang -= rd * 0.5; wall.tick += rd; if (wall.tick > 0.42) { wall.tick = 0; const a = audio(); if (a && !muted) woodblock(a.currentTime, 0.06, sfxBus, 620); } } // (the clock crawls back, a slow tock)
-          else if (t < FAST) hand.ang += rd * 11; // (it whirls)
+          if (t < tREL) { hand.ang -= rd * 0.5; wall.tick += rd; if (wall.tick > 0.42) { wall.tick = 0; const a = audio(); if (a && !muted) woodblock(a.currentTime, 0.06, sfxBus, 620); } } // (the clock crawls back, a slow tock)
+          else if (t < tFAST) hand.ang += rd * 11; // (it whirls)
           else if (hand.aim != null) { let d = hand.aim - hand.ang; d -= Math.round(d / (Math.PI * 2)) * Math.PI * 2; hand.ang += clamp(d, -rd * 14, rd * 14); } // (round to point at you)
-          if (t >= END - 0.05 && G.timeK !== 1) G.timeK = 1;
+          else if (act === 2) hand.ang += rd * 4; // (act two: its clock running on, quick)
+          if (t >= tEND - 0.05 && G.timeK !== 1) G.timeK = 1;
         },
         draw(h, time) {
           if (reduced) return;
@@ -6905,6 +7377,78 @@ sdk.initializeAsync()
         } });
       flash("236,224,196", 0.35); sfx.issen(); sfx.gather(); G.dark = Math.max(G.dark, 0.5);
       if (!reduced) { fxWave(cx, cy, S * 1.2, tint, 0.7, S * 0.03); fxFlare(cx, cy, S * 0.1, gold, 0.6); }
+      function loose(w, i, sp, extra) { // an arrow loosed down its lit line (i: its place in the volley)
+        // an arrow of time: a golden hand (drawn over it, below — its look, so drawn in reduced motion too), back along the
+        // same line tail first when it turns; its way home lit faintly from early in its flight (cue ≥ 0.9 s), and it is
+        // the same line it came out along
+        const sh = shoot("hand", w.x, w.y, w.ang, sp, { r: S * 0.016, cue: 0.95, ...extra });
+        G.parts.push({ kind: "fxhand", x: w.x, y: w.y, vx: 0, vy: 0, t: 0, life: 9, keep: true, ang: w.ang,
+          step(p) { if (sh.dead || !G.shots.includes(sh)) { p.t = p.life; return; } p.x = sh.x; p.y = sh.y; },
+          draw(p) {
+            const L = S * 0.07, w2 = S * 0.0065, gl = S * 0.035;
+            ctx.translate(p.x, p.y); ctx.rotate(p.ang);
+            ctx.globalAlpha = 0.55; ctx.drawImage(glowOf(gold), -gl * 1.6, -gl, gl * 3.2, gl * 2); ctx.globalAlpha = 1;
+            ctx.fillStyle = gold; ctx.strokeStyle = "#5b3a2a"; ctx.lineWidth = 1.2; ctx.lineJoin = "round";
+            ctx.beginPath(); ctx.moveTo(L * 0.5, 0); ctx.lineTo(L * 0.22, -w2 * 2.2); ctx.lineTo(L * 0.28, -w2 * 0.6); ctx.lineTo(-L * 0.36, -w2 * 0.6); ctx.lineTo(-L * 0.36, w2 * 0.6); ctx.lineTo(L * 0.28, w2 * 0.6); ctx.lineTo(L * 0.22, w2 * 2.2); ctx.closePath(); ctx.fill(); ctx.stroke(); // its pointed head and shaft
+            ctx.beginPath(); ctx.arc(-L * 0.44, 0, w2 * 1.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); // the ring at its tail, as a clock hand has
+            ctx.fillStyle = "#fff8e0"; ctx.fillRect(-L * 0.3, -w2 * 0.25, L * 0.5, w2 * 0.5);
+          } });
+        if (i === 0) { flash("255,244,214", 0.3); if (!reduced) G.shake = Math.max(G.shake, 10); sfx.lock(); }
+        const a = audio(); if (a && !muted) woodblock(a.currentTime, 0.07, sfxBus, 2000 + i * 90); // (loosed: tak-tak-tak, climbing)
+        if (!reduced) { const ex = clamp(w.x, S * 0.03, W - S * 0.03), ey = clamp(w.y, S * 0.03, H - S * 0.03); fxFlare(ex, ey, S * 0.04, gold, 0.3); fxStreaks(ex, ey, 4, gold, S * 1.2, S * 0.07, 0.3, 0.3, w.ang); }
+      }
+      if (act === 2) { // 逆流三連: volleys of four from the two sides, each set while the last is in the air
+        for (let v = 0; v < nV2; v++) for (let i = 0; i < PER; i++) {
+          const left = (i + v + first2) % 2 === 0, off = offs2[v * PER + i];
+          G.warns.push({ kind: "line", x: left ? -m * 0.4 : W + m * 0.4, y: 0, ang: 0, t: 0, dur: LIT2, delay: 0.05 + v * VG2 + i * GAP2,
+            place(w) {
+              w.x = left ? -m * 0.4 : W + m * 0.4; w.y = clamp(P.y + off * S, top0, H - m);
+              w.ang = Math.atan2(P.y - w.y, P.x - w.x); w.d = Math.hypot(P.x - w.x, P.y - w.y);
+              const a = audio(); if (a && !muted) woodblock(a.currentTime, 0.05, sfxBus, 1500 + i * 60); sfx.warn();
+              if (!reduced) fxFlare(clamp(w.x, S * 0.04, W - S * 0.04), w.y, S * 0.035, gold, 0.3);
+            },
+            fire(w) { const ret = Math.max(0.8, w.d / SP2 + 0.25); loose(w, i, SP2, { ret, retK: 1.4, range: 2 * ret * SP2 * 0.995 }); } }); // (home quicker, and gone where it was set; its way home lit ≥ 0.8 s)
+        }
+        return tEND;
+      }
+      if (act === 3) { // 時: the great hand round to you, and the hour it stands on struck
+        const EW = S * (ez ? 0.19 : hi ? 0.24 : 0.23); // (from where you stand out of it to either side)
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const wedge = (x, y) => { // (11-20: by a wall it may point a step off you, so there are two ways out of it: finPick)
+              const d = Math.max(S * 0.2, Math.hypot(x - cx, y - cy)), a0 = Math.atan2(y - cy, x - cx), hA = clamp(Math.asin(Math.min(1, (EW * ewK) / d)), 0.12 * ewK, 0.6), R = d + S * 0.32;
+              const pts = [[cx, cy]]; for (let j = 0; j <= 8; j++) { const a = a0 - hA + (2 * hA * j) / 8; pts.push([cx + Math.cos(a) * R, cy + Math.sin(a) * R]); }
+              const parts = [{ p: pts }]; parts.a0 = a0; parts.hA = hA; parts.R = R; return parts;
+            };
+            let ewK = 1, [, , parts] = finPick(P.x, P.y, wedge);
+            for (const k of [0.85, 0.7]) { if (finWays(parts) >= 2) break; ewK = k; [, , parts] = finPick(P.x, P.y, wedge); } // (in a bottom corner, a narrower hour if need be)
+            const a0 = parts.a0;
+            w.parts = parts; w.x = P.x; w.y = P.y; w.a0 = a0; w.hA = parts.hA; w.R = parts.R; hand.aim = a0;
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.85);
+            const a = audio(); if (a && !muted) for (let j = 0; j < 3; j++) woodblock(a.currentTime + j * 0.3, 0.06, sfxBus, 620 + j * 40); // (tick, tick, tick)
+            if (!reduced) fxFlare(cx, cy, S * 0.08, gold, 0.9);
+          },
+          fire(w) {
+            const { a0, hA, R } = w;
+            finBlow(w.parts, w.x, w.y, (h, e) => { // the hour struck: its slice of the dial flashing gold, the great hand down its middle
+              ctx.globalAlpha = (1 - e) * 0.85; ctx.fillStyle = hexA(gold, 0.6); finPath(h.parts); ctx.fill();
+              ctx.strokeStyle = "#fff1c8"; ctx.lineWidth = Math.max(2, S * 0.014 * (1 - e)); ctx.lineCap = "round";
+              ctx.beginPath(); ctx.moveTo(cx, cy); ctx.lineTo(cx + Math.cos(a0) * R, cy + Math.sin(a0) * R); ctx.stroke();
+            });
+            hand.struck = at3 + D3;
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; bb.swing = { t: 0, ang: a0 }; }
+            flash("255,244,214", 0.6); G.shake = Math.max(G.shake, reduced ? 0 : 24); sfx.issen(); buzz([40, 30, 90]);
+            const a = audio(); if (a && !muted) { gong(a.currentTime + 0.05, 0.1, sfxBus, 330, 2.4); woodblock(a.currentTime, 0.12, sfxBus, 900); }
+            impact(w.x, w.y, 1.6, deep);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            for (let d = S * 0.2; d < R; d += S * 0.2) for (const s2 of [-0.7, 0, 0.7]) { const g = a0 + s2 * hA, x = cx + Math.cos(g) * d, y = cy + Math.sin(g) * d; if (x < 0 || x > W || y < 0 || y > H) continue; fxFlare(x, y, S * 0.035, gold, 0.35); }
+            fxWave(cx, cy, S * 1.4, tint, 0.7, S * 0.04); fxStreaks(w.x, w.y, 14, "#fff1c8", S * 1.2, S * 0.07, 0.4);
+            for (let j = 0; j < 24; j++) { const g = frnd(0, Math.PI * 2), r = R1 * frnd(0.85, 1); fxMote("mote", cx + Math.cos(g) * r, cy + Math.sin(g) * r, gold, true); } // (the great dial gone to gold dust)
+          } });
+        return tEND;
+      }
       // ---- the arrows of time: each set at the edge, its line lit to where you are as it is set; loosed in a volley
       at.forEach(([x, y], i) => G.warns.push({ kind: "line", x: clamp(x, -m, W + m), y, ang: 0, t: 0, dur: LIT, delay: 0.05 + i * SET,
         place(w) {
@@ -6912,26 +7456,7 @@ sdk.initializeAsync()
           const a = audio(); if (a && !muted) woodblock(a.currentTime, 0.05, sfxBus, 1500 + i * 60); sfx.warn();
           if (!reduced) fxFlare(clamp(w.x, S * 0.04, W - S * 0.04), clamp(w.y, S * 0.04, H - S * 0.04), S * 0.035, gold, 0.3);
         },
-        fire(w) {
-          // an arrow of time: a golden hand (drawn over it, below — its look, so drawn in reduced motion too), back along the
-          // same line tail first when it turns; its way home lit faintly from early in its flight (cue ≥ 0.9 s), and it is
-          // the same line it came out along
-          const sh = shoot("hand", w.x, w.y, w.ang, SP, { r: S * 0.016, ret: w.d / SP + 0.35, cue: 0.95 });
-          G.parts.push({ kind: "fxhand", x: w.x, y: w.y, vx: 0, vy: 0, t: 0, life: 9, keep: true, ang: w.ang,
-            step(p) { if (sh.dead || !G.shots.includes(sh)) { p.t = p.life; return; } p.x = sh.x; p.y = sh.y; },
-            draw(p) {
-              const L = S * 0.07, w2 = S * 0.0065, gl = S * 0.035;
-              ctx.translate(p.x, p.y); ctx.rotate(p.ang);
-              ctx.globalAlpha = 0.55; ctx.drawImage(glowOf(gold), -gl * 1.6, -gl, gl * 3.2, gl * 2); ctx.globalAlpha = 1;
-              ctx.fillStyle = gold; ctx.strokeStyle = "#5b3a2a"; ctx.lineWidth = 1.2; ctx.lineJoin = "round";
-              ctx.beginPath(); ctx.moveTo(L * 0.5, 0); ctx.lineTo(L * 0.22, -w2 * 2.2); ctx.lineTo(L * 0.28, -w2 * 0.6); ctx.lineTo(-L * 0.36, -w2 * 0.6); ctx.lineTo(-L * 0.36, w2 * 0.6); ctx.lineTo(L * 0.28, w2 * 0.6); ctx.lineTo(L * 0.22, w2 * 2.2); ctx.closePath(); ctx.fill(); ctx.stroke(); // its pointed head and shaft
-              ctx.beginPath(); ctx.arc(-L * 0.44, 0, w2 * 1.6, 0, Math.PI * 2); ctx.fill(); ctx.stroke(); // the ring at its tail, as a clock hand has
-              ctx.fillStyle = "#fff8e0"; ctx.fillRect(-L * 0.3, -w2 * 0.25, L * 0.5, w2 * 0.5);
-            } });
-          if (i === 0) { flash("255,244,214", 0.3); if (!reduced) G.shake = Math.max(G.shake, 10); sfx.lock(); }
-          const a = audio(); if (a && !muted) woodblock(a.currentTime, 0.07, sfxBus, 2000 + i * 90); // (loosed: tak-tak-tak, climbing)
-          if (!reduced) { const ex = clamp(w.x, S * 0.03, W - S * 0.03), ey = clamp(w.y, S * 0.03, H - S * 0.03); fxFlare(ex, ey, S * 0.04, gold, 0.3); fxStreaks(ex, ey, 4, gold, S * 1.2, S * 0.07, 0.3, 0.3, w.ang); }
-        } }));
+        fire(w) { loose(w, i, SP, { ret: w.d / SP + 0.35 }); } }));
       // ---- time comes right, and the great hand points at you: it strikes down that line
       G.warns.push({ kind: "band", x: 0, y: 0, ang: 0, w: BW, t: 0, dur: HW, delay: HAND,
         place(w) {
@@ -6960,8 +7485,14 @@ sdk.initializeAsync()
     // lit from the talisman first). Last, the fifth thunder: a great scorch where you stand, its forks laid out to the four
     // talismans; it falls, the sky cracks white, the lightning runs down every fork into them, they burn away, and his 팔괘
     // is burned into the ground there. Lightning only (13장). Off each lit line; out of the scorch, between its forks.
-    thunder: { name: ["五雷轟頂", "오뢰굉정"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 雷雨: more talismans flung (보통 five, 어려움 six, 쉬움 three), each struck as in act
+    // one, and their lightning thrown through you two at a time — the two whose ways cross nearest square, not the last
+    // pair if it can — each pair lit before the last has gone (보통 five pairs, 어려움 seven quicker, 쉬움 one); no scorch.
+    // Act three, the execution: 天雷, one great bolt out of the sky, wide as half the field, zigzagging down to where you
+    // stand and straight down onto you, lit a full second: out of it to either side, or down past its point
+    thunder: { name: ["五雷轟頂", "오뢰굉정"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       // (alone on the field: whatever his 종전 still had lit or in the air goes as he begins)
       G.warns = []; later(0, () => { for (const s of G.shots) if (!s.dead && !s.drift && !s.fin) { s.dead = true; shatter(s); } }); // (a frame on: its sparks' dice never this move's)
       const L = lvl(), q = clamp((L - 18) / 8, 0, 1), u = bossUnit(b.def), m = S * 0.08, top = barTop() + S * 0.1;
@@ -6969,19 +7500,73 @@ sdk.initializeAsync()
       // half the field and lit 0.85 s: out of it between its forks by a long stride, 0.26 S)
       const R = S * 0.06, ARC = 0.8, GAP = 0.2 - 0.03 * q, GR = S * (0.25 + 0.02 * q);
       const gold = "#f4d03f", pale = "#fff3a8", tint = fightTint(b.def);
+      if (act === 3) { // 天雷: one great bolt, its foot on you (its joints wander, its last stretch straight down onto you)
+        const D3 = 1.0, at3 = 0.1, HB = S * (ez ? 0.19 : hi ? 0.24 : 0.23), zig = [rnd(0.5, 1), rnd(0.5, 1), rnd(0.5, 1), rnd(0.5, 1)], sg = Math.random() < 0.5 ? 1 : -1;
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            let lean = 0, thin = 1; // (11-20: in a bottom corner its last stretch comes in slanting from the open side, so the wall above you is a way out too, and thinner if need be)
+            const y0 = barTop(), bolt = (x, y) => { // (11-20: by a wall its foot may come down a step off you, so there are two ways out of it: finPick)
+              const tip = y + HB * 0.7, fr = [0, 0.22, 0.45, 0.66, 0.84], pts = fr.map((k, i) => [i === 4 ? x + lean * (y - y0) * (1 - k) : clamp(x + sg * (i % 2 ? 1 : -1) * S * 0.14 * zig[i % 4], HB, W - HB), y0 + (y - y0) * k]);
+              pts.push([x, tip]);
+              const hb = HB * thin, parts = []; for (let i = 0; i + 1 < pts.length; i++) { const [ax, ay] = pts[i], [bx2, by2] = pts[i + 1]; parts.push({ p: [[ax - hb, ay], [ax + hb, ay], [bx2 + hb, by2], [bx2 - hb, by2]] }); }
+              parts.push({ p: [[x - hb, tip], [x + hb, tip], [x, tip + hb * 0.6]] }); // (its point, driving into the ground)
+              parts.pts = pts; parts.tip = tip; return parts;
+            };
+            const bx0 = clamp(P.x, S * 0.04, W - S * 0.04), by0 = clamp(P.y, H * 0.3, H - S * 0.04);
+            let [x, y, parts] = finPick(bx0, by0, bolt);
+            for (const [ln, th] of [[0.6, 1], [1, 1], [1, 0.85], [1.5, 0.85], [1.5, 0.7]]) { if (finWays(parts) >= 2) break; lean = ln * (P.x < W / 2 ? 1 : -1); thin = th; [x, y, parts] = finPick(bx0, by0, bolt); }
+            const pts = parts.pts, tip = parts.tip;
+            w.parts = parts;
+            const hb = HB * thin; w.look = [{ p: [...pts.map(([px, py]) => [px - hb, py]), [x, tip + hb * 0.6], ...pts.slice().reverse().map(([px, py]) => [px + hb, py])] }];
+            w.x = x; w.y = y; w.pts = pts;
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.9); flash("255,248,214", 0.15);
+            const a = audio(); if (a && !muted) { gong(a.currentTime + 0.05, 0.07, sfxBus, 180, 1.8); drum(a.currentTime, 0.4, sfxBus, 70, 30, 1.2); } // (thunder rolling in)
+            if (reduced || !fxOn()) return;
+            G.parts.push({ kind: "boltArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.05, t: 0, draw(p, al, time) { // the storm gathering over it, its leader flickering down the lit way
+              const k = clamp(p.t / D3, 0, 1), g = ctx.createLinearGradient(0, 0, 0, H * 0.42);
+              g.addColorStop(0, `rgba(22,20,34,${0.55 * Math.min(1, p.t / 0.3)})`); g.addColorStop(1, "rgba(22,20,34,0)"); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H * 0.42);
+              if (Math.sin(time * 31) < 0.2 - 0.6 * k) return; // (flickering, steadier as it comes)
+              ctx.lineJoin = "round"; ctx.lineCap = "round"; ctx.globalAlpha = 0.35 + 0.5 * k;
+              for (const [lw, c] of [[S * 0.02, "rgba(255,243,168,0.5)"], [S * 0.006, "rgba(255,251,230,0.95)"]]) { ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke(); }
+            } });
+          },
+          fire(w) {
+            const pts = w.pts, x = w.x, y = w.y;
+            finBlow(w.parts, x, y, (h, e) => { // the great bolt itself, a breath, burning out
+              ctx.lineJoin = "round"; ctx.lineCap = "round"; const a = 1 - e;
+              for (const [lw, c] of [[HB * 1.7, `rgba(244,208,63,${0.3 * a})`], [HB * 0.7, `rgba(244,208,63,${0.85 * a})`], [HB * 0.25, `rgba(255,251,230,${a})`]]) {
+                ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.stroke();
+              }
+            });
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+            flash("255,252,235", reduced ? 0.25 : 0.7); G.shake = Math.max(G.shake, reduced ? 0 : 26); sfx.issen(); sfx.burst(); buzz([40, 30, 90]);
+            const a = audio(); if (a && !muted) gong(a.currentTime + 0.03, 0.1, sfxBus, 160, 2.2);
+            impact(x, y, 1.8, "#d9b23a"); stain(x, y, HB * 0.7);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            fxFlare(x, y, S * 0.24, gold, 0.6); fxFlare(x, y, S * 0.1, "#ffffff", 0.45); fxPillar(x, y + S * 0.02, HB * 1.2, H, pale, 0.7);
+            fxWave(x, y, S * 1.2, tint, 0.8, S * 0.05); fxWave(x, y, S * 0.6, pale, 0.55, S * 0.025);
+            for (let i = 0; i < 8; i++) fxStreaks(x, y, 3, i % 2 ? "#ffffff" : gold, S * 1.3, S * 0.08, 0.4, 0.3, (i * Math.PI) / 4);
+            for (const [px, py] of pts) spark(px, py, 5);
+            for (let i = 0; i < 14; i++) fxMote("ash", x + frnd(-HB, HB), y + frnd(-HB * 0.5, HB * 0.5), "#5b5248", true);
+          } });
+        return at3 + D3 + (ez ? 0.45 : 0.6);
+      }
       // ---- its dice, all cast now: where the four talismans stand (about the field, never by you, the boss or each other)
-      const fu = [];
-      for (let i = 0; i < 80 && fu.length < 4; i++) {
+      const fu = [], NT = act === 2 ? (ez ? 3 : hi ? 6 : 5) : 4; // (act two: more of them)
+      for (let i = 0; i < 80 && fu.length < NT; i++) {
         const x = rnd(m, W - m), y = rnd(Math.max(top, H * 0.36), H - m);
         if (Math.hypot(x - P.x, y - P.y) < S * 0.3 || fu.some((f) => Math.hypot(f.x - x, f.y - y) < S * 0.3) || Math.hypot(x - b.x, y - b.y) < S * 0.3) continue;
         fu.push({ x, y, at: 0, hit: -1, gone: -1, spin: rnd(-0.3, 0.3) });
       }
-      while (fu.length < 4) fu.push({ x: [m, W - m, m, W - m][fu.length], y: [H * 0.45, H * 0.45, H - m, H - m][fu.length], at: 0, hit: -1, gone: -1, spin: 0 });
+      while (fu.length < NT) fu.push({ x: [m, W - m, m, W - m, W / 2, W / 2][fu.length], y: [H * 0.45, H * 0.45, H - m, H - m, H * 0.62, H - m][fu.length], at: 0, hit: -1, gone: -1, spin: 0 });
       const T0 = 0.0, FLY = 0.3, HIT0 = 0.3, HITW = 0.75, D0 = HIT0 + HITW + 0.05, BIG = D0 + 3 * GAP + 0.5, BW = 0.85, END = BIG + BW + 0.65;
+      const nP2 = ez ? 1 : hi ? 7 : 5, PG2 = ez ? 0.5 : hi ? 0.42 : 0.48, D2 = HIT0 + 0.45, tEND = act === 2 ? D2 + (nP2 - 1) * PG2 + ARC + 0.45 : END; // (act two: its pairs, the first lit as the talismans are struck)
       const bx0 = b.x, by0 = b.y + u * 0.3;
       // ---- the storm over the top of the screen, the sky flickering in it; the talismans themselves (drawn over the field)
       const sky = { flick: 0, fx: W / 2 };
-      G.hazards.push({ kind: "fxthunder", t: 0, dur: END + 0.2, best: Infinity, near: true, dist: () => Infinity,
+      G.hazards.push({ kind: "fxthunder", t: 0, dur: tEND + 0.2, best: Infinity, near: true, dist: () => Infinity,
         step(dt) { if ((sky.flick -= dt) < -frnd(0.25, 0.6)) { sky.flick = 0.12; sky.fx = frnd(0, W); } },
         draw(h, time) {
           const a = Math.min(1, h.t / 0.4) * Math.min(1, Math.max(0, (h.dur - h.t) / 0.4));
@@ -7018,7 +7603,7 @@ sdk.initializeAsync()
       fu.forEach((f, i) => {
         G.warns.push({ kind: "spike", x: f.x, y: f.y, r: R, seed: i * 1.3, t: 0, dur: HITW, delay: HIT0 + i * 0.05,
           fire(w) { strike(w); f.hit = HIT0 + i * 0.05 + HITW; if (!reduced) fxPillar(f.x, f.y, S * 0.06, f.y + S * 0.05, gold, 0.4); } });
-        G.warns.push({ kind: "line", x: f.x, y: f.y, ang: 0, t: 0, dur: ARC, delay: D0 + i * GAP,
+        if (act !== 2) G.warns.push({ kind: "line", x: f.x, y: f.y, ang: 0, t: 0, dur: ARC, delay: D0 + i * GAP,
           place(w) { w.ang = Math.atan2(P.y - f.y, P.x - f.x); sfx.warn(); snd((t) => drum(t, 0.2, sfxBus, 140, 70, 0.25)); },
           fire(w) {
             const far = Math.hypot(W, H); zapSeg(f.x, f.y, f.x + Math.cos(w.ang) * far, f.y + Math.sin(w.ang) * far);
@@ -7026,6 +7611,31 @@ sdk.initializeAsync()
             if (!reduced) { fxFlare(f.x, f.y, S * 0.05, gold, 0.3); fxStreaks(f.x, f.y, 6, pale, S * 1.4, S * 0.08, 0.3, 0.2, w.ang); }
           } });
       });
+      if (act === 2) { // 雷雨: two talismans' lightning through you at once, crossing
+        let last = [];
+        for (let p = 0; p < nP2; p++) {
+          const pr = {};
+          const choose = () => { // (as the pair is lit: of those not by you, the two whose ways through you cross nearest square)
+            if (pr.f) return;
+            const ok = fu.filter((f) => Math.hypot(f.x - P.x, f.y - P.y) >= S * 0.25), pool = ok.length >= 2 ? ok : fu.slice();
+            let bs = -Infinity;
+            for (let i = 0; i < pool.length; i++) for (let j = i + 1; j < pool.length; j++) {
+              const A = pool[i], B = pool[j], sc = Math.abs(Math.sin(Math.atan2(P.y - A.y, P.x - A.x) - Math.atan2(P.y - B.y, P.x - B.x))) - (last.includes(A) ? 0.5 : 0) - (last.includes(B) ? 0.5 : 0);
+              if (sc > bs) { bs = sc; pr.f = [A, B]; }
+            }
+            last = pr.f;
+          };
+          for (const slot of [0, 1]) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: ARC, delay: D2 + p * PG2,
+            place(w) { choose(); const f = pr.f[slot]; w.x = f.x; w.y = f.y; w.ang = Math.atan2(P.y - f.y, P.x - f.x); if (!slot) { sfx.warn(); snd((t) => drum(t, 0.2, sfxBus, 140, 70, 0.25)); } },
+            fire(w) {
+              const f = pr.f[slot], far = Math.hypot(W, H); zapSeg(w.x, w.y, w.x + Math.cos(w.ang) * far, w.y + Math.sin(w.ang) * far);
+              f.hit = D2 + p * PG2 + ARC;
+              if (!reduced) { fxFlare(w.x, w.y, S * 0.05, gold, 0.3); fxStreaks(w.x, w.y, 6, pale, S * 1.4, S * 0.08, 0.3, 0.2, w.ang); }
+            } });
+        }
+        fu.forEach((f) => { f.gone = tEND - 0.4; }); // (they burn away as it ends)
+        return tEND;
+      }
       // ---- 轟頂: the fifth thunder, on you: a great scorch, its forks laid out to the four talismans; it falls, and the
       // lightning runs out down every fork at once (nothing joins the talismans round you: the field stays open)
       const big = {};
@@ -7068,8 +7678,15 @@ sdk.initializeAsync()
     // were as it lit (11-10). Every die cast here; the places it reads off your path are where you went, not dice.
     // (11-17 제작자: "장 순서에 맞게 세게" — five goblin fires, six at its fiercest, closer together and quicker; the ones you
     // were stand up sooner and closer together; the chain comes as they run, 0.8 s)
-    shadow: { name: ["勾魂奪魄", "구혼탈백"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 百魂: the goblin fires again as in act one (as many, as far apart: never more of them
+    // in the air), and among them the ones you were stand up one after another where you walked 0.9 s before (round you if
+    // you stood) and run through where you are, each lit before the last has run (보통 six, 어려움 seven closer together,
+    // 쉬움 two after three fires); no chain. Act three, the execution: 勾魂, three soul chains at once, from its hand and
+    // from two goblin fires hung at the rim a third of the way round you either side, all to where you stand, lit a full
+    // second as they are let out, and pulled taut: out between any two of them
+    shadow: { name: ["勾魂奪魄", "구혼탈백"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       // (redundant once startFinale clears the field, as agreed for integration) alone on the field: what its 종전 left (its shadow still walking your path, a shadow's run, a goblin fire in the air)
       // goes as it calls this (measured 11-16: they outlived the 종전 by up to a second and cut into this)
       for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
@@ -7077,10 +7694,76 @@ sdk.initializeAsync()
       G.hazards = G.hazards.filter((h) => h.kind === "ctl" && !h.path); G.warns = G.warns.filter((w) => w.kind === "none");
       const L = lvl(), q = clamp((L - 14) / 8, 0, 1), q2 = clamp((L - 20) / 6, 0, 1), u = bossUnit(b.def), tint = fightTint(b.def); // (q2: 보통 against 어려움, q being full on both)
       const WISP = "#8fd0c8", PALE = "#e6fbf6", top = barTop() + S * 0.05, m = S * 0.05;
+      if (act === 3) { // 勾魂: three soul chains to where you stand (its hand, and two goblin fires at the rim 120° round either side)
+        const D3 = 1.0, at3 = 0.1, HC = S * (ez ? 0.13 : hi ? 0.17 : 0.16), dl = [rnd(-0.25, 0.25), rnd(-0.25, 0.25)];
+        const rim = (x, y, a) => { // where the way from (x, y) at a meets the rim of the field
+          const ux = Math.cos(a), uy = Math.sin(a), x0 = m, x1 = W - m, y0 = top + S * 0.04, y1 = H - m; let t = Infinity;
+          if (ux > 1e-6) t = Math.min(t, (x1 - x) / ux); else if (ux < -1e-6) t = Math.min(t, (x0 - x) / ux);
+          if (uy > 1e-6) t = Math.min(t, (y1 - y) / uy); else if (uy < -1e-6) t = Math.min(t, (y0 - y) / uy);
+          return [x + ux * Math.max(0, t), y + uy * Math.max(0, t)];
+        };
+        const links = (ax, ay, x, y, k, taut, time) => { // a great chain from (ax, ay) toward (x, y), let out k of the way
+          const L = Math.hypot(x - ax, y - ay) * k, ang = Math.atan2(y - ay, x - ax), ux = Math.cos(ang), uy = Math.sin(ang), st = HC * 0.75;
+          ctx.lineWidth = Math.max(2, HC * 0.12);
+          for (let d = 0, i = 0; d < L; d += st, i++) {
+            const wv = taut ? 0 : Math.sin(time * 9 + d * 0.05) * HC * 0.25 * (d / Math.max(1, L)), px = ax + ux * d - uy * wv, py = ay + uy * d + ux * wv;
+            ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.strokeStyle = i % 2 ? "#5d6168" : "#8a8780";
+            ctx.beginPath(); ctx.ellipse(0, 0, st * 0.62, st * (i % 2 ? 0.14 : 0.3), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+          }
+        };
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const bb = G.boss || b, hx = bb.x + u * 1.15, hy = bb.y + u * 1.2, chains = (x, y) => { // (11-20: by a wall they may meet a step off you: finPick)
+              const a0 = Math.atan2(hy - y, hx - x), ah = Math.atan2(P.y - y, P.x - x), far = Math.hypot(P.x - x, P.y - y) > S * 0.02;
+              const way = (g) => (far && Math.abs(Math.atan2(Math.sin(g - ah), Math.cos(g - ah))) < Math.PI / 3 ? ah : g); // (met a step off you, the chain on your side runs through you)
+              const end = (g) => { const g2 = way(g), r = rim(x, y, g2); return g2 === ah && Math.hypot(r[0] - x, r[1] - y) < Math.hypot(P.x - x, P.y - y) ? [P.x, P.y] : r; }; // (its fire at your feet if the rim is nearer)
+              const anc = [[hx, hy], end(a0 + (2 * Math.PI) / 3 + dl[0]), end(a0 - (2 * Math.PI) / 3 + dl[1])];
+              const parts = anc.map(([ax, ay]) => ({ s: [ax, ay, x, y, HC * thin] })); parts.anc = anc; return parts;
+            };
+            let thin = 1, [x, y, parts] = finPick(clamp(P.x, m, W - m), clamp(P.y, top, H - m), chains);
+            for (const th of [0.85, 0.7]) { if (finWays(parts) >= 2) break; thin = th; [x, y, parts] = finPick(clamp(P.x, m, W - m), clamp(P.y, top, H - m), chains); } // (in a corner, thinner chains if need be)
+            const anc = parts.anc;
+            w.parts = parts; w.x = x; w.y = y; w.anc = anc;
+            bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 };
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.9);
+            if (reduced || !fxOn()) return;
+            fxPillar(bb.x, bb.y + u * 2.2, u * 1.2, u * 6, WISP, D3);
+            G.parts.push({ kind: "chainArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.05, t: 0, draw(p, al, time) { // the chains let out toward you, a goblin fire at each end
+              const k = clamp(p.t / D3, 0, 1), out = 0.25 + 0.75 * (1 - (1 - k) ** 2);
+              ctx.globalAlpha = 0.45 + 0.45 * k;
+              for (const [ax, ay] of anc) links(ax, ay, x, y, out, false, time);
+              for (const [ax, ay] of anc.slice(1)) { const r = S * 0.024; ctx.globalAlpha = 0.8; ctx.drawImage(glowOf(WISP), ax - r * 4, ay - r * 4, r * 8, r * 8); ctx.fillStyle = "rgba(127,200,214,0.9)"; ctx.beginPath(); ctx.arc(ax, ay, r, 0, Math.PI * 2); ctx.fill(); }
+            } });
+          },
+          fire(w) {
+            const { x, y, anc } = w;
+            finBlow(w.parts, x, y, (h, e, time) => { // pulled taut, ghost fire running up them, gone
+              ctx.globalAlpha = 1 - e;
+              for (const [ax, ay] of anc) {
+                links(ax, ay, x, y, 1, true, time);
+                ctx.strokeStyle = WISP; ctx.lineCap = "round"; ctx.lineWidth = HC * 1.4 * (1 - e) + 1; ctx.globalAlpha = 0.35 * (1 - e);
+                ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(x, y); ctx.stroke(); ctx.globalAlpha = 1 - e;
+              }
+            });
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+            sfx.clang(); sfx.issen(); sfx.burst(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("214,246,240", 0.6);
+            impact(x, y, 1.6, tint);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            for (const [ax, ay] of anc) {
+              const L = Math.hypot(x - ax, y - ay), ang = Math.atan2(y - ay, x - ax);
+              for (let d = S * 0.1; d < L; d += S * 0.16) { const px = ax + Math.cos(ang) * d, py = ay + Math.sin(ang) * d; fxPillar(px, py + S * 0.02, S * 0.05, S * 0.4, WISP, 0.45); fxFlare(px, py, S * 0.03, PALE, 0.25); }
+              fxStreaks(x, y, 6, WISP, S * 1.2, S * 0.07, 0.4, 0.4, ang + Math.PI);
+            }
+            fxWave(x, y, S * 1.0, tint, 0.7, S * 0.04); fxWave(x, y, S * 0.5, PALE, 0.5, S * 0.02);
+            for (let i = 0; i < 16; i++) fxMote("wisp", x + frnd(-HC, HC), y + frnd(-HC, HC), WISP, true);
+          } });
+        return at3 + D3 + (ez ? 0.45 : 0.6);
+      }
       // the goblin fires: where each hangs, left and right by turns, and in what order they go
       const left = [[W * 0.12, Math.max(top + S * 0.06, H * 0.21)], [m, H * 0.45], [m, H * 0.7]], right = [[W * 0.88, Math.max(top + S * 0.06, H * 0.21)], [W - m, H * 0.5], [W - m, H * 0.76]];
       for (const s of [left, right]) for (let i = s.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [s[i], s[j]] = [s[j], s[i]]; }
-      const nL = q2 >= 0.5 ? 6 : 5, first = Math.random() < 0.5 ? left : right, second = first === left ? right : left;
+      const nL = act === 2 && ez ? 3 : q2 >= 0.5 ? 6 : 5, first = Math.random() < 0.5 ? left : right, second = first === left ? right : left;
       const spots = []; for (let k = 0; k < nL; k++) spots.push((k % 2 ? second : first)[k >> 1]);
       const backA = rnd(0, Math.PI * 2); // (if you have stood still, your shadows stand round you from here)
       const ctl = { kind: "ctl", t: 0, dur: 6, best: Infinity, near: true, path: [[0, P.x, P.y]], lamps: [], risers: [], chain: null,
@@ -7147,7 +7830,8 @@ sdk.initializeAsync()
           } });
       });
       // 追魂: the ones you were a moment ago, where you walked (or, if you stood, round you), each run through where you are
-      const nR = 3, rd = [1.45, 1.57, 1.69], backs = [1.35, 1.0, 0.65];
+      const nR = act === 2 ? (ez ? 2 : hi ? 7 : 6) : 3, R0 = ez ? 0.55 : 0.7, RG = hi ? 0.36 : 0.4; // (act two: more of them, each where you were 0.9 s before)
+      const rd = act === 2 ? Array.from({ length: nR }, (_, i) => R0 + i * RG) : [1.45, 1.57, 1.69], backs = act === 2 ? Array(nR).fill(0.9) : [1.35, 1.0, 0.65];
       const riserAt = (i) => {
         let [, x, y] = ctl.at(backs[i]);
         const d = Math.hypot(x - P.x, y - P.y);
@@ -7179,6 +7863,7 @@ sdk.initializeAsync()
           } });
         ctl.risers.push(s);
       }
+      if (act === 2) return R0 + (nR - 1) * RG + 0.85 + (ez ? 0.35 : 0.6); // (act two: no chain)
       // 勾魂索: the soul chain from its hand through you, the length of the field
       const tC = 2.15, cw = S * (0.12 + 0.02 * q), CD = 0.8;
       G.warns.push({ kind: "band", x: 0, y: 0, ang: 0, w: cw, t: 0, dur: CD, delay: tC,
@@ -7220,12 +7905,63 @@ sdk.initializeAsync()
     // nothing aims (violet, never red). Its dice are cast as it starts (where the first seam falls, how far each steps, where
     // the crossbar lies); the half you stand in wakes first, each seam steps from the last, and the first pair of wings to
     // wake is the one you stand in.
-    swarm: { name: ["胡蝶之夢", "호접지몽"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 胡蝶亂舞: no halves now, only her four wings, beating faster and on top of each other —
+    // each pair of wings shows as the last pair begins to pour (wait for it to pass, then across), and the cross of them a step
+    // aside each time (보통 and 어려움 two beats, 쉬움 one). Act three, the execution, 胡蝶一夢: the dream's great butterfly
+    // settles on you, its body through where you stand and its four wings spread from it; the way out is between fore- and
+    // hindwing, either side (lit a full second; it lies the way that leaves room on both sides)
+    swarm: { name: ["胡蝶之夢", "호접지몽"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
       for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); } // (alone on the field: what its 종전 left breaks — redundant once startFinale clears the field, as agreed for integration)
       G.hazards = G.hazards.filter((h) => h.kind === "ctl" && !h.path); G.warns = G.warns.filter((w) => w.kind === "none");
       const lv = SL().lv || 0, lo = lv < 9, hi = lv >= 11, u = bossUnit(b.def), ACC = b.def.accent || "#7b4a9e", LIL = "#d9a6ea", fr = S * 0.02;
       const RK = (G.timeK || 1) * (G.bossK || 1), top = barTop(); // (RK: game seconds a wall second — its warnings are set by the wall clock)
+      const act = o.act || 1; // (o.act: FIN_ACTS)
+      if (act === 3) { // 胡蝶一夢: the great butterfly on you (body HB either side of you, the notch between its wings ±g, open to the side)
+        const D3 = 1.0, at3 = 0.1, HB = S * (lo ? 0.11 : hi ? 0.14 : 0.13), g = S * (lo ? 0.09 : hi ? 0.07 : 0.075), LB = S * 0.22, m3 = S * 0.04;
+        const fore = (s) => [[-g, s * HB * 0.7], [-g - S * 0.02, s * S * 0.48], [-S * 0.18, s * S * 0.6], [-S * 0.34, s * S * 0.62], [-S * 0.47, s * S * 0.52], [-S * 0.52, s * S * 0.36], [-S * 0.44, s * HB * 0.7]];
+        const hind = (s) => [[g, s * HB * 0.7], [g + S * 0.015, s * S * 0.38], [S * 0.18, s * S * 0.46], [S * 0.32, s * S * 0.42], [S * 0.43, s * S * 0.28], [S * 0.38, s * HB * 0.7]];
+        const wingArt = (w, al, glow, time) => { // her butterfly over you: violet wings, dark veins, an eye on each forewing, its body in ink
+          const { pt } = w, pulse = 0.5 + 0.5 * Math.sin(time * 9);
+          ctx.globalAlpha = al; ctx.lineJoin = "round";
+          for (const s of [-1, 1]) for (const [ps, fw] of [[fore(s), true], [hind(s), false]]) {
+            ctx.beginPath(); ps.forEach(([a, c], i) => { const [x, y] = pt(a, c); i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }); ctx.closePath();
+            ctx.fillStyle = hexA(fw ? ACC : "#4a2a5e", 0.35 + 0.4 * glow); ctx.fill();
+            ctx.strokeStyle = hexA(LIL, 0.55 + 0.35 * (glow || pulse * 0.4)); ctx.lineWidth = Math.max(1.5, S * 0.005); ctx.stroke();
+            if (fw) { const [ex, ey] = pt(-S * 0.32, s * S * 0.42); ctx.fillStyle = hexA(LIL, 0.5 + 0.5 * glow); ctx.beginPath(); ctx.arc(ex, ey, S * 0.035, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "rgba(29,26,23,0.8)"; ctx.beginPath(); ctx.arc(ex, ey, S * 0.015, 0, Math.PI * 2); ctx.fill(); }
+          }
+          const [hx, hy] = pt(-LB, 0), [tx, ty] = pt(LB, 0);
+          ctx.strokeStyle = "rgba(29,26,23,0.75)"; ctx.lineCap = "round"; ctx.lineWidth = HB * 0.9; ctx.beginPath(); ctx.moveTo(hx, hy); ctx.lineTo(tx, ty); ctx.stroke();
+          ctx.lineWidth = Math.max(1.5, S * 0.005); ctx.beginPath(); for (const s of [-1, 1]) { const [ax, ay] = pt(-LB - HB * 0.6, s * HB * 0.2), [bx2, by2] = pt(-LB - S * 0.16, s * S * 0.12); ctx.moveTo(ax, ay); ctx.quadraticCurveTo(...pt(-LB - S * 0.14, s * S * 0.02), bx2, by2); } ctx.stroke(); // (its feelers)
+        };
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const fly = (x0, y0) => { // (11-20 "탈출 방향 2개 이상": its way and its body moved off you as finFit says, else a step off the walls: finPick)
+              const [a, x, y] = finFit(x0, y0, HB * 2, [Math.PI / 2, 0, Math.PI / 4, -Math.PI / 4], { slant: false }); // (out through the notch, straight)
+              const ca = Math.cos(a), sa = Math.sin(a), pt = (p, q) => [x + ca * p - sa * q, y + sa * p + ca * q];
+              const parts = [{ s: [...pt(-LB, 0), ...pt(LB, 0), HB] }, ...[-1, 1].flatMap((s) => [{ p: fore(s).map(([p, q]) => pt(p, q)) }, { p: hind(s).map(([p, q]) => pt(p, q)) }])];
+              return Object.assign(parts, { a, x, y, pt });
+            };
+            const [, , parts] = finPick(clamp(P.x, m3, W - m3), clamp(P.y, Math.min(top + S * 0.04, P.y), H - m3), fly), { x, y, pt } = parts; // (under the bar too if you are: in a top corner, two ways out)
+            w.parts = parts; w.x = x; w.y = y; w.pt = pt;
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.9); flash("214,190,232", 0.15);
+            if (reduced || !fxOn()) return;
+            for (let i = 0; i < 16; i++) fxMote("scale", x + frnd(-S * 0.4, S * 0.4), y + frnd(-S * 0.4, S * 0.4), i % 2 ? LIL : ACC, true);
+            G.parts.push({ kind: "swarmArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.05, t: 0, draw(p, al, time) { wingArt(w, 0.25 + 0.5 * clamp(p.t / D3, 0, 1), 0, time); } }); // (it gathers out of the dream over you)
+          },
+          fire(w) {
+            const { x, y } = w;
+            finBlow(w.parts, x, y, (h, e, time) => wingArt(w, 1 - e, 1 - e, time)); // (its wings beat once, down, and it is gone)
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+            sfx.rush(); sfx.issen(); sfx.burst(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 22); flash("236,214,246", 0.6);
+            impact(x, y, 1.6, ACC); meet(x, y, 1.4, true);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            for (const s of [-1, 1]) { const [ex, ey] = w.pt(-S * 0.3, s * S * 0.4), [hx, hy] = w.pt(S * 0.3, s * S * 0.3); fxFlare(ex, ey, S * 0.06, LIL, 0.3); fxStreaks(ex, ey, 6, LIL, S * 0.9, S * 0.05, 0.35); fxStreaks(hx, hy, 5, ACC, S * 0.8, S * 0.05, 0.35); }
+          } });
+        return at3 + D3 + (lo ? 0.35 : 0.6);
+      }
       // Its dice, all here: where the first seam falls, how far each seam steps into the half that has just poured, where the
       // four wings' crossbar lies
       const sx1 = W / 2 + S * rnd(-0.06, 0.06), STEP = S * (lo ? rnd(0.05, 0.07) : rnd(0.13, 0.17)), yc = clamp(H * rnd(0.55, 0.68), top + S * 0.35, H - S * 0.35);
@@ -7234,16 +7970,25 @@ sdk.initializeAsync()
       // warning. However far you stand from the way out as it shows, the warning is long enough to see it (0.25 s by the wall
       // clock) and get out at keyboard speed (SPEED, a game second's worth) with REACH_PAD to spare, longer if need be (never
       // shorter), and what comes after it waits as long — as 적염's great blaze and 청우's runs are kept in keyboard reach
-      const nHalf = hi ? 3 : 2, nWing = lo ? 1 : 2, LAP = 0.05, REACH_PAD = 0.05;
-      const D1 = lo ? 1.1 : 1.0, DH = lo ? 1.0 : hi ? 0.8 : 0.82, DW = lo ? 1.0 : hi ? 0.8 : 0.82, DW2 = hi ? 0.7 : 0.74, PH = 0.36, PW = 0.32;
+      // (act two: wings only, two beats (one at 쉬움, and at 어려움: 11-20, its three acts 11.4 s → about 10.5), each shown as the
+      // last begins to pour — LAP its whole torrent and a breath: the reach it is kept in counts that wait — and the cross of
+      // them a step aside each time: cx2, cy2)
+      const nHalf = act === 2 ? 0 : hi ? 3 : 2, nWing = act === 2 ? (lo || hi ? 1 : 2) : lo ? 1 : 2, LAP = act === 2 ? 0.37 : 0.05, REACH_PAD = 0.05;
+      const D1 = lo ? 1.1 : 1.0, DH = lo ? 1.0 : hi ? 0.8 : 0.82, DW = act === 2 ? (lo ? 0.9 : hi ? 0.8 : 0.85) : lo ? 1.0 : hi ? 0.8 : 0.82, DW2 = act === 2 ? (hi ? 0.76 : 0.8) : hi ? 0.7 : 0.74, PH = 0.36, PW = 0.32;
+      const sg2 = act === 2 ? [Math.random() < 0.5 ? 1 : -1, Math.random() < 0.5 ? 1 : -1] : [1, 1], cx2 = [0], cy2 = [0];
+      if (act === 2) for (let i = 1; i < nWing; i++) { cx2.push(cx2[i - 1] + (i % 2 ? sg2[0] : -sg2[0]) * S * rnd(0.08, 0.13)); cy2.push(cy2[i - 1] + (i % 2 ? sg2[1] : -sg2[1]) * S * rnd(0.06, 0.11)); }
       const beats = [];
       for (let i = 0; i < nHalf; i++) beats.push({ half: true, D: i ? DH : D1, Pd: PH });
-      for (let i = 0; i < nWing; i++) beats.push({ half: false, D: i ? DW2 : DW, Pd: PW });
+      for (let i = 0; i < nWing; i++) beats.push({ half: false, D: i ? DW2 : DW, Pd: PW, i });
       // where each beat wakes: { half, sx: its seam, side: -1 the half left of it, 1 the right } or { sx, sy, quads: [[a, c], …] }
       // (a: -1 left of the seam, 1 right; c: -1 above the crossbar, 1 below)
       let last = null;
       const regionOf = (bt) => {
         if (bt.half) return last ? { half: true, sx: clamp(last.sx + last.side * STEP, S * 0.28, W - S * 0.28), side: -last.side } : { half: true, sx: sx1, side: P.x <= sx1 ? -1 : 1 };
+        if (act === 2) { // (act two: the pair you stand in, about the cross where it has stepped to)
+          const sx = clamp(sx1 + cx2[bt.i], S * 0.3, W - S * 0.3), sy = clamp(yc + cy2[bt.i], top + S * 0.3, H - S * 0.3), a = P.x < sx ? -1 : 1, c = P.y < sy ? -1 : 1;
+          return { sx, sy, quads: [[a, c], [-a, -c]] };
+        }
         if (!last.half) return { sx: last.sx, sy: last.sy, quads: last.quads.map(([a, c]) => [-a, c]) }; // (the other two)
         const a = P.x < last.sx ? -1 : 1, c = P.y < yc ? -1 : 1;
         return { sx: last.sx, sy: yc, quads: [[a, c], [-a, -c]] };
@@ -7414,7 +8159,7 @@ sdk.initializeAsync()
           },
           draw(hz, time) { drawPour(hz, ms, lead, time); } };
         G.hazards.push(h); sfx.warn();
-        if (!r.half && !dream.cross) dream.cross = { x: r.sx, y: r.sy, at: dream.t };
+        if (!r.half) { if (!dream.cross) dream.cross = { x: r.sx, y: r.sy, at: dream.t }; else { dream.cross.x = r.sx; dream.cross.y = r.sy; } } // (act two: the great butterfly over the cross, wherever it steps)
         return h;
       };
       if (!reduced) { G.dark = Math.max(G.dark, 0.8); fxWave(b.x, b.y, S * 0.8, ACC, 0.6, S * 0.03); for (let i = 0; i < 18; i++) fxMote("scale", b.x + frnd(-u * 3, u * 3), b.y + frnd(-u * 2, u), LIL, true); }
@@ -7423,7 +8168,7 @@ sdk.initializeAsync()
       const go = (i) => { // beat i shows: where it wakes, its warning (kept in keyboard reach), and then the next
         const bt = beats[i], r = (last = regionOf(bt)), D = Math.max(bt.D, 0.25 + LAP + REACH_PAD + outOf(r, P.x, P.y) / (SPEED() * RK)), more = (D - bt.D) * RK;
         if (!i) more0 = more; else if (more > 0) { const f = G.fight; if (f && f.fin && f.busy > 0 && f.busy < Infinity) f.busy += more; }
-        const h = pour(r, D, bt.Pd, !i);
+        const h = pour(r, D, bt.Pd, !i && r.half); // (the first seam drops from her feet; act two opens on her wings)
         if (i + 1 < beats.length) later(h.warn + h.len - LAP * RK, () => go(i + 1));
         else later(h.warn + h.len, wake);
       };
@@ -7436,15 +8181,21 @@ sdk.initializeAsync()
         sfx.issen(); sfx.burst(); buzz([30, 20, 60]); G.shake = Math.max(G.shake, reduced ? 0 : 14); flash("236,214,246", 0.4);
       };
       go(0);
-      return (beats.reduce((s, bt) => s + bt.D + bt.Pd - LAP, LAP) + 0.55) * RK + more0;
+      return (beats.reduce((s, bt) => s + bt.D + bt.Pd - LAP, LAP) + (act === 2 ? 0.2 : 0.55)) * RK + more0;
     } },
     // 화륜's last (11-15 제작자: "보스마다 종전 전용 마무리 기술"): 燎原 — the plain set alight. Two wheels flung at the side
     // walls rebound through you (each one's way back lit before it turns), two more a breath on, steeper, every track left
     // burning a moment; then the boy himself, down his own road through you on his wheel, and the whole road he ran goes
     // up in fire behind him, ending in a blaze at the wall. Its dice all cast here; the ways back aim where you stand as
     // they are lit.
-    wheel: { name: ["燎原火輪", "요원화륜"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 燎原: only the wheels, pair after pair (보통·어려움 three, 쉬움 one), quicker than in act
+    // one and each pair a step steeper back through you, their tracks burning as before — but never more wheels in the air
+    // than act one had (four): the next pair is lit half a second after the last and only once no more than two are out or
+    // coming. No road. Act three, the execution, 火輪印: it flings one great wheel up and it comes down flat on you, burning its
+    // print into the ground — a hub on you, its spokes, its rim — lit a full second; out between any two spokes
+    wheel: { name: ["燎原火輪", "요원화륜"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       // (alone on the field: whatever its 종전 still had in the air breaks as the name goes up — 11-16, the harness caught a
       // 종전 throw landing a breath into the finishing move)
       for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
@@ -7456,11 +8207,62 @@ sdk.initializeAsync()
       // (each track point: [x, y, laid at, how long it burns]. 11-16, the harness: the tracks the wheels left on their way OUT
       // to the walls, burning a second, fenced you in between the boy and you while the ways back came through you and his road
       // lit — the bots were caught there. Out, only a flash behind the wheel; back through you, a second's fire)
-      const r = S * 0.042, tw = S * 0.024, burn = 1.0, OUT = 0.4, v = S * (1.3 + 0.25 * q), top = barTop() + S * 0.06;
+      const r = S * 0.042, tw = S * 0.024, burn = 1.0, OUT = 0.4, v = S * (1.3 + 0.25 * q) * (act === 2 ? (hi ? 1.25 : ez ? 1.15 : 1.2) : 1), top = barTop() + S * 0.06;
       const FIRE = "#ff9a3a", HOT = "#ffd27a", lead = 0.85;
+      if (act === 3) { // 火輪印: the great wheel's print on you (hub RH, n spokes, its rim at R)
+        const D3 = 1.0, at3 = 0.1, n = ez ? 5 : 6, RH = S * (ez ? 0.13 : hi ? 0.17 : 0.16), SW = S * 0.03, R = S * 0.44, RW = S * 0.025, a0 = rnd(0, (Math.PI * 2) / n), m3 = S * 0.04;
+        const bigWheel = (x, y, sc, al, hot, time) => { // the great wheel seen from above: its rim of fire, its spokes, the hub white-hot
+          ctx.save(); ctx.translate(x, y); ctx.globalAlpha = al; ctx.lineCap = "round";
+          const rr = R * sc, fl = 0.85 + 0.15 * Math.sin(time * 24);
+          for (const [lw, c] of [[2.6, "rgba(29,26,23,0.35)"], [2, `rgba(255,154,58,${(hot ? 0.85 : 0.5) * fl})`], [0.7, "rgba(255,226,150,0.95)"]]) {
+            ctx.strokeStyle = c; ctx.lineWidth = RW * lw * sc; ctx.beginPath(); ctx.arc(0, 0, rr, 0, Math.PI * 2); ctx.stroke();
+            ctx.lineWidth = SW * lw * sc; ctx.beginPath();
+            for (let i = 0; i < n; i++) { const a = a0 + (i / n) * Math.PI * 2; ctx.moveTo(Math.cos(a) * RH * 0.5 * sc, Math.sin(a) * RH * 0.5 * sc); ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr); }
+            ctx.stroke();
+          }
+          const g = ctx.createRadialGradient(0, 0, 0, 0, 0, RH * sc); g.addColorStop(0, hot ? "#fffdf4" : HOT); g.addColorStop(0.6, FIRE); g.addColorStop(1, "rgba(255,154,58,0.25)");
+          ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, RH * sc, 0, Math.PI * 2); ctx.fill();
+          ctx.strokeStyle = "rgba(29,26,23,0.7)"; ctx.lineWidth = Math.max(2, RH * 0.12 * sc); ctx.stroke();
+          ctx.restore();
+        };
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const print = (x, y) => { // (11-20: by a wall it may land a step off you: finPick)
+              const parts = [{ c: [x, y, RH] }];
+              for (let i = 0; i < n; i++) { const a = a0 + (i / n) * Math.PI * 2; parts.push({ s: [x + Math.cos(a) * RH * 0.5, y + Math.sin(a) * RH * 0.5, x + Math.cos(a) * R, y + Math.sin(a) * R, SW] }); }
+              for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2, a2 = ((i + 1) / 16) * Math.PI * 2; parts.push({ s: [x + Math.cos(a) * R, y + Math.sin(a) * R, x + Math.cos(a2) * R, y + Math.sin(a2) * R, RW] }); } // (its rim)
+              return parts;
+            };
+            const [x, y, parts] = finPick(clamp(P.x, m3, W - m3), clamp(P.y, Math.min(top, P.y), H - m3), print); // (under the bar too if you are: in a top corner, two ways out)
+            w.parts = parts; w.x = x; w.y = y;
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.9); flash("255,206,130", 0.15);
+            if (reduced || !fxOn()) return;
+            if (bb) fxPillar(bb.x, bb.y + u * 2.2, u * 1.2, u * 6, FIRE, D3);
+            G.parts.push({ kind: "wheelArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.05, t: 0, draw(p, al, time) { // it comes down out of the sky onto you, its shadow spreading under it
+              const k = clamp(p.t / D3, 0, 1), sc = 0.3 + 0.7 * k * k;
+              ctx.fillStyle = `rgba(29,26,23,${0.12 + 0.18 * k})`; ctx.beginPath(); ctx.arc(x, y, R * sc, 0, Math.PI * 2); ctx.fill();
+              bigWheel(x, y - (1 - k) * S * 0.5, sc, 0.35 + 0.45 * k, false, time);
+            } });
+          },
+          fire(w) {
+            const { x, y } = w;
+            finBlow(w.parts, x, y, (h, e, time) => bigWheel(x, y, 1, 1 - e, true, time)); // (it lands, burns, and its print dies down)
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+            sfx.burst(); sfx.taiko(); sfx.issen(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("255,206,130", 0.6);
+            impact(x, y, 1.8, FIRE); stain(x, y, RH);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            fxFlare(x, y, S * 0.16, HOT, 0.55); fxWave(x, y, S * 1.1, FIRE, 0.75, S * 0.045); fxWave(x, y, S * 0.5, GOLD, 0.5, S * 0.025);
+            for (let i = 0; i < n; i++) { const a = a0 + (i / n) * Math.PI * 2; fxStreaks(x + Math.cos(a) * R * 0.5, y + Math.sin(a) * R * 0.5, 4, HOT, S * 0.7, S * 0.05, 0.35, 0.4, a); }
+            for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2; fxMote("ember", x + Math.cos(a) * R, y + Math.sin(a) * R, FIRE, true); }
+          } });
+        return at3 + D3 + (ez ? 0.35 : 0.6);
+      }
       const wheels = [];
-      const h = { kind: "wheel", x: b.x, y: b.y, t: 0, dur: 6, best: Infinity, near: true, wheels, v, r, // (its wheels, speed and size, as 風火輪 keeps them)
+      const h = { kind: "wheel", x: b.x, y: b.y, t: 0, dur: act === 2 ? 14 : 6, best: Infinity, near: true, wheels, v, r, // (its wheels, speed and size, as 風火輪 keeps them; act two: on as long as its pairs keep coming)
         step(dt) {
+          if (this.more) this.more(); // (act two: its next pair, when it may come)
           for (const wh of wheels) {
             wh.spin += dt * 16;
             while (wh.trail.length > 2 && this.t - wh.trail[1][2] > wh.trail[1][3]) wh.trail.shift();
@@ -7469,7 +8271,7 @@ sdk.initializeAsync()
             if (wh.turn) {
               const d = Math.hypot(wh.turn.x - wh.x, wh.turn.y - wh.y);
               if (d <= go) { // it hits the wall and comes back down the way that was lit
-                wh.x = wh.turn.x; wh.y = wh.turn.y; go -= d; wh.turn = null;
+                wh.x = wh.turn.x; wh.y = wh.turn.y; go -= d; wh.turn = null; wh.backAt = this.t;
                 wh.ang = wh.leg.ang != null ? wh.leg.ang : Math.atan2(P.y - wh.y, P.x - wh.x);
                 wh.trail.push([wh.x, wh.y, this.t, OUT]);
                 spark(wh.x, wh.y, 6); sfx.clang(); G.shake = Math.max(G.shake, 5);
@@ -7546,6 +8348,25 @@ sdk.initializeAsync()
       // the first pair: to the side walls, one a little above where you stand and the other a little below, so their ways
       // back cross on you nearly level (up or down out of both)
       const yIn = (y) => clamp(y, top + S * 0.06, H - S * 0.1);
+      if (act === 2) { // 燎原: pair after pair, each from the walls a step further up and down the other way round than the last
+        const ds = [dA, dB, S * rnd(0.26, 0.32)], nP = ez ? 1 : 3, GAP = hi ? 0.42 : 0.5;
+        let k = 0, flung = 0, lastAt = 0;
+        const pair = (t) => { const bb = G.boss || b, s = k % 2 ? -sg : sg, d = ds[k % ds.length]; fling(bb.x, bb.y, r, yIn(P.y + s * d), 0); fling(bb.x, bb.y, W - r, yIn(P.y - s * d), 0.16); flung += 2; k++; lastAt = t; };
+        const rest = (wh) => { // (how far a wheel on its way back has still to go to the wall it breaks on)
+          const ux = Math.cos(wh.ang), uy = Math.sin(wh.ang); let d = Infinity;
+          if (ux > 1e-6) d = Math.min(d, (W - r - wh.x) / ux); else if (ux < -1e-6) d = Math.min(d, (r - wh.x) / ux);
+          if (uy > 1e-6) d = Math.min(d, (H - r - wh.y) / uy); else if (uy < -1e-6) d = Math.min(d, (r - wh.y) / uy);
+          return Math.max(0, d);
+        };
+        h.more = () => { // (the next pair lit once no more than two wheels will be out by the time it is thrown, 0.8 s on, or coming: never more than four in the air)
+          const live = wheels.filter((wh) => !wh.done && (wh.turn || rest(wh) / v > 0.75)).length, pend = flung - wheels.length;
+          if (k < nP && live + pend <= 2 && h.t - lastAt >= GAP) pair(h.t);
+          const on = k < nP || pend > 0 || wheels.some((wh) => !wh.done && (wh.turn || h.t - wh.backAt < 0.55)); // (on till the last wheel is well on its way back through you: the rage breaks what is left)
+          const f = G.fight; if (on && f && f.fin && f.busy > 0 && f.busy < Infinity) f.busy = Math.max(f.busy, 0.25);
+        };
+        pair(0);
+        return 1;
+      }
       fling(b.x, b.y, r, yIn(P.y + sg * dA), 0);
       fling(b.x, b.y, W - r, yIn(P.y - sg * dA), 0.16);
       // the second pair, a breath on, to the walls further up and down the other way round: steeper back through you
@@ -7616,12 +8437,72 @@ sdk.initializeAsync()
     // drawn whole while its ball hangs at the wall, and only its ball cuts, only as it swings. Every die cast here.
     // (11-17 제작자: "장 순서에 맞게 세게" — four swings, not three, closer together and quicker; three falls, not two; the
     // last pair sooner, lit 0.8 s, swinging quicker)
-    pendulum: { name: ["泰山壓頂", "태산압정"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 鐵擺亂打: no pair to meet now — its swings come quicker and more of them, from either
+    // wall by turns (보통 seven, 어려움 eight, 쉬움 three), and its balls fall where you stand in among them (보통·어려움 five,
+    // 쉬움 two), the one lit while the other swings. Act three, the execution, 泰山壓頂: both great balls on their longest
+    // chains, from both walls, to meet on you — both their ways and the stone where they meet lit a full second, then iron on
+    // iron at once along all of it: out up or down, off both ways and out of the meeting
+    pendulum: { name: ["泰山壓頂", "태산압정"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); } // (alone on the field: what its 종전 left breaks — redundant once startFinale clears the field, as agreed for integration)
       G.hazards = G.hazards.filter((h) => h.kind === "ctl" && !h.path); G.warns = G.warns.filter((w) => w.kind === "none");
       const L = lvl(), q = clamp((L - 14) / 8, 0, 1), q2 = clamp((L - 20) / 6, 0, 1), u = bossUnit(b.def), IRON = "#8a8780", SPARK = "#f2d9a0";
       const top = barTop() + S * 0.05, m = S * 0.08;
+      if (act === 3) { // 壓頂: their two ways from the walls to you (each GA either side), and the meeting (RC round you)
+        const D3 = 1.0, at3 = 0.1, GA = S * (ez ? 0.08 : hi ? 0.1 : 0.095), RC = S * (ez ? 0.17 : hi ? 0.21 : 0.2), hiL3 = Math.random() < 0.5;
+        const arcOf = (side, ax, ay, lead) => { // (as a swing's: the ball at the wall `lead` S above you, its pivot over the top of the screen)
+          const tag = G.callout && G.callout.castAt ? (G.callout.side > 0 ? 1 : -1) : 0;
+          const lo = Math.max(top, barTop() + (side === tag ? 44 : 0) + GA * 1.38 + S * 0.02), bx = side < 0 ? m : W - m, by = clamp(ay - S * lead, lo, Math.max(lo, ay));
+          const py = Math.min(-H * 0.08, by - S * 0.6), dx = ax - bx, px = (ax * ax - bx * bx + (py - ay) ** 2 - (py - by) ** 2) / (2 * dx), len = Math.hypot(ax - px, ay - py);
+          const th0 = Math.atan2(bx - px, by - py), thP = Math.atan2(ax - px, ay - py), at = (th) => [px + Math.sin(th) * len, py + Math.cos(th) * len];
+          return { bx, by, px, py, len, th0, thP, at };
+        };
+        const chain = (a, th, al) => { const [x, y] = a.at(th); ctx.globalAlpha = al; ctx.strokeStyle = "rgba(60,58,54,0.9)"; ctx.lineWidth = Math.max(3, GA * 0.2); ctx.setLineDash([S * 0.026, S * 0.012]); ctx.beginPath(); ctx.moveTo(a.px, a.py); ctx.lineTo(x, y); ctx.stroke(); ctx.setLineDash([]); ball(x, y, GA * 0.95); };
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const meet = (x, y) => { // (11-20: by a wall they may meet a step off you, so there are two ways out: finPick)
+              const hiL = P.x < W * 0.3 ? false : P.x > W * 0.7 ? true : hiL3; // (by a side wall its ball there starts the lower one, its chain short: up along that wall past it is a way out)
+              const arcs = [-1, 1].map((s) => arcOf(s, x, y, (s < 0) === hiL ? 0.42 : 0.16)), parts = [{ c: [x, y, RC] }];
+              for (const a of arcs) for (let i = 0; i < 10; i++) { const [x0, y0] = a.at(a.th0 + (a.thP - a.th0) * (i / 10)), [x1, y1] = a.at(a.th0 + (a.thP - a.th0) * ((i + 1) / 10)); parts.push({ s: [x0, y0, x1, y1, GA] }); }
+              parts.arcs = arcs; return parts;
+            };
+            const [x, y, parts] = finPick(clamp(P.x, m + S * 0.06, W - m - S * 0.06), clamp(P.y, top + S * 0.1, H - S * 0.04), meet), arcs = parts.arcs;
+            w.parts = parts; w.x = x; w.y = y; w.arcs = arcs;
+            w.look = [{ c: [x, y, RC] }, ...arcs.map((a) => { const n = 16, o = [], i2 = []; for (let i = 0; i <= n; i++) { const th = a.th0 + (a.thP - a.th0) * (i / n); o.push([a.px + Math.sin(th) * (a.len + GA), a.py + Math.cos(th) * (a.len + GA)]); i2.push([a.px + Math.sin(th) * (a.len - GA), a.py + Math.cos(th) * (a.len - GA)]); } return { p: [...o, ...i2.reverse()] }; })]; // (drawn as two smooth bands and the meeting, not link by link)
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
+            sfx.clang(); sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.9);
+            if (reduced || !fxOn()) return;
+            if (bb) fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H, IRON, D3);
+            G.parts.push({ kind: "pendArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.05, t: 0, draw(p, al, time) { // both balls hauled back to their walls on their longest chains, swaying, the stone under the meeting starring
+              const k = clamp(p.t / D3, 0, 1);
+              for (const a of arcs) chain(a, a.th0 - (a.thP - a.th0) * 0.06 * Math.sin(Math.min(1, k * 1.3) * Math.PI / 2), 0.75 + 0.25 * k);
+              ctx.globalAlpha = 0.25 + 0.4 * k; ctx.strokeStyle = "rgba(29,26,23,0.6)"; ctx.lineWidth = 1.5; ctx.beginPath();
+              for (let i = 0; i < 7; i++) { const g = (i / 7) * Math.PI * 2 + 0.4, l = RC * (0.35 + 0.5 * k) * (0.7 + 0.3 * Math.sin(i * 2.3)); ctx.moveTo(x, y); ctx.lineTo(x + Math.cos(g) * l, y + Math.sin(g) * l); }
+              ctx.stroke();
+            } });
+          },
+          fire(w) {
+            const { x, y, arcs } = w;
+            finBlow(w.parts, x, y, (h, e) => { // swung down all their way at once, met, and thrown back off each other
+              ctx.lineCap = "round";
+              for (const a of arcs) {
+                ctx.globalAlpha = 0.5 * (1 - e) ** 2; ctx.strokeStyle = "#3a3733"; ctx.lineWidth = GA * 1.9; ctx.beginPath(); // the blur of it swinging
+                for (let i = 0; i <= 16; i++) { const [px2, py2] = a.at(a.th0 + (a.thP - a.th0) * (i / 16)); i ? ctx.lineTo(px2, py2) : ctx.moveTo(px2, py2); }
+                ctx.stroke();
+                chain(a, a.thP - (a.thP - a.th0) * 0.12 * Math.sin(Math.min(1, e * 2) * Math.PI / 2), 1 - e * e);
+              }
+            });
+            clash(x, y);
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
+            buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 26);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            fxWave(x, y, S * 1.2, IRON, 0.75, S * 0.05);
+            for (const a of arcs) for (let i = 1; i < 6; i++) { const [px2, py2] = a.at(a.th0 + (a.thP - a.th0) * (i / 6)); fxMote("dust", px2, py2, "#8b7b63", true); spark(px2, py2, 2); }
+          } });
+        return at3 + D3 + (ez ? 0.35 : 0.6);
+      }
       // a ball let in from the wall on `side` (-1 left, 1 right), hanging at (bx, by) while its whole way is lit, swung
       // through (ax, ay) — where you are as it lights — and on past it as far again; meeting: it stops where it meets the other
       const swing = (side, warnT, T, r, lead, mate) => {
@@ -7695,13 +8576,14 @@ sdk.initializeAsync()
       }
       if (!reduced) { G.dark = Math.max(G.dark, 0.8); fxWave(b.x, b.y + u, S * 0.8, IRON, 0.6, S * 0.03); }
       b.castT = b.castDur = 0.6; sfx.clang();
-      // 鐵擺: three swings, from either wall by turns
-      const s0 = Math.random() < 0.5 ? -1 : 1, leads = [rnd(0.22, 0.4), rnd(0.22, 0.4), rnd(0.22, 0.4), rnd(0.22, 0.4)]; // (q2: 보통 against 어려움, q being full on both)
-      for (let k = 0; k < 4; k++) later((0.34 - 0.04 * q2) * k, () => swing(k % 2 ? -s0 : s0, 0.85, 0.46 - 0.06 * q2, S * (0.06 + 0.005 * q), leads[k]));
-      // 隕錘: hurled up, and down where you stand, one and then the other
-      const R = S * (0.1 + 0.01 * q);
-      for (let k = 0; k < 3; k++) {
-        const w = { kind: "spike", x: 0, y: 0, r: R, seed: rnd(0, 6), t: 0, dur: 0.9, delay: 1.25 + (0.3 - 0.04 * q2) * k,
+      // 鐵擺: three swings, from either wall by turns (act two: more of them, quicker)
+      const nS = act === 2 ? (ez ? 3 : hi ? 8 : 7) : 4, gS = act === 2 ? (ez ? 0.42 : hi ? 0.27 : 0.3) : 0.34 - 0.04 * q2, TS = 0.46 - 0.06 * q2;
+      const s0 = Math.random() < 0.5 ? -1 : 1, leads = Array.from({ length: nS }, () => rnd(0.22, 0.4)); // (q2: 보통 against 어려움, q being full on both)
+      for (let k = 0; k < nS; k++) later(gS * k, () => swing(k % 2 ? -s0 : s0, 0.85, TS, S * (0.06 + 0.005 * q), leads[k]));
+      // 隕錘: hurled up, and down where you stand, one and then the other (act two: among the swings, from early on)
+      const R = S * (0.1 + 0.01 * q), nF = act === 2 ? (ez ? 2 : 5) : 3, fAt = (k) => (act === 2 ? 0.45 + (ez ? 0.7 : hi ? 0.5 : 0.55) * k : 1.25 + (0.3 - 0.04 * q2) * k);
+      for (let k = 0; k < nF; k++) {
+        const w = { kind: "spike", x: 0, y: 0, r: R, seed: rnd(0, 6), t: 0, dur: 0.9, delay: fAt(k),
           place(w) { w.x = clamp(P.x, R, W - R); w.y = clamp(P.y, top, H - R); sfx.warn(); const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.4; bb.swing = { t: 0, ang: -Math.PI / 2 }; } },
           fire(w) {
             spikeErupt(w.x, w.y, R * 0.85, "stone"); impact(w.x, w.y, 1.6, "#6d6a63"); stain(w.x, w.y, R * 0.9);
@@ -7722,6 +8604,7 @@ sdk.initializeAsync()
         const g = ctx.createRadialGradient(-r * 0.35, -r * 0.35, r * 0.1, 0, 0, r); g.addColorStop(0, IRON); g.addColorStop(1, "#1d1a17");
         ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       }
+      if (act === 2) return Math.max(gS * (nS - 1) + 0.85 + TS, fAt(nF - 1) + 0.9) + (ez ? 0.25 : 0.4); // (act two: no pair to meet)
       // 壓頂: both, from both walls on its longest chains, to meet where you are
       const hiL = Math.random() < 0.5, tF = 2.1, TF = 0.46 - 0.04 * q2, FW = 0.8, rF = S * (0.08 + 0.008 * q);
       later(tF, () => {
@@ -7738,8 +8621,14 @@ sdk.initializeAsync()
     // die cast here; each crack and each post is laid through where you are as it starts.
     // (11-17 제작자: "장 순서에 맞게 세게" — four cracks, not three, closer together and racing out quicker; the posts and
     // the pit sooner on their heels, the pit lit 0.8 s)
-    crumble: { name: ["天崩地陷", "천붕지함"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 地裂連環: no pit — the cracks come on and on (보통 eight, 어려움 nine, 쉬움 three, each
+    // from its feet through where you are as it starts), and the two great posts topple onto you twice among them (쉬움 once),
+    // their roads crossing on you. Act three, the execution, 天崩: it stamps once with all its weight and the earth splits
+    // open through where you stand, a great jagged chasm from edge to edge (from its feet through you if that leaves room
+    // either side), lit a full second: out to either side of it
+    crumble: { name: ["天崩地陷", "천붕지함"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
+      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); } // (alone on the field: what its 종전 left breaks — redundant once startFinale clears the field, as agreed for integration)
       G.hazards = G.hazards.filter((h) => h.kind === "ctl" && !h.path); G.warns = G.warns.filter((w) => w.kind === "none");
       const L = lvl(), q = clamp((L - 14) / 8, 0, 1), q2 = clamp((L - 20) / 6, 0, 1), u = bossUnit(b.def), tint = fightTint(b.def), DUST = "#8b7b63", STONE = "#b9ab98";
@@ -7790,6 +8679,58 @@ sdk.initializeAsync()
           dist() { return this.t < 0.28 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - this.r) : Infinity; }, draw: drawSpike });
       };
       const stamp = (k = 1) => { const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.5; bb.pop = reduced ? 0 : 0.16; } G.shake = Math.max(G.shake, reduced ? 0 : 8 * k); sfx.taiko(); const au = audio(); if (au && !muted) drum(au.currentTime, 0.55 * k, sfxBus, 76, 30, 0.6); };
+      if (act === 3) { // 天崩: the great chasm through you (HC either side of its line, which is straight where you stand and jagged beyond)
+        const D3 = 1.0, at3 = 0.1, HC = S * (ez ? 0.12 : hi ? 0.16 : 0.15), jag = Array.from({ length: 15 }, () => rnd(-1, 1)), m3 = S * 0.04;
+        const chasm = (pts, lw, c) => { ctx.strokeStyle = c; ctx.lineWidth = lw; ctx.beginPath(); pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const bb = G.boss || b, fx = bb.x, fy = bb.y + u * 2.2, xc = clamp(P.x, m3, W - m3), yc = clamp(P.y, top + S * 0.04, H - m3), aF = Math.atan2(yc - fy, xc - fx);
+            const [a, x, y] = finFit(xc, yc, HC * 2, [aF, aF + Math.PI / 4, aF - Math.PI / 4, aF + Math.PI / 2]), ux = Math.cos(a), uy = Math.sin(a), st = S * 0.17, pts = [];
+            const back = a === aF ? Math.hypot(x - fx, y - fy) : Infinity; // (from its feet: none of it behind them)
+            for (let i = -7; i <= 7; i++) {
+              if (i < 0 && -i * st > back - st * 0.4) continue;
+              if (!pts.length && back < Infinity) pts.push([fx, fy]);
+              const j = jag[i + 7] * S * 0.05 * Math.min(1, Math.abs(i) / 2); pts.push([x + ux * st * i - uy * j, y + uy * st * i + ux * j]);
+            }
+            w.parts = []; for (let i = 0; i + 1 < pts.length; i++) w.parts.push({ s: [...pts[i], ...pts[i + 1], HC] });
+            const side = (s) => pts.map(([px, py], i) => { const [ax, ay] = pts[Math.max(0, i - 1)], [bx2, by2] = pts[Math.min(pts.length - 1, i + 1)], g = Math.atan2(by2 - ay, bx2 - ax); return [px - Math.sin(g) * HC * s, py + Math.cos(g) * HC * s]; });
+            w.look = [{ p: [...side(1), ...side(-1).reverse()] }]; // (drawn as one jagged gash, not stone by stone)
+            w.mid = pts.findIndex(([px, py]) => Math.hypot(px - x, py - y) < 1);
+            w.x = x; w.y = y; w.pts = pts;
+            stamp(1.4); if (bb) bb.raise = { t: 0, dur: D3 * 0.82 }; if (bb) bb.castT = bb.castDur = D3;
+            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.9);
+            if (reduced || !fxOn()) return;
+            fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H, tint, D3);
+            G.parts.push({ kind: "crumbleArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.05, t: 0, draw(p, al, time) { // the crack racing out both ways from under you, the stone along it lifting
+              const k = clamp(p.t / 0.45, 0, 1), n = Math.max(1, Math.round(8 * k)), seg = pts.slice(Math.max(0, w.mid - n), w.mid + n + 1), g = clamp((p.t - 0.3) / (D3 - 0.3), 0, 1);
+              ctx.lineCap = "round"; ctx.lineJoin = "round";
+              ctx.globalAlpha = 0.2 + 0.3 * g; chasm(seg, HC * 2 * (0.15 + 0.5 * g), "rgba(29,26,23,0.5)");
+              ctx.globalAlpha = 0.85; chasm(seg, Math.max(2, S * 0.008 * (1 + 2 * g)), "rgba(29,26,23,0.9)");
+              ctx.globalAlpha = 0.4; ctx.strokeStyle = "rgba(29,26,23,0.7)"; ctx.lineWidth = 1.2; ctx.beginPath();
+              for (let i = 0; i + 1 < seg.length; i++) { const [x0, y0] = seg[i], [x1, y1] = seg[i + 1], aa = Math.atan2(y1 - y0, x1 - x0) + (i % 2 ? 0.9 : -0.9), mx = (x0 + x1) / 2, my = (y0 + y1) / 2; ctx.moveTo(mx, my); ctx.lineTo(mx + Math.cos(aa) * S * 0.05, my + Math.sin(aa) * S * 0.05); }
+              ctx.stroke();
+            } });
+          },
+          fire(w) {
+            const { x, y, pts } = w;
+            finBlow(w.parts, x, y, (h, e) => { // the earth gapes along it, black, its lips broken stone, and settles shut
+              const op = e < 0.25 ? e / 0.25 : 1, al = 1 - clamp((e - 0.35) / 0.65, 0, 1);
+              ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.globalAlpha = al;
+              chasm(pts, HC * 2 * op, "rgba(185,171,152,0.9)"); chasm(pts, HC * 1.7 * op, "rgba(64,52,40,0.95)"); chasm(pts, HC * 0.9 * op, "rgba(12,10,8,0.95)");
+            });
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; bb.pop = reduced ? 0 : 0.16; }
+            stamp(2); flash("246,232,206", 0.6); G.shake = Math.max(G.shake, reduced ? 0 : 26); sfx.burst(); sfx.issen(); buzz([40, 30, 90]);
+            const au = audio(); if (au && !muted) { drum(au.currentTime, 0.9, sfxBus, 58, 22, 1.0); gong(au.currentTime + 0.05, 0.05, sfxBus, 140, 1.6); }
+            impact(x, y, 2.2, "#6b5a46"); stain(x, y, HC);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            fxWave(x, y, S * 1.1, tint, 0.75, S * 0.045);
+            for (const [px, py] of pts) { if (px < -S * 0.1 || px > W + S * 0.1 || py < -S * 0.1 || py > H + S * 0.1) continue; fxPillar(px, py + S * 0.02, HC * 0.9, S * 0.5, STONE, 0.55); fxMote("dust", px, py, DUST, true); fxMote("dust", px + frnd(-HC, HC), py + frnd(-HC, HC), DUST, true); }
+            const [x0, y0] = pts[Math.max(0, w.mid - 1)], [x1, y1] = pts[Math.min(pts.length - 1, w.mid + 1)], aa = Math.atan2(y1 - y0, x1 - x0);
+            for (const s of [-1, 1]) fxStreaks(x, y, 10, STONE, S * 1.1, S * 0.07, 0.45, 0.5, aa + s * Math.PI / 2);
+          } });
+        return at3 + D3 + (ez ? 0.35 : 0.6);
+      }
       // 地裂: a crack from its feet through you, racing out to the edge, rock bursting up along it
       const VC = S * (3.0 + 0.6 * q2); // (q2: 보통 against 어려움, q being full on both)
       const fissure = (t0) => later(t0, () => {
@@ -7799,10 +8740,14 @@ sdk.initializeAsync()
         cracks.push({ x: fx, y: fy, ang, len, v: VC, t0: ctl.t, life: 1.6, seed: ctl.t * 7 });
         stamp(); sfx.warn(); if (!reduced) { fxStreaks(fx, fy, 8, DUST, S * 0.6, S * 0.04, 0.3, 0.8, ang); for (let i = 0; i < 6; i++) fxMote("dust", fx + frnd(-u, u), fy, DUST, true); }
       });
-      for (let k = 0; k < 4; k++) fissure((0.3 - 0.03 * q2) * k);
+      const nC = act === 2 ? (ez ? 3 : hi ? 9 : 8) : 4, gC = act === 2 ? (ez ? 0.45 : hi ? 0.27 : 0.3) : 0.3 - 0.03 * q2; // (act two: more of them)
+      for (let k = 0; k < nC; k++) fissure(gC * k);
       // 壓殺: the two great posts of the gate, toppling onto you one after the other, their roads crossing where you stand
+      // (act two: twice, among the cracks; 쉬움 once)
       const g0 = rnd(0, Math.PI), cross = rnd(1.1, 1.45) * (Math.random() < 0.5 ? 1 : -1), pw = S * (0.14 + 0.01 * q);
-      [[1.1, g0, "天下大將軍"], [1.28, g0 + cross, "地下女將軍"]].forEach(([t0, g, text]) => {
+      const gate = [[act === 2 ? 0.9 : 1.1, g0, cross]];
+      if (act === 2 && !ez) gate.push([hi ? 1.95 : 2.05, rnd(0, Math.PI), rnd(1.1, 1.45) * (Math.random() < 0.5 ? 1 : -1)]);
+      for (const [tA, gA, cA] of gate) [[tA, gA, "天下大將軍"], [tA + 0.18, gA + cA, "地下女將軍"]].forEach(([t0, g, text]) => {
         const p = { text, wid: pw, hit: 0 };
         posts.push(p);
         G.warns.push(p.w = { kind: "band", x: 0, y: 0, ang: g, w: pw, t: 0, dur: 0.95, delay: t0,
@@ -7823,6 +8768,7 @@ sdk.initializeAsync()
             fxSlash(w.x, w.y, w.ang, w.w * 0.6, tint, 0.35);
           } });
       });
+      if (act === 2) return Math.max(gC * (nC - 1) + 1.4, gate[gate.length - 1][0] + 0.18 + 0.95) + (ez ? 0.25 : 0.4); // (act two: no pit; a crack's last rock 1.4 s after it starts, at the most)
       // 地陷: the ground in under you, and the stone torn open four ways from the pit
       const tP = 2.05, PD = 0.8, Rp = S * (0.12 + 0.01 * q), a0 = rnd(0, Math.PI / 2);
       later(tP, () => {
@@ -7859,15 +8805,24 @@ sdk.initializeAsync()
     // (보통, 어려움) the instant it lands a second, broader still, through where you are by then (再瞥).
     // (made of its own pieces: 눈빛's lit lines from an eye, its sky's eye; nothing turns after you, every gaze is a
     // straight line fixed as it shows: step off it to either side)
-    glare: { name: ["天眼照見", "천안조견"], run() {
+    // (11-20, 세 막: FIN_ACTS) act two, 千眼: only its looks, quicker and on top of each other — a wall's eye, the other's, the
+    // great eye's fan, both walls at once, and round again (보통 seven looks 0.3 s apart, 어려움 eight 0.27 s apart, 쉬움 three
+    // 0.45 s apart), two or three lit at a time; no glance. Act three, the execution, 天眼大照: the great eye looks once with
+    // all its light, and where it looks an eye of light as wide as the field opens on the ground over you, its pupil on you:
+    // lit a full second, still (no gaze turns or sweeps), then it floods with light — out of it up or down (it lies the way
+    // that leaves room on both sides). The strongest of 15–19 (its eye 0.21 S either side of you), short of 20-5's
+    glare: { name: ["天眼照見", "천안조견"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
       const hi = (SL().lv || 0) >= 11, lo = (SL().lv || 0) < 9, tint = fightTint(b.def), u = bossUnit(b.def), hit = HIT();
+      const act = o.act || 1; // (o.act: FIN_ACTS)
       const ex = W / 2, ey = barTop() + S * 0.07, wallX = S * 0.045; // the great eye, over the sky; the lesser ones at the walls
       const rayD = (x, y, ox, oy, a) => { const ux = Math.cos(a), uy = Math.sin(a), t = Math.max(0, (x - ox) * ux + (y - oy) * uy); return Math.hypot(x - ox - ux * t, y - oy - uy * t); };
       const lineD = (x, y, ox, oy, a) => Math.abs((x - ox) * Math.sin(a) - (y - oy) * Math.cos(a));
       const bell = (f0) => { const au = audio(); if (au && !muted && spaced("glareBell", 60)) { const t = au.currentTime; pluck(t, f0, 0.06, sfxBus, 2.2); pluck(t + 0.035, f0 * 1.5, 0.035, sfxBus, 2.0); } };
       const k = hi ? 0.92 : lo ? 1.12 : 1, first = Math.random() < 0.5 ? -1 : 1; // (which wall looks first: its one die)
-      const T = [0.3, 0.7, 1.1, 1.5, 2.05].map((t) => t * k), D = 0.8, DG = 0.95, DG2 = 0.85, total = T[4] + DG + (lo ? 0 : DG2) + 0.55;
+      const T = [0.3, 0.7, 1.1, 1.5, 2.05].map((t) => t * k), D = 0.8, DG = 0.95, DG2 = 0.85, D3 = 1.0, at3 = 0.1;
+      const seq2 = act !== 2 ? [] : lo ? ["w1", "w2", "sky"] : hi ? ["w1", "w2", "sky", "both", "w1", "w2", "sky", "both"] : ["w1", "w2", "sky", "both", "w1", "w2", "sky"], g2 = lo ? 0.45 : hi ? 0.27 : 0.3, t2 = 0.25; // (act two's looks, in turn)
+      const total = act === 3 ? at3 + D3 + (lo ? 0.35 : 0.6) : act === 2 ? t2 + (seq2.length - 1) * g2 + D + 0.12 + (lo ? 0.25 : 0.4) : T[4] + DG + (lo ? 0 : DG2) + 0.55;
       // ---- the eyes, drawn (they cut nothing): the great one open the whole while, the lesser ones while they look
       const lesser = [];
       const sky = { kind: "skyeye", x: ex, y: ey, t: 0, dur: total + 0.2, best: Infinity, near: true, glow: 0, dist: () => Infinity,
@@ -7960,6 +8915,57 @@ sdk.initializeAsync()
         return v;
       };
       const half = S * 0.016;
+      if (act === 2) { // 千眼: its looks only, one on another
+        seq2.forEach((s, i) => {
+          const at = t2 + i * g2;
+          if (s === "w1") look(at, srcWall(first), 3, 0.28, D, half); else if (s === "w2") look(at, srcWall(-first), 3, 0.28, D, half);
+          else if (s === "sky") look(at, srcSky, lo ? 3 : 5, 0.22, D, half); else { look(at, srcWall(-1), 1, 0, D, half); look(at, srcWall(1), 1, 0, D, half); }
+        });
+        return total;
+      }
+      if (act === 3) { // 天眼大照: an eye of light over you (a lens hl long, hh either side of its line), its pupil on you
+        const hh = S * (lo ? 0.15 : 0.18), hl = S * 0.62, m3 = S * 0.04; // (11-20: was 0.21; a lens tapering to its ends, 0.18 at its widest, a lesser blow than 20-5's last band, 0.16 S either side the field across)
+        const lens = (sc) => { const p = []; for (let i = 0; i <= 12; i++) { const t = -1 + i / 6; p.push([t * hl, hh * sc * (1 - t * t)]); } for (let i = 11; i >= 1; i--) { const t = -1 + i / 6; p.push([t * hl, -hh * sc * (1 - t * t)]); } return p; };
+        const eyeArt = (x, y, a, op, al, flood) => { // (drawn in its own frame: along its line, across it)
+          ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.globalAlpha = al;
+          const pl = lens(Math.max(0.02, op)); ctx.beginPath(); pl.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py))); ctx.closePath();
+          const gl = ctx.createRadialGradient(0, 0, 0, 0, 0, hl); gl.addColorStop(0, `rgba(255,252,236,${0.35 + 0.6 * flood})`); gl.addColorStop(1, `rgba(232,207,106,${0.12 + 0.5 * flood})`);
+          ctx.fillStyle = gl; ctx.fill(); ctx.strokeStyle = "rgba(29,26,23,0.7)"; ctx.lineWidth = Math.max(2, S * 0.007); ctx.stroke(); ctx.strokeStyle = hexA("#c9a227", 0.85); ctx.lineWidth = Math.max(1, S * 0.004); ctx.stroke();
+          ctx.save(); ctx.clip();
+          const ir = hh * 0.85 * op, gi = ctx.createRadialGradient(0, 0, 0, 0, 0, Math.max(1, ir));
+          gi.addColorStop(0, "#fff3c4"); gi.addColorStop(0.5, "#e8cf6a"); gi.addColorStop(1, "#b0861f");
+          ctx.globalAlpha = al * (1 - 0.7 * flood); ctx.fillStyle = gi; ctx.beginPath(); ctx.arc(0, 0, ir, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = "rgba(29,26,23,0.85)"; ctx.beginPath(); ctx.ellipse(0, 0, ir * 0.16, ir * 0.62, 0, 0, Math.PI * 2); ctx.fill(); // (its pupil, on you)
+          ctx.restore(); ctx.restore();
+        };
+        G.warns.push({ kind: "shape", parts: [], x: 0, y: 0, t: 0, dur: D3, delay: at3,
+          place(w) {
+            const [a, x, y] = finFit(clamp(P.x, m3, W - m3), clamp(P.y, barTop() + S * 0.06, H - m3), hh * 2, [0, Math.PI / 2, Math.PI / 4, -Math.PI / 4]);
+            const ca = Math.cos(a), sa = Math.sin(a);
+            w.parts = [{ p: lens(1).map(([p, q]) => [x + ca * p - sa * q, y + sa * p + ca * q]) }]; w.x = x; w.y = y; w.a = a;
+            sky.glow = 1; G.dark = Math.max(G.dark, 0.9); sfx.warn(); sfx.gather(); bell(659.25);
+            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
+            if (reduced || !fxOn()) return;
+            G.parts.push({ kind: "glareArt", x, y, vx: 0, vy: 0, keep: true, life: D3 + 0.05, t: 0, draw(p) { // it opens over you, slowly, its pupil on you
+              const k = clamp(p.t / D3, 0, 1); eyeArt(x, y, a, 1 - (1 - Math.min(1, k * 1.5)) ** 2, 0.3 + 0.45 * k, 0);
+            } });
+          },
+          fire(w) {
+            const { x, y, a } = w;
+            finBlow(w.parts, x, y, (h, e) => eyeArt(x, y, a, 1, (1 - e) ** 1.5, 1)); // (it floods with light and shuts)
+            sky.glow = 1;
+            const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; }
+            sfx.issen(); sfx.shing(); sfx.burst(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("255,246,220", reduced ? 0.3 : 0.75);
+            impact(x, y, 1.8, tint);
+            if (reduced) return;
+            G.stopT = Math.max(G.stopT, 0.12);
+            fxFlare(x, y, S * 0.24, "#e8cf6a", 0.6); fxFlare(x, y, S * 0.12, "#fffdf4", 0.45);
+            fxWave(x, y, S * 1.2, "#e8cf6a", 0.75, S * 0.05); fxWave(x, y, S * 0.6, "#fffdf4", 0.5, S * 0.025);
+            for (const s of [-1, 1]) fxStreaks(x, y, 12, "#f3e2a0", S * 1.3, S * 0.08, 0.45, 0.5, a + s * Math.PI / 2);
+            for (let i = 0; i < 16; i++) { const t = frnd(-1, 1); fxMote("mote", x + Math.cos(a) * t * hl, y + Math.sin(a) * t * hl, "#e8cf6a", true); }
+          } });
+        return total;
+      }
       look(T[0], srcWall(first), 3, 0.28, D, half);
       look(T[1], srcWall(-first), 3, 0.28, D, half);
       look(T[2], srcSky, lo ? 3 : 5, 0.22, D, half);
@@ -8136,7 +9142,7 @@ sdk.initializeAsync()
         place(w) {
           if (!fin.set) {
             fin.set = true; fin.x = P.x; fin.y = P.y;
-            if (fin.pick) gF = fin.pick(fin.x, fin.y); // (act three: its way picked as it shows, from where you are: this call's gF, read by its cut too)
+            if (fin.pick) gF = fin.pick(fin.x, fin.y, fin); // (act three: its way picked as it shows, from where you are: this call's gF, read by its cut too)
             const bb = G.boss; if (bb) { bb.vanish = 0; bb.castT = bb.castDur = DF; burstInk(bb.x, bb.y + u, 18); }
             G.dark = Math.max(G.dark, 0.85); sfx.gather(); sfx.taiko(); sfx.warn(); // (its name stays in the corner: 天下無雙)
             if (bb && !reduced) { fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H, "#e8cf6a", DF); fxFlare(bb.x + u * 2.0, bb.y - u * 1.9, S * 0.07, "#fffdf4", 0.6); }
@@ -8172,7 +9178,7 @@ sdk.initializeAsync()
           } });
         } }));
       if (act === 2) return t0 + (types.length - 1) * gap + D + 0.5; // (act two: the afterimages only)
-      if (act === 3) { greatSword({ pick: (x, y) => finAng(x, y, wF, [gF, gF + Math.PI / 4, gF - Math.PI / 4, gF + Math.PI / 2]) }, tF, gF); return tF + DF + (lo ? 0.45 : 0.6); } // (one stroke)
+      if (act === 3) { greatSword({ pick: (x, y, fin) => { const r = finFit(x, y, wF, [gF, gF + Math.PI / 4, gF - Math.PI / 4, gF + Math.PI / 2]); fin.x = r[1]; fin.y = r[2]; return r[0]; } }, tF, gF); return tF + DF + (lo ? 0.45 : 0.6); } // (one stroke)
       greatSword({}, tF, gF);
       if (!lo) greatSword({}, tF + DF, gF2);
       return tF + DF * (lo ? 1 : 2) + 0.6;
@@ -8244,22 +9250,129 @@ sdk.initializeAsync()
     fixed("finAct", () => { f.busy = Infinity; f.busy = fin.run({ act: k }); }); // (busy while it is thrown, as a 비기)
   }
   // a great stroke's way through (x, y), of `angs` in turn: the first that leaves room to get out on both its sides (half
-  // its width, your size and a step more), else the roomiest
-  function finAng(x, y, w, angs) {
-    const top = barTop(), need = w / 2 + HIT() + S * 0.12;
-    let best = angs[0], bd = -1;
-    for (const a of angs) {
-      let room = Infinity;
-      for (const s of [-1, 1]) {
-        const ux = -Math.sin(a) * s, uy = Math.cos(a) * s; let r = Infinity;
-        if (ux > 1e-6) r = Math.min(r, (W - x) / ux); else if (ux < -1e-6) r = Math.min(r, -x / ux);
-        if (uy > 1e-6) r = Math.min(r, (H - y) / uy); else if (uy < -1e-6) r = Math.min(r, (top - y) / uy);
-        room = Math.min(room, r);
+  // its width, your size and a step more), else the roomiest. finFit (11-20 제작자: "탈출 방향 2개 이상" — by a wall or in
+  // a corner there are always two ways out): the room is measured from where you stand, inside the field you move in
+  // (under the bar too if you are there already), as far as you get in its lit second at keyboard speed (FIN_REACH), straight
+  // out or slanting along a wall (a stroke into a corner, along its middle, has a way out along each wall; o.slant false: the
+  // way out is straight across it, as through 호접's notch). If none of `angs` leaves room on both sides, its line may move off
+  // you along its normal, you still in it (o.move: as little as will do), then turn 15° at a time from the first (o.turn), then a step less to
+  // spare; else the roomiest. Returns [its way, and the point its line now runs through].
+  const FIN_REACH = 0.42; // (S: keyboard speed 0.6 S a game second, over a 3막's lit second less the 0.25 s of seeing it)
+  function finFit(x, y, w, angs, o = {}) {
+    const e = edge(), hit = HIT(), px = P.x, py = P.y, top = Math.min(barTop(), py), x0 = Math.min(e, px), x1 = Math.max(W - e, px), y1 = Math.max(H - e, py), Rt = S * FIN_REACH;
+    const fs = o.slant === false ? [0] : [0, 0.4, -0.4, Math.PI / 4, -Math.PI / 4, 0.92, -0.92], mv = o.move !== false, lim = w / 2 - hit;
+    const out = (nx, ny) => { // how far from its line you get, going that way from where you stand
+      let best = 0;
+      for (const f of fs) {
+        const c = Math.cos(f), sn = Math.sin(f), ux = nx * c - ny * sn, uy = nx * sn + ny * c; let r = Rt;
+        if (ux > 1e-6) r = Math.min(r, (x1 - px) / ux); else if (ux < -1e-6) r = Math.min(r, (x0 - px) / ux);
+        if (uy > 1e-6) r = Math.min(r, (y1 - py) / uy); else if (uy < -1e-6) r = Math.min(r, (top - py) / uy);
+        best = Math.max(best, Math.max(0, r) * c);
       }
-      if (room >= need) return a;
-      if (room > bd) { bd = room; best = a; }
+      return best;
+    };
+    const cand = [...angs];
+    if (o.turn !== false) { for (let k = 1; k <= 6; k++) for (const s of [1, -1]) cand.push(angs[0] + s * k * Math.PI / 12); cand.push(0, Math.PI / 2, Math.PI / 4, -Math.PI / 4); }
+    let best = [angs[0], x, y], bs = -Infinity;
+    for (const m of [S * 0.12, S * 0.05]) for (const a of (m > S * 0.1 ? angs : cand)) {
+      const nx = -Math.sin(a), ny = Math.cos(a), d = (px - x) * nx + (py - y) * ny, rp = out(nx, ny), rm = out(-nx, -ny), h = w / 2 + hit;
+      // you at d' across its line: out on its + side is h - d' away, on its - side h + d'; its line moves by d - d' (you kept in it)
+      const lo = Math.max(h + m - rp, mv ? -lim : d), hi2 = Math.min(rm - h - m, mv ? lim : d);
+      if (lo <= hi2) { const d2 = clamp(d, lo, hi2); return [a, x + nx * (d - d2), y + ny * (d - d2)]; }
+      const d2 = mv ? clamp((rm - rp) / 2, -lim, lim) : d, sc = Math.min(rp - h + d2, rm - h - d2);
+      if (sc > bs) { bs = sc; best = [a, x + nx * (d - d2), y + ny * (d - d2)]; }
     }
     return best;
+  }
+  function finAng(x, y, w, angs, turn = true) { return finFit(x, y, w, angs, { turn, move: false })[0]; }
+  // ---- 탈출 방향 2개 이상 (11-20 제작자: "벽에 붙어 서 있으면 빠질 쪽이 하나뿐", for a blow in a shape of its own): the ways
+  // out of `parts` from where you stand, as far as you get in its lit second (FIN_REACH): 48 ways round, each one out if it
+  // reaches ground the blow misses (your size to spare) before a wall. The ways out: its runs of three or more, or else, of
+  // the ways along each wall you stand by and straight off it (the four ways in the open), those with two of the 48 within
+  // 15° of them — a run straight off a wall alone is one way, a run that also goes along it is two
+  function finWays(parts, px = P.x, py = P.y) {
+    const e = edge(), hit = HIT(), top = Math.min(barTop(), py), Rt = S * (FIN_REACH - 0.04), st = S * 0.012, near = S * 0.06; // (a step short of its reach, to spare)
+    const x0 = Math.min(e, px), x1 = Math.max(W - e, px), y1 = Math.max(H - e, py), on = [];
+    for (let k = 0; k < 48; k++) {
+      const a = (k / 48) * Math.PI * 2, ux = Math.cos(a), uy = Math.sin(a); let ok = false;
+      for (let t = st; t <= Rt; t += st) {
+        const x = px + ux * t, y = py + uy * t;
+        if (x < x0 - 0.5 || x > x1 + 0.5 || y < top - 0.5 || y > y1 + 0.5) break;
+        if (finDist(parts, x, y) > hit) { ok = true; break; }
+      }
+      on.push(ok);
+    }
+    let runs = 0;
+    if (on.every(Boolean)) runs = 9;
+    else { const k0 = on.indexOf(false); let n = 0; for (let i = 1; i <= 48; i++) { if (on[(k0 + i) % 48]) n++; else { if (n >= 3) runs++; n = 0; } } }
+    const lw = px - x0 < near, rw = x1 - px < near, tw = py - top < near, bw = y1 - py < near, card = new Set(lw || rw || tw || bw ? [] : [0, 90, 180, 270]);
+    if (lw) [0, 90, 270].forEach((a) => card.add(a)); if (rw) [180, 90, 270].forEach((a) => card.add(a));
+    if (tw) [90, 0, 180].forEach((a) => card.add(a)); if (bw) [270, 0, 180].forEach((a) => card.add(a));
+    let ways = 0;
+    for (const a of card) { let n = 0; for (let k = 0; k < 48; k++) if (on[k]) { const d = Math.abs(k * 7.5 - a) % 360; if (Math.min(d, 360 - d) <= 15) n++; } if (n >= 2) ways++; }
+    return Math.max(runs, ways);
+  }
+  // where to lay a blow built round (x, y) by build(x, y) → parts: there if it leaves two ways out, else moved off the
+  // walls by you a step at a time (0.03 S up to 0.3 S, off each wall within 0.3 S of you, then off one of them), you still
+  // in it; else the place of most ways out. Returns [x, y, parts]
+  function finPick(x, y, build) {
+    const e = edge(), px = P.x, py = P.y, top = Math.min(barTop(), py), far = S * 0.3;
+    const sx = px - e < far ? 1 : W - e - px < far ? -1 : 0, sy = py - top < far ? 1 : H - e - py < far ? -1 : 0;
+    const tries = [[0, 0]];
+    for (let k = 1; k <= 10; k++) { const d = S * 0.03 * k; if (sx && sy) tries.push([sx * d, sy * d * 0.6], [sx * d, 0], [0, sy * d]); else if (sx || sy) tries.push([sx * d, sy * d]); }
+    let best = null, bw = -1;
+    for (const [dx, dy] of tries) {
+      const bx = x + dx, by = y + dy, parts = build(bx, by);
+      if (finDist(parts, px, py) >= HIT()) continue; // (it must still be on you: standing there, you are hit)
+      const n = finWays(parts, px, py);
+      if (n >= 2) return [bx, by, parts];
+      if (n > bw) { bw = n; best = [bx, by, parts]; }
+    }
+    return best || [x, y, build(x, y)];
+  }
+  // ---- a great blow in a shape of its own (11-20, 세 막의 3막: 처형 일격이 발밑 원과 넓은 띠로만 몰리지 않게 — 빙경의 거울,
+  // 청우의 발도, 검총주의 큰 칼, 광음의 시곗바늘, 벽력의 큰 벼락, 추혼의 사슬). Its parts: a circle { c: [x, y, r] }, a thick
+  // stroke { s: [ax, ay, bx, by, half] } or a convex polygon { p: [[x, y], ...] }. finDist: how far (x, y) is from the whole of
+  // it (0 inside). Its warning is a "shape" (drawWarn: red, the ground in it reddening; `look` draws it, if its parts would
+  // show their seams); finBlow lays the blow itself, a ground thing that cuts for 0.28 s as spikeErupt does, drawn the
+  // move's own way (draw(h, e, time), e 0 → 1 over its half second)
+  function finDist(parts, x, y) {
+    let d = Infinity;
+    for (const q of parts) {
+      if (q.c) d = Math.min(d, Math.hypot(x - q.c[0], y - q.c[1]) - q.c[2]);
+      else if (q.s) d = Math.min(d, segDist(x, y, q.s[0], q.s[1], q.s[2], q.s[3]) - q.s[4]);
+      else if (q.p) {
+        const p = q.p; let e = Infinity, pos = 0, neg = 0;
+        for (let i = 0; i < p.length; i++) {
+          const [ax, ay] = p[i], [bx, by] = p[(i + 1) % p.length], c = (bx - ax) * (y - ay) - (by - ay) * (x - ax);
+          if (c > 0) pos++; else if (c < 0) neg++;
+          e = Math.min(e, segDist(x, y, ax, ay, bx, by));
+        }
+        d = Math.min(d, pos && neg ? e : 0);
+      }
+      if (d <= 0) return 0;
+    }
+    return d;
+  }
+  function finPath(parts) { // (every part the same way round, so a nonzero fill is their union)
+    ctx.beginPath();
+    for (const q of parts) {
+      if (q.c) { ctx.moveTo(q.c[0] + q.c[2], q.c[1]); ctx.arc(q.c[0], q.c[1], q.c[2], 0, Math.PI * 2); continue; }
+      let p = q.p;
+      if (q.s) {
+        const [ax, ay, bx, by, h] = q.s, a = Math.atan2(by - ay, bx - ax); p = [];
+        for (let i = 0; i <= 8; i++) { const g = a - Math.PI / 2 + (i / 8) * Math.PI; p.push([bx + Math.cos(g) * h, by + Math.sin(g) * h]); }
+        for (let i = 0; i <= 8; i++) { const g = a + Math.PI / 2 + (i / 8) * Math.PI; p.push([ax + Math.cos(g) * h, ay + Math.sin(g) * h]); }
+      }
+      if (!p || p.length < 3) continue;
+      let ar = 0; for (let i = 0; i < p.length; i++) { const [x0, y0] = p[i], [x1, y1] = p[(i + 1) % p.length]; ar += x0 * y1 - x1 * y0; }
+      (ar < 0 ? p.slice().reverse() : p).forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.closePath();
+    }
+  }
+  function finBlow(parts, x, y, draw) {
+    G.hazards.push({ kind: "finBlow", x, y, parts, t: 0, dur: 0.5, best: Infinity, near: false,
+      dist() { return this.t < 0.28 ? finDist(this.parts, P.x, P.y) : Infinity; },
+      draw(h, time) { if (draw) { ctx.save(); draw(h, clamp(h.t / h.dur, 0, 1), time); ctx.restore(); } } });
   }
   // ---- each boss's own fall (11-15 제작자: "보스별 쓰러짐 연출"; designs in docs/보강2차/specs/fallA·fallB): on top of the
   // shared fall (斬, the three strokes, the ink, the two halves sliding apart) what it laid on the world goes with it.
@@ -12176,6 +13289,11 @@ sdk.initializeAsync()
       ctx.setLineDash([S * 0.02, S * 0.015]); ctx.lineDashOffset = -time * 60;
       ctx.beginPath(); ctx.moveTo(w.x - ux, w.y - uy); ctx.lineTo(w.x + ux, w.y + uy); ctx.stroke();
       ctx.setLineDash([]);
+    } else if (w.kind === "shape") { // 세 막의 처형 일격 (11-20): a great blow's own shape (finPath), the ground in it reddening
+      const set = k >= 0.85;
+      finPath(w.look || w.parts);
+      ctx.fillStyle = `rgba(200,50,31,${0.1 + k * 0.25})`; ctx.fill();
+      ctx.strokeStyle = `rgba(200,50,31,${set ? 0.95 : 0.4 + pulse * 0.45})`; ctx.lineWidth = set ? 2.5 : 1.8; ctx.lineJoin = "round"; ctx.stroke();
     }
     ctx.restore();
     // from beyond the edge (an aim line starting off the screen, a homing sight or a shadow at the rim, a throw's sign): the red sign
