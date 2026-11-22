@@ -2398,7 +2398,7 @@ sdk.initializeAsync()
     ["“그림자 없는 자는 돌아갈 곳도 없다”", "안개가 걷히지 않는 계곡이 생겼다", "베인 자들은 칼을 보지 못했다고 한다", "무영, 그림자도 소리도 없는 자객", "안개 속에서 칼끝이 반짝였다"],
     ["“버려진 것을 지키는 자가 가장 질기다”", "버려진 절에서 밤마다 북소리가 난다", "북소리를 들은 나그네는 다시 깨어나지 못했다고 한다", "뇌음, 새벽마다 북으로 산을 깨우던 승려", "목탁 소리가 멎고 북소리가 시작됐다"],
     ["“남을 비추는 자는 제 얼굴을 잊는다”","고개 위의 눈이 한여름에도 녹지 않는다", "얼음 거울에 비친 칼이 진짜 칼보다 빠르다고 한다", "빙경, 받은 칼을 그대로 돌려보내는 여인", "얼음 벽마다 네 얼굴이 비친다"],
-    ["“문을 닫는 사람이 먼저 갇힌다”", "그 고개엔 비가 그친 날이 없다고 한다", "이십 년 전 비 오던 밤, 관문지기 하나가 그 고개에서 죽었다고 한다", "관창, 죽은 사부의 창으로 관문을 막아선 사내", "빗소리 너머로 빗장 걸리는 소리가 났다"], // (11-20: 관창)
+    ["“문을 닫는 사람이 먼저 갇힌다”", "그 고개엔 비가 그친 날이 없다고 한다", "이십 년 전 비 오던 밤, 관문지기 하나가 그 고개에서 죽었다고 한다", "관창, 그 밤 문을 연 검객을 이십 년째 기다리는 사내", "빗소리 너머로 빗장 걸리는 소리가 났다"], // (11-20: 관창; 11-22 X-4 '사부의 발자취')
     ["“주인 잃은 칼도 울 줄 안다”", "주인을 잃은 칼들이 묻힌 골짜기가 있다", "밤이면 칼무덤에서 쇠 우는 소리가 난다", "검총주, 만 자루 칼을 거느린 자", "하늘에 칼이 걸렸다"],
     ["“세월은 벨 수 없다. 아낄 수 있을 뿐이다”", "골짜기에 들어간 사람이 하루 만에 백발이 되어 나왔다", "그 안에선 해가 빨리 졌다가 늦게 뜬다고 한다", "광음, 시간을 손에 쥔 노인", "물방울이 공중에서 멈췄다"],
     ["“하늘을 부리는 자는 하늘을 두려워한다”", "맑은 날에도 봉우리 위로 천둥이 운다", "사십 년 동안 하늘만 올려다본 도사가 있다고 한다", "벽력, 하늘을 부리는 도사", "발밑에 그을린 자국이 번진다"],
@@ -2408,7 +2408,7 @@ sdk.initializeAsync()
     ["“든 것이 무거울수록 내려놓기 어렵다”", "광산 마을에서 쇠 부딪는 소리가 끊이지 않는다", "한 손에 만 근을 든다는 장사가 있다고 한다", "철추, 쇠공 둘을 매달고 다니는 장사", "머리 위에서 쇠사슬이 운다"],
     ["“지키는 일은 베는 일보다 오래 걸린다”", "마을 어귀의 장승이 하룻밤 새 자리를 옮겼다", "장승 앞을 지난 자는 땅이 꺼져 사라졌다고 한다", "장승, 천 년을 선 채로 마을을 지킨 수호신", "발밑에 금이 간다"],
     ["“부처님 손바닥 위에선 아무리 뛰어도 손바닥 위다”", "절 지붕에 그려진 커다란 눈이 하룻밤 새 지워졌다", "주지가 제 눈을 감고 천 개의 손을 얻었다고 한다", "천수, 하늘의 눈을 스스로 감은 천안사의 주지", "눈 위에 커다란 손자국이 찍혀 있다"], // (11-20 리메이크: 천안 → 천수)
-    ["“여기서부터는 네 검으로 가라”", "천하제일을 가린다는 봉우리가 있다", "그 위에 이름 없는 고수가 기다린다", "무명, 이름을 버리고 천하를 얻은 자", "바람도 숨을 죽였다"],
+    ["“여기서부터는 네 검으로 가라”", "천하제일을 가린다는 봉우리가 있다", "스무 해 전 청죽문의 두 검객이 그 봉우리에 올랐다. 하나만 내려왔다", "무명, 이름을 버리고 천하를 얻은 자", "바람도 숨을 죽였다"],
   ];
   // past the last 장 the 강호 talks about you
   const ROAD_LINES = ["객잔마다 네 이야기를 한다", "너를 찾아 산을 오르는 자들이 생겼다", "어떤 이는 네가 사람이 아니라고 한다", "아이들이 대나무 막대로 네 흉내를 낸다",
@@ -2753,67 +2753,69 @@ sdk.initializeAsync()
   const BOSS_SET = [
     { stage: "1-5", name: "쌍영", title: "雙影 · 흑월교 척후", look: "twins", accent: "#c8321f", theme: "grove", sig: "twin", sigName: ["雙影斬", "쌍영참"],
       what: "그림자 둘이 거울처럼 마주 보며 달려든다. 양쪽 벽에서, 위아래에서 번갈아 일곱 번 넘게, 갈수록 촘촘하게. 마지막엔 두 쌍이 한꺼번에 열십자로.",
-      intro: "흑월교 척후, 쌍영. 마지막 목을 거두러 왔다.", sigLine: "발소리는 하나, 칼은 둘. 어느 쪽을 막을 테냐.", down: "교주님… 검은 달이… 다시 뜰 겁니다." },
+      intro: ["흑월교 척후, 쌍영. 마지막 목을 거두러 왔다.", "그 밤 청죽문의 목은 우리가 셌다. 하나가 모자라더군."], sigLine: "발소리는 하나, 칼은 둘. 어느 쪽을 막을 테냐.", down: ["그 늙은이가 불 속에서 그러더군. 대나무는 타도 뿌리가 남는다고. …너였나.", "교주님… 검은 달이… 다시 뜰 겁니다."] },
     { stage: "2-5", name: "연화", title: "蓮華 · 수류검", look: "lotus", accent: "#3d6a8a", theme: "gorge", sig: "lotus", sigName: ["蓮華歸", "연화귀"],
       what: "보스 둘레로 표창이 꽃잎처럼 퍼져 나갔다가 멈추고, 다시 보스에게 돌아온다. 나갈 때와 돌아올 때 두 번 피해야 한다.",
-      intro: "수류검 연화. 내가 벤 자리엔 물자국만 남지.", sigLine: "베어도 갈라지지 않는 게 물이야. 나도 그래.", down: "물자국 하나 안 남기고 가는구나… 나도." },
+      intro: ["수류검 연화. 내가 벤 자리엔 물자국만 남지.", "흑월교든 청죽문이든 몰라. 물은 낮은 데로 흐를 뿐이야."], sigLine: "베어도 갈라지지 않는 게 물이야. 나도 그래.", down: ["불 앞에서도 네 사부는 물처럼 고요하더라. 다투지 않는다는 게… 그런 거였네.", "물자국 하나 안 남기고 가는구나… 나도."] },
     { stage: "3-5", name: "적염 대사", title: "赤炎 · 파계승", look: "monk", accent: "#d0651e", theme: "temple", sig: "fire", sigName: ["業火陣", "업화진"],
       what: "땅이 칸으로 나뉘고 박자마다 다른 무늬로 불기둥이 솟는다. 바둑판, 줄, 대각선, 내 둘레의 고리, X자, 보스에서 퍼지는 물결이 번갈아 나오고 박자가 점점 빨라진다. 무늬가 나올 때는 내가 선 칸이 늘 타고 옆 칸 하나는 늘 비어 있다. 네 박마다 한 번은 무늬 대신 내 칸과 둘레 여덟 칸이 한 덩어리로 타오르니, 그 밖으로 크게 비켜야 한다. 종전에는 이 큰 불이 없다.",
-      intro: "제 손으로 절을 태운 중이다. 종소리가 아직도 들리느냐.", sigLine: "염불은 잊었다. 불 지피는 법만 남았지.", down: "종이… 멎었구나. 이제야… 조용하다." },
+      intro: ["제 손으로 절을 태운 중이다. 종소리가 아직도 들리느냐.", "대숲에 불을 놓은 것도 이 손이다. 업이 하나 더 늘었지."], sigLine: "염불은 잊었다. 불 지피는 법만 남았지.", down: ["네 사부를 태운 불이 여기까지 따라왔구나. 남을 태우면 제 몸도 탄다더니.", "종이… 멎었구나. 이제야… 조용하다."] },
     { stage: "4-5", name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", theme: "snow", sig: "frost", sigName: ["氷花亂舞", "빙화난무"],
       what: "백발을 휘날리며 도는 팔을 따라 얼음꽃을 흩뿌린다. 얼음꽃은 천천히 돌며 흘러가다가, 하얗게 깜빡이며 여섯 갈래 빛줄기를 보인 뒤 그 길로 얼음 바늘 여섯 개가 되어 터진다. 처음엔 듬성듬성, 갈수록 촘촘하고 빠르게. 마지막엔 보스 앞의 큰 얼음꽃이 작은 꽃 여섯으로, 그 꽃들이 다시 바늘로 두 번 갈라진다. 꽃 사이를 비집고, 터질 꽃에서 비켜 바늘 사이 틈으로 빠져야 한다.",
-      intro: "백발 검귀. 백 년 동안 이 고개를 넘은 자는 없었다.", sigLine: "눈꽃 하나에 목숨 하나. 세어 보거라.", down: "녹는구나… 봄이란 게… 이런 것이었나." },
+      intro: ["백발 검귀. 백 년 동안 이 고개를 넘은 자는 없었다.", "흑월교? 이 고개를 못 넘어 뒷길로 숨어든 것들이지. 나는 넘는 자를 벨 뿐이다."], sigLine: "눈꽃 하나에 목숨 하나. 세어 보거라.", down: ["백 년을 기다린 칼이… 너였구나. 오래도 걸렸다.", "녹는구나… 봄이란 게… 이런 것이었나."] },
     { stage: "5-5", name: "흑월교주", title: "黑月 · 검은 달의 교주", look: "lord", accent: "#8b1a12", theme: "moon", sig: "void", sigName: ["黑月墜", "흑월추"],
       what: "내가 선 자리에 검은 달의 그림자가 드리우고, 1초 뒤 달이 내려앉아 잠시 땅에 박혀 있다. 달은 쉬지 않고 나를 따라 떨어져 설 곳이 점점 줄고, 그 사이 교주가 나를 가로질러 칼을 긋는다.",
-      intro: "{me}. 그 늙은이가 남긴 마지막 검이 네놈이냐.", sigLine: "나는 칼을 두 번 휘두른 적이 없다. 오늘도 마찬가지다.", down: "이것이… 패배라는 건가. 우습군. 검은 달은… 다시 뜬다." },
+      intro: ["{me}. 그 늙은이가 남긴 마지막 검이 네놈이냐.", "청죽문을 태우면 내려올 줄 알았던 놈이 있다. 온 건 네놈이군."], sigLine: "나는 칼을 두 번 휘두른 적이 없다. 오늘도 마찬가지다.", down: ["그자는 천하봉에 있다. 제 문파가 타도 안 내려오는… 이름 없는 놈이.", "이것이… 패배라는 건가. 우습군. 검은 달은… 다시 뜬다."] },
     { stage: "6-5", name: "맹호", title: "猛虎 · 대숲을 뚫는 사내", look: "tiger", accent: "#c7782a", theme: "grove", sig: "charge", sigName: ["猛虎衝", "맹호충"],
       what: "두 가지를 섞어 쓴다. 붉은 길을 깔고 몸째 돌진하고, 발톱으로 나란한 세 줄을 긋는다. 셀수록 벽에서 되돌아오고, 두 발이 엇갈려 긋는다.",
-      intro: "범을 맨손으로 잡은 사내, 맹호다. 길은 내가 낸다.", sigLine: "대숲이든 사람이든, 막으면 뚫는다!", down: "범도… 넘어질 날이 있군. 오래 살아라, 애송이." },
+      intro: ["범을 맨손으로 잡은 사내, 맹호다. 길은 내가 낸다.", "그 발놀림… 청죽문이냐! 크하하, 스무 해 만이군!"], sigLine: "대숲이든 사람이든, 막으면 뚫는다!", down: ["앞선 놈은 칼도 안 뽑고 갔지. 범을 받아 준 건 네 사부뿐이었다.", "범도… 넘어질 날이 있군. 오래 살아라, 애송이."] },
     { stage: "7-5", name: "무영", title: "無影 · 그림자 없는 자", look: "veil", accent: "#55525c", theme: "gorge", sig: "veil", sigName: ["無影劍", "무영검"],
       what: "무영이 사라졌다가 가장자리 곳곳에서 나타나며 나를 가로질러 벤다. 나타날 자리와 벨 길은 먹물 잔상으로 먼저 보인다. 마지막엔 잔상 넷이 한꺼번에 엇갈려 벤다.",
-      intro: "얼굴도 그림자도 버렸다. 남은 건 칼뿐이다.", sigLine: "내 칼을 본 자는 없다. 너도 못 본다.", down: "아프군… 버리지 못한 게… 아직 남아 있었나." },
+      intro: ["얼굴도 그림자도 버렸다. 남은 건 칼뿐이다.", "…그 검은 안다. 버리지 못하는 자의 검이다."], sigLine: "내 칼을 본 자는 없다. 너도 못 본다.", down: ["다 버리면 앞서 간 자처럼 될 줄 알았다. 네 사부는… 돌아갈 곳만 없어진다 했지.", "아프군… 버리지 못한 게… 아직 남아 있었나."] },
     { stage: "8-5", name: "뇌음", title: "雷音 · 북 치는 승려", look: "drum", accent: "#a33b26", theme: "temple", sig: "drum", sigName: ["雷音", "뇌음"],
       what: "북이 울릴 때마다 발밑에 붉은 띠가 깔렸다가 칼이 떨어진다. 넷째 박에는 엇갈린 띠가 두 개.",
-      intro: "새벽마다 산을 깨우던 북이다. 오늘은 너를 재워 주마.", sigLine: "장단은 내가 친다. 너는 춤이나 춰라!", down: "마지막 한 박은… 네 것이었구나. 좋은 장단이었다." },
+      intro: ["새벽마다 산을 깨우던 북이다. 오늘은 너를 재워 주마.", "발소리가 장단을 타는구나. 스무 해 전에도 하나가 내 북에 칼춤을 췄지."], sigLine: "장단은 내가 친다. 너는 춤이나 춰라!", down: ["버려진 걸 지키는 놈이 제일 질기다며 그 젊은이가 웃었지. 네가 그 웃음을 닮았다.", "마지막 한 박은… 네 것이었구나. 좋은 장단이었다."] },
     { stage: "9-5", name: "빙경", title: "氷鏡 · 얼음 거울", look: "mirror", accent: "#7fb6d4", theme: "snow", sig: "mirror", sigName: ["氷鏡", "빙경"],
       what: "얼음 거울 넉 장이 땅에 선다. 보스가 거울에 고드름을 던지면 거울에서 꺾여 나에게 날아온다. 꺾이는 길이 먼저 빛줄기로 보인다. 갈수록 두 장이 한꺼번에 나를 겨눈다.",
-      intro: "얼음 거울, 빙경. 받은 칼은 그대로 돌려주지.", sigLine: "네가 휘두른 칼, 그대로 돌려줄게.", down: "깨지니까 보이네… 이게, 내 얼굴이었구나." },
+      intro: ["얼음 거울, 빙경. 받은 칼은 그대로 돌려주지.", "그 칼이네. 내가 끝내 못 돌려준 칼."], sigLine: "네가 휘두른 칼, 그대로 돌려줄게.", down: ["네 사부는 칼을 안 뽑고 묻기만 했어. 네 얼굴은 어디 있느냐고.", "깨지니까 보이네… 이게, 내 얼굴이었구나."] },
     // (11-20 제작자: "그 우산쓴애 가 너무 마음에 안들어" → 1120-청우-천안-전체리메이크안 10-5 안 A, "추천대로 해줘": a new man, 관창.
     // The keys stay "rain" — his music, motes, colours, kit names and the tools' tables all hang on them)
     { stage: "10-5", name: "관창", title: "關槍 · 고개를 지키는 창객", look: "rain", accent: "#3f7f8f", theme: "gorge", sig: "rain", sigName: ["梨花槍", "이화창"],
       what: "창 한 자루로 비 내리는 고개를 막아선다. 보스 몸에서 내 자리로 창끝이 뻗어 화면 끝까지 꿰뚫고, 찌르기가 짧게 이어지다 마지막 둘은 부채처럼 함께 온다. 둘째 비기는 고개의 위와 옆 가장자리로 발을 옮겨 멈출 때마다 나를 찌르고, 끝은 맞은편 두 자리에서 엇갈려 온다. 종전에는 삿갓을 벗어 던지고 뒤에 관문이 선다.",
-      intro: "이 고개의 관문지기, 관창이다. 사부님 창을 물려받고 이십 년, 여길 지나간 놈은 없다.", sigLine: "물러서는 법은 안 배웠다. 사부님도 이 자리에서, 물러서지 않고 가셨다.", down: "문을 닫는 놈이 먼저 갇힌다더니… 이십 년, 갇혀 있던 건 나였군. 지나가라. 고개는 열렸다." },
+      // (11-22 '사부의 발자취': the swordsman who opened his gate twenty years ago was your 사부, chasing ‘the nameless one’ — 20-5)
+      intro: ["관문지기 관창이다. …그 검, 낯이 익군.", "이십 년 전 비 오던 밤, 이 문을 열고 지나간 검이다."], sigLine: "사부님은 그 밤, 한 걸음도 물러서지 않으셨다. 나도 그렇다.",
+      down: ["그 검객은 이름 없는 자를 쫓아 이 문을 열었다. 사부님을 묻어 주고서.", "문을 닫는 놈이 먼저 갇힌다더니… 갇힌 건 나였군. 지나가라."] },
     { stage: "11-5", name: "검총주", title: "劍塚主 · 칼 무덤의 주인", look: "swords", accent: "#7a7f86", theme: "field", sig: "swords", sigName: ["飛劍決鬪", "비검결투"],
       what: "큰 칼을 하나씩 던져 땅에 꽂는다. 꽂힐 자리가 먼저 빛나고, 내 곁에는 꽂지 않는다. 다 꽂으면 사라졌다가 나에게서 가장 먼 칼 곁에 나타나, 칼을 뽑아 그 자리에서 나를 가로질러 벤다. 칼마다 한 번씩, 다음 베기는 앞의 것이 떨어지기 전에 빛난다. 셀수록 칼이 많고, 마지막 두 칼은 한꺼번에 엇갈려 벤다.",
-      intro: "여기 묻힌 만 자루. 주인은 모두 내가 죽였다.", sigLine: "깨어나라. 너희 주인을 벤 자가 여기 있다.", down: "칼들이 운다… 새 주인을 만났다고. 우습군." },
+      intro: ["여기 묻힌 만 자루. 주인은 모두 내가 죽였다.", "이 무덤에 없는 칼이 둘이다. 그중 하나를 네가 찼군."], sigLine: "깨어나라. 너희 주인을 벤 자가 여기 있다.", down: ["앞선 자는 아무 칼이나 뽑아 나를 이겼다. 네 사부는 칼 우는 소리를 듣더군.", "칼들이 운다… 새 주인을 만났다고. 우습군."] },
     { stage: "12-5", name: "광음", title: "光陰 · 시간을 쥔 노인", look: "time", accent: "#b08d4a", theme: "gorge", sig: "time", sigName: ["光陰", "광음"],
       what: "세상이 느려졌다 빨라졌다를 되풀이한다. 내 몸만 제 속도라서, 느릴 때 자리를 잡아 두어야 빠를 때 산다.",
-      intro: "내일을 먼저 다녀왔네. 거기 자네는 없더군.", sigLine: "세월을 붙잡으려다, 세월에 붙잡혔지.", down: "내가 본 내일이… 틀렸구먼. 처음으로 궁금하네." },
+      intro: ["내일을 먼저 다녀왔네. 거기 자네는 없더군.", "자네 사부에게도 내일을 일러 줬지. 듣고도 가더구먼."], sigLine: "세월을 붙잡으려다, 세월에 붙잡혔지.", down: ["세월은 못 베니 아껴 쓰겠다던 젊은이가… 알고도 스무 해를 살았구먼.", "내가 본 내일이… 틀렸구먼. 처음으로 궁금하네."] },
     { stage: "13-5", name: "벽력", title: "霹靂 · 번개를 부르는 도사", look: "thunder", accent: "#d9b23a", theme: "moon", sig: "thunder", sigName: ["天雷", "천뢰"],
       what: "하늘이 어두워지고, 번개가 줄지어 나를 향해 걸어온다. 이어서 내 자리에 큰 번개 자국이 생기고, 떨어지는 순간 하늘이 하얗게 갈라지며 여덟 갈래 번개가 사방으로 뻗는다. 자국 밖, 갈래와 갈래 사이에 서야 한다. 셀수록 두 번 떨어지고, 마지막엔 내 둘레에 열십자로 다섯 개가 떨어진다.",
-      intro: "사십 년을 하늘만 올려다본 도사다. 이제 하늘이 내 말을 듣지.", sigLine: "부적 한 장에 벼락 하나. 세어 봐라.", down: "하늘이 처음으로… 내 말을 안 듣는구나." },
+      intro: ["사십 년을 하늘만 올려다본 도사다. 이제 하늘이 내 말을 듣지.", "스무 해 전엔 둘이 지나갔다. 하나는 벼락을 베었고, 하나는 하늘에 절을 했지."], sigLine: "부적 한 장에 벼락 하나. 세어 봐라.", down: ["부릴수록 하늘이 무서워지더군. 절하던 놈은 스무 해 전에 그걸 알았다.", "하늘이 처음으로… 내 말을 안 듣는구나."] },
     { stage: "14-5", name: "추혼", title: "追魂 · 혼을 쫓는 저승사자", look: "ghost", accent: "#4a6b6f", theme: "temple", sig: "shadow", sigName: ["追魂", "추혼"],
       what: "1.4초 전의 내가 그림자가 되어, 내가 지나온 길을 그대로 따라온다. 멈춰 서면 따라잡히고, 닿으면 죽는다.",
-      intro: "{me}. 명부에 네 이름이 올랐다. 사흘을 기다렸다.", sigLine: "거둔 혼은 셀 수 없다. 놓친 혼은… 없었다.", down: "명부를… 고쳐 써야겠군. 처음 있는 일이다." },
+      intro: ["{me}. 명부에 네 이름이 올랐다. 사흘을 기다렸다.", "네 사부의 이름은 내가 거뒀다. 불 속에서도 조용히 가더군."], sigLine: "거둔 혼은 셀 수 없다. 놓친 혼은… 없었다.", down: ["그자가 버린 이름을 네 사부가 지고 다녔다. 이제 그 둘을… 네가 지는군.", "명부를… 고쳐 써야겠군. 처음 있는 일이다."] },
     { stage: "15-5", name: "호접", title: "胡蝶 · 독나비의 여인", look: "butterfly", accent: "#7b4a9e", theme: "field", sig: "swarm", sigName: ["胡蝶陣", "호접진"],
       what: "나비 떼가 나를 멀찍이 둘러싸고 따라 돈다. 한 마리씩 나를 겨누면 붉은 선이 그어지고, 곧 그 선을 따라 쏜살같이 날아든다. 맴도는 나비는 닿아도 괜찮다.",
-      intro: "아이들이 내 나비를 따라왔어. 너도 따라올래?", sigLine: "예쁘지? 이 아이들, 내 피를 먹고 컸어.", down: "나비는 하룻밤이면 족한데… 너무, 오래 날았네." },
+      intro: ["아이들이 내 나비를 따라왔어. 너도 따라올래?", "어머, 나비들이 먼저 알아보네… 나도 옛날에 따라가려던 칼인데."], sigLine: "예쁘지? 이 아이들, 내 피를 먹고 컸어.", down: ["돌아가라던 그 사람이 그랬어. 꿈이 길면 깨는 날이 아프다고. …정말이네.", "나비는 하룻밤이면 족한데… 너무, 오래 날았네."] },
     { stage: "16-5", name: "화륜", title: "火輪 · 불바퀴를 탄 소년", look: "wheel", accent: "#e0531f", theme: "moon", sig: "wheel", sigName: ["風火輪", "풍화륜"],
       what: "불바퀴 둘이 벽에 튕기며 굴러다니고, 지나간 자리에 불길이 2초 남짓 남는다. 불길 사이로 길을 찾아야 한다.",
-      intro: "사부님이 철들 때까지 내리지 말래. 아직 멀었어!", sigLine: "불장난이 세상에서 제일 재밌어!", down: "바퀴가 멈췄네… 사부님, 저 이제 철든 걸까요." },
+      intro: ["사부님이 철들 때까지 내리지 말래. 아직 멀었어!", "어, 그 대나무 냄새! 스무 해 전에 놀아 주던 아저씨다! …아니네? 너도 놀자!"], sigLine: "불장난이 세상에서 제일 재밌어!", down: ["멈출 줄 알아야 어른이라던데. …나 방금 멈췄지, 아저씨?", "바퀴가 멈췄네… 사부님, 저 이제 철든 걸까요."] },
     { stage: "17-5", name: "철추", title: "鐵錘 · 만 근 쇠공의 장사", look: "chain", accent: "#6d6a63", theme: "temple", sig: "pendulum", sigName: ["萬斤錘", "만근추"],
       what: "하늘에 매달린 쇠공 둘이 시계추처럼 흔들린다. 끝에 닿을 때마다 줄 길이를 바꿔 내가 선 자리를 지나가게 한다. 지나갈 길은 붉게 보인다.",
-      intro: "만 근 쇠공이 내 공깃돌이었다. 넌 몇 근이냐.", sigLine: "힘으로 안 되는 건 없다. 더 큰 힘이면 된다!", down: "줄이 끊어졌군… 내려놓으니, 이렇게 가볍나." },
+      intro: ["만 근 쇠공이 내 공깃돌이었다. 넌 몇 근이냐.", "그 칼집, 본 적 있다. 내 쇠공을 가볍다던 놈이 찼었지."], sigLine: "힘으로 안 되는 건 없다. 더 큰 힘이면 된다!", down: ["그놈은 사형의 이름을 지고 간다 했다. 만 근을 드는 나도… 그건 못 들겠군.", "줄이 끊어졌군… 내려놓으니, 이렇게 가볍나."] },
     { stage: "18-5", name: "장승", title: "長丞 · 마을 어귀의 수호신", look: "totem", accent: "#9b4a2c", theme: "grove", sig: "crumble", sigName: ["地陷", "지함"],
       what: "땅이 칸으로 나뉜다. 한 칸에 오래 서 있으면 금이 가고 무너져 3초 동안 구멍이 된다. 장승이 발을 구르면 내 둘레가 열십자로 갈라진다.",
-      intro: "천 년을 선 채 마을을 지켜 왔다. 잡귀는 못 넘는 어귀다.", sigLine: "마을이 잠든 밤엔, 내가 깨어 있다.", down: "천 년을 서 있었더니… 이제야, 눕는구나." },
+      intro: ["천 년을 선 채 마을을 지켜 왔다. 잡귀는 못 넘는 어귀다.", "그 검이 다시 어귀에 섰구나. 지키는 법을 묻던 젊은이의 검이."], sigLine: "마을이 잠든 밤엔, 내가 깨어 있다.", down: ["그 젊은이는 돌아가 문을 지키겠다 했다. 지켰느냐. …그래, 네가 남았구나.", "천 년을 서 있었더니… 이제야, 눕는구나."] },
     // (11-20 리메이크, 1120-청우-천안-전체리메이크안 안 A, 제작자 "추천대로 해줘": was 천안 天眼 · 하늘의 눈, 天眼通; sig "glare" and look "eye" kept as keys)
     { stage: "19-5", name: "천수", title: "千手 · 천안사의 주지", look: "eye", accent: "#c9a227", theme: "snow", sig: "glare", sigName: ["千手印", "천수인"],
       what: "금빛 손바닥이 하늘에서 차례로 내리찍힌다. 하나는 내가 선 자리, 다음 하나는 내가 가던 길 앞이다. 멈춰 서도, 가던 대로 가도 맞으니 방향을 꺾어야 한다. 끝에는 두 손이 한꺼번에 찍힌다. 둘째 비기 여래신장은 커다란 손바닥 하나가 넓게 내리누른다. 손가락 사이 틈으로 피해야 하고, 다음 손은 방향을 돌려 온다. 종전에는 등 뒤로 금빛 팔이 펼쳐지고 손바닥이 둘씩 온다.",
-      intro: "천안사 주지 천수요. 하늘의 눈은 내 손으로 감았소. 남은 건 이 손들뿐이오.", sigLine: "이 손에 쥔 업만 해도 산더미요. 그대 하나쯤 더 얹은들 어떻겠소.", down: "손을 거두니… 감은 눈에도 그대가 보이는구려.", ring: "千手印" }, // (11-21: 하오체 throughout, 「천 개」 once (FINALE_LINES), no matched pair; ring: its 종전 seal's glyphs, not 千手千手印)
+      intro: ["천안사 주지 천수요. 하늘의 눈은 내 손으로 감았소. 남은 건 이 손들뿐이오.", "그 검이구려. 이 눈으로 마지막에 본 것이… 그대 사부였소."], sigLine: "이 손에 쥔 업만 해도 산더미요. 그대 하나쯤 더 얹은들 어떻겠소.", down: ["길을 묻기에 봉우리만 일러 주었소. 불은 차마 말하지 못했소. …알고 가는 얼굴이었소.", "손을 거두니… 감은 눈에도 그대가 보이는구려."], ring: "千手印" }, // (11-21: 하오체 throughout, 「천 개」 once (FINALE_LINES), no matched pair; ring: its 종전 seal's glyphs, not 千手千手印)
     { stage: "20-5", name: "무명", title: "無名 · 이름 없는 고수", look: "final", accent: "#b8912a", theme: "grove", sig: "final", sigName: ["天下一劍", "천하일검"],
       what: "치켜든 칼을 단번에 내리긋는다. 처음엔 한 줄, 다음엔 두 줄이 엇갈리고, 그다음엔 세 줄이 별 모양으로 내 자리를 지난다. 이어서 분신들이 내 둘레에 서서 차례로 나를 꿰뚫고 지나가고, 마지막엔 하늘을 가르는 넓은 일검이 내려온다. 셀수록 분신이 많고, 보통부터는 일검이 둘 엇갈린다.",
-      intro: "이름을 버리고 천하를 얻었다. 너는 무엇을 버리고 왔느냐.", sigLine: "눈을 감은 지 오래다. 칼은 손이 기억한다.", down: "이제 네가 천하제일이다. 이름은… 네가 지어라." },
+      intro: ["이름을 버리고 천하를 얻었다. 너는 무엇을 버리고 왔느냐.", "…대숲 스치는 소리. 사제의 검이군."], sigLine: "눈을 감은 지 오래다. 칼은 손이 기억한다.", down: ["사제는 내 이름을 들고 여기까지 왔었다. 받지 않았지. …받을 걸 그랬군.", "이제 네가 천하제일이다. 이름은… 네가 지어라."] },
   ];
   // what drifts across each boss's fight behind its 비기, unannounced, read as it comes: the boss's own element
   // (the grove's bamboo only where the grove is; nothing at all where the 비기 should stand alone)
@@ -3863,7 +3865,14 @@ sdk.initializeAsync()
       // (an aftershock), and after every stamp one corner stone is sure to bear you: there is always a way out.
       // (11-08 "패턴들이 너무 쉬워": a stamp every 1.8 s was a stroll between them. Now it stamps sooner and quicker each
       // time, and the aftershocks come thicker; the warning, a crack 0.85 s before it gives way, is the same)
-      const cols = 5, rows = 9, cw = W / cols, ch = H / rows, life = 9.5, crackT = 0.85, holeT = Math.min(2.8, 2.3 + lvl() * 0.04), linger = 0.5;
+      // (11-22 제작자, 해 보고: "18-5 난이도 비정상적으로 어렵고 아니 못깨는 수준". Since 보통 took 어려움's numbers (11-08) its
+      // level, about 16, sat every clock here on its floor: two stones every 0.6 s, a stamp every 1.05 s, pits 2.8 s — some 30 of
+      // the 45 stones gone or going at once, a maze a bot reads and a person does not. Now by the level, not lvl(): 보통 one
+      // stone every 1.15 s, the stamp every 1.9 s closing to 1.45, pits 2.0 s — about 12 gone at once, still a trail of pits
+      // behind you and nowhere to stand; its 종전 a little thicker; 어려움 about 17; 쉬움 fewer. The rest as it was)
+      const fl = G.fight || {}, late = !!fl.last, sl = SL().lv || 0, lo = sl < 9, hi = sl >= 11;
+      const aftDt = (lo ? 1.6 : hi ? 0.8 : 1.15) * (late ? 0.85 : 1), st0 = lo ? 2.2 : hi ? 1.7 : 1.9, stMin = (lo ? 1.75 : hi ? 1.25 : 1.45) * (late ? 0.9 : 1);
+      const cols = 5, rows = 9, cw = W / cols, ch = H / rows, life = 9.5, crackT = 0.85, holeT = lo ? 1.7 : hi ? 2.5 : 2.0, linger = 0.5;
       const cells = Array.from({ length: cols * rows }, () => ({ load: 0, crack: -1, hole: -1 }));
       G.hazards.push({ kind: "floor", cells, cols, rows, cw, ch, crackT, holeT, t: 0, dur: life, best: Infinity, near: true, stomp: 0.9, aft: 1.2, last: -1, stomps: 0,
         cellAt(x, y) { return clamp(Math.floor(y / ch), 0, rows - 1) * cols + clamp(Math.floor(x / cw), 0, cols - 1); },
@@ -3874,10 +3883,10 @@ sdk.initializeAsync()
           this.last = mine;
           this.aft -= dt;
           if (open && this.aft <= 0) { // an aftershock: a stone or two away from you cracks (it falls in like any other)
-            this.aft = Math.max(0.6, 1.0 - lvl() * 0.03);
+            this.aft = aftDt;
             const mx = mine % cols, my = Math.floor(mine / cols);
             const far = cells.map((c, i) => i).filter((i) => Math.max(Math.abs(i % cols - mx), Math.abs(Math.floor(i / cols) - my)) > 1 && cells[i].crack < 0 && cells[i].hole < 0);
-            fixed("cr", () => { for (let k = lvl() >= 8 ? 2 : 1; k > 0 && far.length; k--) this.crack(far.splice(Math.floor(Math.random() * far.length), 1)[0]); }); // (11-17 review: which stones, on a seed of its own)
+            fixed("cr", () => { if (far.length) this.crack(far.splice(Math.floor(Math.random() * far.length), 1)[0]); }); // (11-17 review: which stones, on a seed of its own)
           }
           cells.forEach((c, i) => {
             if (i === mine && open) { c.load += dt; if (c.load > linger) this.crack(i); } else c.load = Math.max(0, c.load - dt * 0.5);
@@ -3891,14 +3900,17 @@ sdk.initializeAsync()
           });
           this.stomp -= dt;
           if (this.stomp <= 0 && open) { // the stamp: your cell and the four beside it
-            this.stomp = Math.max(1.05, 1.95 - lvl() * 0.06 - this.stomps * 0.06); this.stomps++; // (each a little sooner than the last)
+            this.stomp = Math.max(stMin, st0 - this.stomps * 0.08); this.stomps++; // (each a little sooner than the last)
             const cx = mine % cols, cy = Math.floor(mine / cols);
             for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) if (cx + dx >= 0 && cx + dx < cols && cy + dy >= 0 && cy + dy < rows) this.crack((cy + dy) * cols + cx + dx);
             // the way out is the corners: the cracked stones still bear you a moment, step across one to the cell beyond it
             const corners = [[1, 1], [1, -1], [-1, 1], [-1, -1]].filter(([dx, dy]) => cx + dx >= 0 && cx + dx < cols && cy + dy >= 0 && cy + dy < rows).map(([dx, dy]) => (cy + dy) * cols + cx + dx);
-            if (!corners.some((j) => cells[j].hole < 0 && cells[j].crack < 0)) { // every corner gone: the stamp heaves one back up
-              const j = corners[fixed("cr2", () => Math.floor(Math.random() * corners.length))]; cells[j].hole = -1; cells[j].crack = -1; cells[j].load = 0;
-            }
+            // (11-22 "18-5 … 못깨는 수준": it kept one corner, any one — at worst the far one, 1.2 stones off across a cracking
+            // stone, too far in 0.85 s for a person who saw the stamp a beat late. Now the corner nearest you is sure to bear
+            // you, heaved back up if it is gone: half a stone's diagonal at the most)
+            const vx = (j) => (j % cols > cx ? cx + 1 : cx) * cw, vy = (j) => (Math.floor(j / cols) > cy ? cy + 1 : cy) * ch;
+            const nj = corners.reduce((a, j) => (Math.hypot(P.x - vx(j), P.y - vy(j)) < Math.hypot(P.x - vx(a), P.y - vy(a)) ? j : a), corners[0]);
+            if (cells[nj].hole >= 0 || cells[nj].crack >= 0) { cells[nj].hole = -1; cells[nj].crack = -1; cells[nj].load = 0; }
             this.foot = { t: this.t, cells: corners.filter((j) => cells[j].hole < 0 && cells[j].crack < 0) };
             G.shake = Math.max(G.shake, 9); sfx.taiko(); if (G.boss) G.boss.castT = G.boss.castDur = 0.4;
           }
@@ -3928,11 +3940,11 @@ sdk.initializeAsync()
       const trk = handTrack(12); // (t0: its first palm once it has seen you move a moment)
       let tp;
       if (!last) {
-        const n = lo ? 6 : hi ? 12 : 10, gap = (lo ? 0.42 : hi ? 0.28 : 0.31) * k;
+        const n = lo ? 6 : hi ? 13 : 12, gap = (lo ? 0.42 : hi ? 0.28 : 0.31) * k; // (11-22 "19난이도가 너무 쉽다": 보통 12, was 10; 어려움 13)
         for (let i = 0; i < n; i++) handSeal(trk, t0 + i * gap, D, i % 2 ? "ahead" : "here", R, { ts: i % 4 < 2 ? 1 : -1 });
         tp = t0 + n * gap + 0.08;
       } else {
-        const n = lo ? 6 : hi ? 10 : 8, gap = (lo ? 0.62 : hi ? 0.5 : 0.55) * k;
+        const n = lo ? 6 : hi ? 11 : 9, gap = (lo ? 0.62 : hi ? 0.5 : 0.55) * k; // (11-22: 보통 9 pairs, was 8; 어려움 11)
         for (let i = 0; i < n; i++) {
           const t = t0 + i * gap;
           if (!lo && i % 3 === 2) { handSeal(trk, t, D, "ahead", R, { q: 0.61, ts: 1 }); handSeal(trk, t, D + lag, "ahead", R, { q: -0.61, ts: -1 }); }
@@ -5095,7 +5107,9 @@ sdk.initializeAsync()
   let devLevel = LEVELS.includes(store.get("devLv", "normal")) ? store.get("devLv", "normal") : "normal"; // any of 스테이지 모드's three
   function bossDefOf(d) {
     return { name: d.name, title: d.title, look: d.look, accent: d.accent, sig: d.sig, stage: d.stage, ring: d.ring, hp: 30, acts: [], // (ring: 천수's 종전 seal glyphs, 11-21; the rest have none)
-      intro: () => [{ who: d.name, text: withName(d.intro) }], down: () => [{ who: d.name, text: withName(d.down) }] };
+      // (11-22: a line may be a list of lines; 어려움 adds its PATTERN_LINES hard.intro as it appears)
+      intro: () => { const a = [].concat(d.intro).map((t) => ({ who: d.name, text: withName(t) })), h = ((PATTERN_LINES[d.sig] || {}).hard || {}).intro; if (h && hardLv()) a.push({ who: d.name, text: withName(h) }); return a; },
+      down: () => [].concat(d.down).map((t) => ({ who: d.name, text: withName(t) })) };
   }
   // `play`: a 보스전 picked by a player (a boss already met in 스테이지 모드), not one watched in 개발자 모드: never invulnerable,
   // its own difficulty, and it ends back at the 보스전 list with how it went
@@ -5149,6 +5163,8 @@ sdk.initializeAsync()
     if (f.last) fxLastAir(dt, b); // (its 종전: its element in the air)
     const talking = G.lines.length > 0; // its line is on screen (a box over the bottom of the field): nothing starts under it
     if (!talking) b.hp = Math.max(0, b.hp - dt / (seconds * bp));
+    // (11-22, PATTERN_LINES half: once, its life under half, when no other shout of its is up)
+    if (!f.half && !f.last && f.said && b.hp <= 0.5 && !talking && !barkUp()) { f.half = true; bark((PATTERN_LINES[d.sig] || {}).half); }
     // each 비기 in three beats: it gathers itself (the last of the breath: where it comes from, and when), it strikes,
     // and when the 비기 is spent what it threw breaks up (破); then its other attacks, and it gathers itself again
     const wl = BOSS_WIND * bp; // (half a second by the wall clock)
@@ -5184,7 +5200,7 @@ sdk.initializeAsync()
         const next = f.fin ? FINALE[d.sig] : nextSig(f, d); // its first 비기 or its second, by turns (its finishing move last of all)
         if (f.fin) callout(next.name[0], next.name[1]);
         else if (f.last) callout(d.sigName[0], d.sigName[1]);
-        else if (!f.wind) callout(...next.name); // (no wind-up this time: named as it comes)
+        else if (!f.wind) { callout(...next.name); patternBark(f, d); } // (no wind-up this time: named, and shouted, as it comes)
         if (G.callout) { G.callout.castAt = performance.now(); G.callout.side = b.x < W / 2 ? 1 : -1; } // its name off to the corner, away from it
         f.wind = null; b.wind = 0; // (11-08: its spring is in the cast's own curve now: bossPose)
         G.dark = Math.max(G.dark, 0.7); b.castT = b.castDur = 0.6; f.n++; fxCast(b);
@@ -5280,7 +5296,13 @@ sdk.initializeAsync()
     // new threats a second 1.3 / 2.0 / 8.2 before this. Twice its own moves between 비기, and its one palm comes again where you
     // went 0.5 s on (twice, it was 43% of all it threw: one move over and over); nothing laid over its 비기 (千手印's palms and
     // 如來神掌's gaps are read alone), its 종전 as it was)
-    glare: { mix: [0.1, 0.3, 0.5, 0.7, 0.9, 1.1], again: ["c_glare1", 0.5, 1] },
+    // (11-22 제작자, 해 보고: "지금 18에 비해 19난이도가 너무 쉽다". critic.py 보통 본판 new threats a second: 17-5 6.9, 19-5
+    // 3.0, 20-5 8.2. Its palms a step quicker (lift: handK), eight of its own moves between 비기, not six, its one palm again
+    // where you went twice (3-12 question 10's "again 2"), and its 종전's moves on top every 0.75 s, not 1.0. Still palms only)
+    glare: { lift: 3, mix: [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1.0, 1.15], layer: 0.75, again: ["c_glare1", 0.5, 2] },
+    // (11-22 "18-5 … 못깨는 수준": its 종전 laid 발 구르기 — three stamps after you — or a light move on its 地陷 every 1.0 s,
+    // while the floor already made you move every half second. Every 1.5 s now)
+    crumble: { layer: 1.5 },
   };
   const pushOf = (d) => BOSS_PUSH[d.sig] || {};
   // (11-19 "양과 종류로 나누기") its own moves between 비기 by the level (mixK): 쉬움 about half of them, the first and the last
@@ -5318,7 +5340,11 @@ sdk.initializeAsync()
   // (11-10 제작자: 보스가 직접 공격하는 모션, "무기를 들었다가 휘두르기") each of its other attacks it throws in full: it lifts
   // its weapon over its head for 0.24 s (bossPose), then brings it down through a crescent of its colour (moveBoss, drawBoss)
   const throwing = () => { const b = G.boss; if (b && !(b.castT > 0) && !b.raise) b.raise = { t: 0, dur: 0.24 }; }; // (11-08: its other attacks are its too — was a half-size throw of its weapon arm as each one goes)
-  const subAttack = (d) => { throwing(); return SUBS[d.sig].run(); };
+  const subAttack = (d) => {
+    throwing();
+    const f = G.fight, p = PATTERN_LINES[d.sig]; if (f && f.last && !f.subSaid && p && p.sub) { f.subSaid = true; bark(p.sub); } // (11-22: its 종전 move's shout, the first time)
+    return SUBS[d.sig].run();
+  };
   // A 장's stages before its master: its lesser move, mostly the 종전 one; where that needs the master standing there, or
   // shows its manner better another way, something of its own (thrown from up the mountain where the master waits)
   const FORESHADOW = {
@@ -5899,6 +5925,7 @@ sdk.initializeAsync()
   function windUp(b, name) { // it plants its feet and sinks, its colour drawn into it, and the 비기's name goes up over nothing yet
     G.fight.wind = { t: 0 };
     callout(...name); G.callout.wind = true;
+    patternBark(G.fight, b.def); // (11-22: its shout for this 비기, PATTERN_LINES)
     sfx.gather(); buzz([10, 40, 10]);
     if (reduced) return;
     const u = bossUnit(b.def);
@@ -5921,6 +5948,145 @@ sdk.initializeAsync()
   }
   // ---- 종전: its life is gone and it is not done. It plants itself and gathers all it has (twice the usual wind-up, 終戰
   // over it), then throws its 비기 once more at its fiercest (lvl), its other attacks coming on top every so often.
+  // (11-22 제작자: "던파 레기온 같은거 어둑섬 해방된라르고 대사처럼 패턴별로 대사"; 이야기 줄기 '사부의 발자취',
+  // docs/설계/1122-대사-사부의발자취.md) what a master shouts as each of its moves comes, as a legion boss does: one short line
+  // under its bar while the fight goes on (no box, nothing waits for it, no dice thrown). sig / alt: as its first / second 비기
+  // gathers, by turns through the list (not its very first 비기: its sigLine was just said); half: once, its life under half;
+  // sub: its 종전's own move, the first time; act: its finishing move's later acts (the first has FINALE_LINES); hard: 어려움
+  // only — intro (one more line as it appears), act (in place of act's)
+  const PATTERN_LINES = {
+    twin: { // 1-5 쌍영
+      sig: ["형은 왼쪽, 나는 오른쪽.", "둘을 다 본 놈은 없다."], alt: ["형, 박자 맞춰.", "하나, 둘에 벤다."],
+      half: "형, 이 녀석 칼이 그 늙은이를 닮았다.", sub: "엇갈린다, 형.",
+      act: { 2: "한 번 더, 형.", 3: "둘이서 하나를 벤다!" },
+      hard: { intro: "대숲은 새벽까지 탔다. 대나무 터지는 소리에 형 말도 안 들렸다.", act: { 3: "교주님께 바칠 목이다!" } },
+    },
+    lotus: { // 2-5 연화
+      sig: ["간 건 돌아와. 꽃잎도, 칼도.", "한 번 피하면 끝인 줄 알았어?"], alt: ["연못이 넓어지네.", "발밑이 젖었어."],
+      half: "너는 네 사부보다 급하네.", sub: "물결 셋만 보낼게.",
+      act: { 2: "아직 오백 장 남았어.", 3: "천 장째야. 잘 가!" },
+      hard: { intro: "그 밤 연못 물이면 불을 끌 수 있었어. 나는 구경만 했지.", act: { 3: "이번엔 나도, 끝까지 흐를게!" } },
+    },
+    fire: { // 3-5 적염 대사
+      sig: ["칸칸이 불에 공양한다.", "설 자리는 하나 남겨 주마."], alt: ["용이 깼다.", "불은 제 길을 안다."],
+      half: "네 사부는 불 속에서 합장을 하더군. 나를 보고.", sub: "불이 걸어간다.",
+      act: { 2: "둘째 집에도 불이 붙었다.", 3: "마지막 집이다. 다 타라!" },
+      hard: { intro: "그 밤엔 타는 대나무가 종처럼 울더구나. 그 소리도 아직 들린다.", act: { 3: "이 몸까지 장작으로 넣는다!" } },
+    },
+    frost: { // 4-5 설귀
+      sig: ["꽃이 지면 바늘이 남는다.", "여섯 잎이다. 세었느냐."], alt: ["얼음 감옥에는 문이 없다.", "고개가 언다."],
+      half: "벨 만한 칼을 기다리다 머리가 셌다.", sub: "고드름도 칼이다.",
+      act: { 2: "여섯 송이로 모자라느냐.", 3: "눈 밑에서 자거라!" },
+      hard: { intro: "그 밤엔 아래쪽 하늘이 붉더구나. 눈이 다 녹는 줄 알았다.", act: { 3: "봄은 안 온다. 내가 막는다!" } },
+    },
+    void: { // 5-5 흑월교주
+      sig: ["달 그림자를 밟았군.", "설 곳이 줄어든다."], alt: ["빛이 먹힌다.", "한 칼이면 된다."],
+      half: "내게 두 번 뽑게 한 놈은 하나였다. 청죽문 놈.", sub: "달빛에 베여 본 적 있느냐.",
+      act: { 2: "이경이다.", 3: "삼경. 달이 떨어진다!" },
+      hard: { intro: "네 사부는 불 속에서도 먼 봉우리 쪽은 안 보더군. 그자가 안 올 걸 알았던 게지.", act: { 3: "그자에게 떨어질 달이었다. 네가 받아라!" } },
+    },
+    charge: { // 6-5 맹호
+      sig: ["범은 비켜 가는 법이 없다!", "내 앞이 곧 길이다!"], alt: ["발톱 세 개면 족하다!", "가죽은 남겨 주마!"],
+      half: "네 사부는 사흘을 받아 줬다. 너는 며칠이냐!", sub: "앞발 나간다!",
+      act: { 2: "대는 한번 쪼개지면 끝까지다!", 3: "마지막 마디다!" },
+      hard: { intro: "스무 해 전 그놈, 내려올 땐 술도 안 받더군. 범이 다 무안했다.", act: { 3: "그놈 몫까지 받아라!" } },
+    },
+    veil: { // 7-5 무영
+      sig: ["보았을 때는 늦다.", "먹물이 마르기 전에 벤다."], alt: ["숨소리가 크다.", "등 뒤가 비었다."],
+      half: "앞서 간 자는 이름을 버렸다. 나는 더 버렸다.", sub: "그림자는 네 것만 남았다.",
+      act: { 2: "남은 하나도 버린다.", 3: "천 그림자 가운데 이것이 칼이다!" },
+      hard: { intro: "네 사부는 돌아가던 날 그림자가 길더군. 무언가를 지고 있었다.", act: { 3: "이번엔… 나를 보고 죽어라!" } },
+    },
+    drum: { // 8-5 뇌음
+      sig: ["자진모리로 넘어간다!", "엇박에 넘어지지 마라!"], alt: ["큰북 나간다!", "산이 깨는 소리다!"],
+      half: "그 젊은이는 날이 새도록 추고도 웃더라!", sub: "덩, 기덕, 쿵!",
+      act: { 2: "휘모리다!", 3: "북이 찢어진다!" },
+      hard: { intro: "내려가던 날 그 젊은이는 북을 쳐도 안 돌아보더라. 장단 없는 걸음이었다.", act: { 3: "이 가락은 그 젊은이 것이다!" } },
+    },
+    mirror: { // 9-5 빙경
+      sig: ["거울은 거짓말 안 해.", "꺾여도 칼은 칼이야."], alt: ["세 장이 다 너를 봐.", "세 번 비치면 세 번 베여."],
+      half: "앞서 간 사람은 비치지도 않았어.", sub: "네 거야. 도로 받아.",
+      act: { 2: "금 간 데가 더 잘 비쳐.", 3: "거울째로 돌려줄게!" },
+      hard: { intro: "그 사람, 내려올 땐 거울을 안 보더라. 제 얼굴이 무서웠나 봐.", act: { 3: "다 깨져도 좋아. 얼굴만 남으면!" } },
+    },
+    rain: { // 10-5 관창
+      sig: ["배꽃은 한꺼번에 진다.", "이 비에 꽃잎 하나 안 남는다."], alt: ["물러선 게 아니다. 돌아선 거다.", "등 돌린 창이 가장 깊다."],
+      half: "네 사부는 어디 있느냐. 왜 제자를 보냈느냐.", sub: "빗줄기마다 창이 선다.",
+      act: { 2: "사부님, 보고 계십니까!", 3: "이 문은 두 번 열리지 않는다!" },
+      hard: { intro: "돌아가던 그 검객은 내 사부님 무덤에 절을 하고 갔다. 나는… 창을 들지 못했다.", act: { 3: "이번엔… 내가 닫는다!" } },
+    },
+    swords: { // 11-5 검총주
+      sig: ["이 칼 주인은 너보다 셌다.", "꽂힌 데가 곧 무덤이다."], alt: ["뽑는 소리, 들었나.", "네 발밑에도 한 자루 묻혀 있다."],
+      half: "나머지 한 자루는 봉우리에 있다.", sub: "주인을 찾아가라.",
+      act: { 2: "무덤이 비어 간다!", 3: "네 칼도 여기 묻는다!" },
+      hard: { intro: "네 사부가 돌아가던 날, 칼이 울더군. 뽑히지 못한 칼은 그렇게 운다.", act: { 3: "청죽문의 칼, 오늘은 거둔다!" } },
+    },
+    time: { // 12-5 광음
+      sig: ["천천히, 천천히 가세.", "서두르게. 해가 지네."], alt: ["어제로 돌아가 보세.", "엎지른 물도 도로 담기지."],
+      half: "그 친구 내일은 불이었네. 듣고도 웃더군.", sub: "한 번 더 보세.",
+      act: { 2: "쏜 화살도 내겐 돌아오네.", 3: "스무 해 치를 한 번에 쏘네!" },
+      hard: { intro: "내려오던 그 친구는 내일이 바뀌었느냐 묻지 않더군. 다들 그것부터 묻는데 말일세.", act: { 3: "자네의 내일을, 지금 보여 주게!" } },
+    },
+    thunder: { // 13-5 벽력
+      sig: ["번개가 길을 낸다!", "부적은 아직 많다!"], alt: ["벼락으로 그물을 짠다!", "하늘 그물은 성겨도 안 샌다!"],
+      half: "너는 베는 놈이냐, 절하는 놈이냐!", sub: "줄줄이 떨어져라!",
+      act: { 2: "이번 벼락은 못 벤다!", 3: "하늘아, 내려와라!" },
+      hard: { intro: "절하던 놈은 내려올 땐 비를 그냥 맞더군. 절도 안 하고.", act: { 3: "사십 년 치다. 받아라!" } },
+    },
+    shadow: { // 14-5 추혼
+      sig: ["네 그림자가 일어선다.", "네 발자국이 너를 데리러 온다."], alt: ["백귀가 마중 나왔다.", "먼저 간 자들이 부른다."],
+      half: "이름을 버린 자는 나도 못 거둔다.", sub: "불빛을 따라오너라.",
+      act: { 2: "혼이 먼저 간다.", 3: "넋까지 거둔다!" },
+      hard: { intro: "스무 해 전 네 사부는 이름 둘을 지고 내려왔다. 제 것과, 버려진 것.", act: { 3: "네 이름은, 내 손으로 거둔다!" } },
+    },
+    swarm: { // 15-5 호접
+      sig: ["둘씩 짝지어 보낼게.", "맴도는 애들은 착해."], alt: ["숨 깊이 쉬어.", "가루가 곱지?"],
+      half: "따라가겠다니까, 그 사람은 돌아가랬어.", sub: "날개 끝은 독이야.",
+      act: { 2: "눈 감아. 금방이야.", 3: "이게 네 꿈일까, 나비 꿈일까?" },
+      hard: { intro: "내려오는 길엔 나비가 어깨에 앉아도 모르더라. 꿈에서 다 깬 사람 같았어.", act: { 3: "깨지 마… 나 혼자 두지 마!" } },
+    },
+    wheel: { // 16-5 화륜
+      sig: ["굴러라, 굴러!", "누가 빠른지 보자!"], alt: ["발자국 대신 불자국!", "여기도 저기도 내 땅!"],
+      half: "앞에 간 아저씨는 한 번도 안 웃었어!", sub: "비켜, 비켜!",
+      act: { 2: "더 빨리 돌 거야!", 3: "다 태우고 혼나지 뭐!" },
+      hard: { intro: "근데 그 아저씨, 내려올 땐 안 놀아 줬어. 해 지는데 그냥 갔어.", act: { 3: "해 질 때까지 놀자, 아저씨처럼!" } },
+    },
+    pendulum: { // 17-5 철추
+      sig: ["만 근이 지나간다!", "몇 근인지 받아 봐라!"], alt: ["별이 떨어진다!", "줄은 길수록 좋지!"],
+      half: "이름 따위가 만 근보다 무겁다고?", sub: "던진 건 도로 당긴다!",
+      act: { 2: "산을 들었다!", 3: "태산 둘이 부딪친다!" },
+      hard: { intro: "그놈, 내려올 땐 어깨가 더 처져 있더군. 내려놓으라 해도 듣질 않았다.", act: { 3: "그놈 짐까지 얹었다. 버텨 봐라!" } },
+    },
+    crumble: { // 18-5 장승
+      sig: ["서 있는 건 내 일이다.", "이 땅이 버텨 주는 건 나뿐이다."], alt: ["천 년의 무게다.", "어귀는 좁다."],
+      half: "이름 없는 자는 금줄에도 걸리지 않았다.", sub: "물렀거라, 잡귀야.",
+      act: { 2: "하늘이 무너져도 선다!", 3: "내 등 뒤가 마을이다!" },
+      hard: { intro: "내려오던 젊은이는 내 앞에 다시 절을 했다. 이번엔 아무것도 묻지 않더구나.", act: { 3: "지켰는지는 네 칼에 묻겠다!" } },
+    },
+    glare: { // 19-5 천수
+      sig: ["어디로 가시오.", "가는 길에도 손이 있소."], alt: ["여래의 손이오.", "새는 것은 새게 두오."],
+      half: "불타는 대숲을 보았소. 보고도 말하지 않았소.", sub: "자국은 남는 법이오.",
+      act: { 2: "이 손은 그대 사부 몫이오.", 3: "나무아미타불!" },
+      hard: { intro: "내려오는 길에 그이가 묻습디다. 제 앞날도 보이느냐고. 나는 고개를 저었소.", act: { 3: "그날 못 한 말, 이 손으로 하겠소!" } },
+    },
+    final: { // 20-5 무명
+      sig: ["칼에는 이름이 없다.", "천하에 칼은 하나다."], alt: ["나는 없다.", "누가 베는지 묻지 마라."],
+      half: "청죽문이 타던 밤에도 내려가지 않았다.", sub: "버린 나만 해도 이만큼이다.",
+      act: { 2: "사제의 검으로는 여기까지다.", 3: "네 검을 보여라!" },
+      hard: { intro: "스무 해 전, 사제는 내 앞에서 칼을 뽑지 못했다. 너는 뽑는구나.", act: { 3: "이름을 걸어라. 내겐 걸 것이 없다!" } },
+    },
+  };
+  const hardLv = () => (G.dev ? G.dev.lvl : stageLevel) === "master";
+  const barkLife = (s) => s.text.length / CPS + 1.1;
+  function bark(text) { const b = G.boss; if (b && text) G.bark = { text: withName(text), at: performance.now(), boss: b }; }
+  const barkUp = () => !!G.bark && G.bark.boss === G.boss && performance.now() - G.bark.at < barkLife(G.bark) * 1000;
+  function patternBark(f, d) { // its 비기 coming: at its wind-up, or at its cast when it had none
+    const p = PATTERN_LINES[d.sig]; if (!p || f.last || f.fin) return;
+    const kind = f.n % 2 === 1 ? "alt" : "sig", list = p[kind];
+    if (!list || !list.length || (kind === "sig" && f.n === 0 && !f.retry)) return; // (its first 비기: its sigLine has just been said; on a retry it was not, so it shouts)
+    const n = (f.barkN = f.barkN || { sig: 0, alt: 0 });
+    bark(list[n[kind]++ % list.length]);
+  }
   // what each says as its life runs out, before its 종전 (11-06: "종전 전에 보스 대사 추가")
   const LAST_LINES = {
     twin: "형… 이 녀석, 진짜다. 척후의 이름을 걸자.", lotus: "연못이… 마르기 전에… 마지막 꽃을 피우겠어.",
@@ -9048,7 +9214,11 @@ sdk.initializeAsync()
         cracks.push({ x: fx, y: fy, ang, len, v: VC, t0: ctl.t, life: 1.6, seed: ctl.t * 7 });
         stamp(); sfx.warn(); if (!reduced) { fxStreaks(fx, fy, 8, DUST, S * 0.6, S * 0.04, 0.3, 0.8, ang); for (let i = 0; i < 6; i++) fxMote("dust", fx + frnd(-u, u), fy, DUST, true); }
       });
-      const nC = act === 2 ? (ez ? 3 : hi ? 9 : 8) : 4, gC = act === 2 ? (ez ? 0.45 : hi ? 0.27 : 0.3) : 0.3 - 0.03 * q2; // (act two: more of them)
+      // (11-22 "18-5 … 못깨는 수준": eight cracks 0.3 s apart and the posts among them were 45 red stones on the field at once, 35
+      // new a second, a wall a person cannot read (19-5's acts show 2 or 3 a second). Now fewer and further apart, each crack a
+      // line you can see whole before the next: act one 3 at 0.4 s (어려움 4 at 0.33, 쉬움 2), act two 5 at 0.42 s (어려움 7 at
+      // 0.33, 쉬움 3 at 0.5), and act one's pit after its posts have landed, not as they land)
+      const nC = act === 2 ? (ez ? 3 : hi ? 7 : 5) : ez ? 2 : hi ? 4 : 3, gC = act === 2 ? (ez ? 0.5 : hi ? 0.33 : 0.42) : ez ? 0.5 : hi ? 0.33 : 0.4; // (act two: more of them)
       for (let k = 0; k < nC; k++) fissure(gC * k);
       // 壓殺: the two great posts of the gate, toppling onto you one after the other, their roads crossing where you stand
       // (act two: twice, among the cracks; 쉬움 once)
@@ -9078,7 +9248,7 @@ sdk.initializeAsync()
       });
       if (act === 2) return Math.max(gC * (nC - 1) + 1.4, gate[gate.length - 1][0] + 0.18 + 0.95) + (ez ? 0.25 : 0.4); // (act two: no pit; a crack's last rock 1.4 s after it starts, at the most)
       // 地陷: the ground in under you, and the stone torn open four ways from the pit
-      const tP = 2.05, PD = 0.8, Rp = S * (0.12 + 0.01 * q), a0 = rnd(0, Math.PI / 2);
+      const tP = hi ? 2.2 : 2.35, PD = 0.8, Rp = S * (0.12 + 0.01 * q), a0 = rnd(0, Math.PI / 2);
       later(tP, () => {
         const x = clamp(P.x, Rp * 0.5, W - Rp * 0.5), y = clamp(P.y, top, H - Rp * 0.5);
         G.warns.push({ kind: "spike", x, y, r: Rp, seed: a0, t: 0, dur: PD, delay: 0,
@@ -9119,7 +9289,8 @@ sdk.initializeAsync()
       const b = G.boss; if (!b) return 1;
       const lv = SL().lv || 0, lo = lv < 9, hi = lv >= 11, act = o.act || 1, tint = fightTint(b.def); // (o.act: FIN_ACTS)
       if (act === 1) { // 千手印 極意
-        const R = HAND_R(), D = 0.85, t0 = 0.15, lag = 0.12, n = lo ? 4 : hi ? 7 : 6, gap = lo ? 0.62 : hi ? 0.46 : 0.5, trk = handTrack(12);
+        // (11-22 "19난이도가 너무 쉽다": 보통 seven pairs 0.47 s apart, was six at 0.5; 어려움 eight at 0.44)
+        const R = HAND_R(), D = 0.85, t0 = 0.15, lag = 0.12, n = lo ? 4 : hi ? 8 : 7, gap = lo ? 0.62 : hi ? 0.44 : 0.47, trk = handTrack(12);
         for (let i = 0; i < n; i++) {
           const t = t0 + i * gap;
           if (!lo && i % 3 === 2) { handSeal(trk, t, D, "ahead", R, { q: 0.61, ts: 1 }); handSeal(trk, t, D + lag, "ahead", R, { q: -0.61, ts: -1 }); }
@@ -9131,7 +9302,7 @@ sdk.initializeAsync()
         return end + (lo ? 0.2 : 0.3);
       }
       if (act === 2) { // 如來神掌 둘 엇갈림
-        const n = lo ? 3 : hi ? 6 : 5, g2 = lo ? 0.7 : hi ? 0.48 : 0.52, D = lo ? 1.0 : 0.95, t2 = 0.25;
+        const n = lo ? 3 : hi ? 7 : 6, g2 = lo ? 0.7 : hi ? 0.46 : 0.5, D = lo ? 1.0 : 0.95, t2 = 0.25; // (11-22: 보통 six, was five; 어려움 seven)
         let a = rnd(0, Math.PI * 2), prev = null; const ts = Math.random() < 0.5 ? 1 : -1, ws = [];
         for (let i = 0; i < n; i++) { ws.push([a, Math.random()]); a += (Math.random() < 0.5 ? -1 : 1) * rnd(Math.PI * 0.39, Math.PI * 0.61); }
         ws.forEach(([g, pick], i) => { prev = greatPalm(t2 + i * g2, D, g, 1, i % 2 ? -ts : ts, pick, { after: prev }); });
@@ -9380,6 +9551,7 @@ sdk.initializeAsync()
   function finAct(b, f, d) { // its rage over: the next act
     const fin = FINALE[d.sig], k = (f.act || 1) + 1;
     f.act = k; f.wind = null; b.wind = 0;
+    const pl = PATTERN_LINES[d.sig]; if (pl) bark((hardLv() && pl.hard && pl.hard.act && pl.hard.act[k]) || (pl.act && pl.act[k])); // (11-22: this act's shout)
     if (k === fin.acts) { callout(fin.name[0], fin.name[1]); G.callout.castAt = performance.now(); G.callout.side = b.x < W / 2 ? 1 : -1; } // (off to the corner as the blow comes)
     G.dark = Math.max(G.dark, 0.7); b.castT = b.castDur = 0.6; f.n++; fxCast(b);
     b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) };
@@ -10731,7 +10903,7 @@ sdk.initializeAsync()
       const lines = document.createElement("dl");
       for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["하수인", d.minion && !minionsOff ? `${d.minion.name}, X-4는 ${d.minion.chief}. 칸 내내 위쪽에 서서 맛보기를 던지고, 칸이 끝나면 베인다` : "없음"], ["등장 대사", d.intro], ["비기 대사", d.sigLine], ["쓰러질 때", d.down]]) {
         const dt = document.createElement("dt"); dt.textContent = k;
-        const dd = document.createElement("dd"); dd.textContent = withName(t);
+        const dd = document.createElement("dd"); dd.textContent = withName([].concat(t).join(" / ")); // (11-22: a line may be a list of lines)
         lines.append(dt, dd);
       }
       const go = document.createElement("button"); go.type = "button"; go.textContent = "보기";
@@ -11513,7 +11685,7 @@ sdk.initializeAsync()
     if (G.flash > 0.01) { ctx.fillStyle = `rgba(${G.flashC},${G.flash})`; ctx.fillRect(0, 0, W, H); }
     if (G.killLine) drawKillLine();
     if (G.cutin) drawCutin(time); // (its 종전's call, over the field and under the bar)
-    if (G.story) { drawBossBar(); drawStageBar(); drawCine(time); drawFinSay(time); drawCard(time); drawKillStamp(); }
+    if (G.story) { drawBossBar(); drawStageBar(); drawCine(time); drawFinSay(time); drawBark(); drawCard(time); drawKillStamp(); }
     drawMsg();
   }
 
@@ -12523,6 +12695,31 @@ sdk.initializeAsync()
     const out = s.out ? (now - s.out) / 1000 : 0; if (out > 0.3) { G.finSay = null; return; }
     ctx.save(); ctx.textBaseline = "middle"; ctx.globalAlpha = Math.min(1, (now - s.at) / 120) * (1 - out / 0.3);
     speakerBox(s, Math.floor(((now - s.at) / 1000) * CPS), false, time);
+    ctx.restore();
+  }
+  // (11-22) a master's shout as its move comes (PATTERN_LINES): under its bar, a row below the corner its 비기's name goes to;
+  // ink with a paper edge so it reads on any ground, no box, so nothing on the field hides under it. Brushed on fast (twice
+  // the speed of a line in the box), gone a breath after it is read; not while a line is up in the box
+  function drawBark() {
+    const s = G.bark; if (!s) return;
+    const b = G.boss;
+    if (!b || b !== s.boss || G.mode !== "play" || b.downT > 0) { G.bark = null; return; }
+    if (G.lines.length) return;
+    const age = (performance.now() - s.at) / 1000, life = barkLife(s); if (age > life) { G.bark = null; return; }
+    const maxW = W - 40; let fs = Math.round(Math.min(S * 0.06, 24));
+    ctx.save(); ctx.textAlign = "center"; ctx.textBaseline = "middle"; ctx.lineJoin = "round";
+    const font = () => { ctx.font = `${fs}px "Nanum Brush Script", cursive`; }; font();
+    while (fs > 18 && ctx.measureText(s.text).width > maxW) { fs--; font(); }
+    const rows = wrap(s.text, maxW), y0 = barTop() + 54;
+    ctx.globalAlpha = Math.min(1, age / 0.1) * clamp((life - age) / 0.3, 0, 1);
+    ctx.lineWidth = Math.max(3, fs * 0.2); ctx.strokeStyle = "rgba(247,240,222,0.92)"; ctx.fillStyle = "#1d1a17";
+    let left = Math.floor(age * CPS * 2) + 1;
+    rows.forEach((row, i) => {
+      if (left <= 0) return;
+      const part = row.slice(0, left), x = W / 2 - ctx.measureText(row).width / 2, y = y0 + i * fs * 1.15;
+      ctx.textAlign = "left"; ctx.strokeText(part, x, y); ctx.fillText(part, x, y);
+      left -= row.length + 1;
+    });
     ctx.restore();
   }
   function speakerBox(l, left, done, time) { // a speaker: an ink band at the bottom, the name in red, the boss's own likeness at its side
