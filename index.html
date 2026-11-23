@@ -5438,6 +5438,10 @@ sdk.initializeAsync()
   // 쉬워, 어려움에도 불구하고": 1.2 → 0.5 — the warnings were long enough, it was the empty air between attacks that made
   // them easy; its wind-up now goes up over the tail of what came before, two things in play, never a shorter warning)
   const HOLD_MAX = 0.5;
+  // (11-23 제작자: "마지막 종전패턴이 너무 짧은거같아 … 지금 피할려고하다가 끝나서 사실 안피해도 될정도야": its 종전 was
+  // its first 비기 once, over as you began to read it; now its first and then its second, each at its fiercest with its
+  // other moves on top, a beat of quiet (LAST_BEAT, its 破 and a wind-up) between)
+  const LAST_CASTS = 2, LAST_BEAT = 0.35, BOSS_BG_KEEP = new Set(["bamboo", "bolt"]);
   function bossFight(dt, d, lv, seconds) {
     const b = G.boss, f = G.fight;
     f.ft = (f.ft || 0) + dt; // (fight seconds: BOSS_PUSH `small`)
@@ -5451,13 +5455,16 @@ sdk.initializeAsync()
     if (f.kill) return killStep(dt, b, f); // the last stroke: nothing else moves
     if (f.last) fxLastAir(dt, b); // (its 종전: its element in the air)
     const talking = G.lines.length > 0; // its line is on screen (a box over the bottom of the field): nothing starts under it
-    if (!talking) b.hp = Math.max(0, b.hp - dt / (seconds * bp));
+    // (11-23 제작자: "1페 2페간에 시간을 좀 패턴 한사이클 돌면 끝날정도로": its life is not out till both its 비기 have come
+    // once; its clock holds it at a sliver till then, and its 종전 is one round of them too: startLast, LAST_CASTS)
+    const cycled = f.last || f.only || f.n >= 2;
+    if (!talking) b.hp = Math.max(cycled ? 0 : Math.min(b.hp, 0.03), b.hp - dt / (seconds * bp));
     // (11-22, PATTERN_LINES half: once, its life under half, when no other shout of its is up)
     if (!f.half && !f.last && f.said && b.hp <= 0.5 && !talking && !barkUp()) { f.half = true; bark((PATTERN_LINES[d.sig] || {}).half); }
     // each 비기 in three beats: it gathers itself (the last of the breath: where it comes from, and when), it strikes,
     // and when the 비기 is spent what it threw breaks up (破); then its other attacks, and it gathers itself again
     const wl = BOSS_WIND * bp; // (half a second by the wall clock)
-    if (f.busy > 0 && (f.busy -= dt) <= 0) { if (f.fin && finRage(b, f, d)) return; sigSpent(b, f); if (f.last && !f.fin && FINALE[d.sig]) return startFinale(b, f, wl); if (f.last) return startKill(b, f); if (!f.only) f.mix = { t: 0, k: 0 }; } // (f.only: 개발자 모드 '보기', nothing mixed in) (its 종전 비기 outlasted: its finishing move, then the last stroke) // spent: straight on to its other attacks (11-08: "보스들 쉬는 모션 없애 달라니까" — no rest, no heaving)
+    if (f.busy > 0 && (f.busy -= dt) <= 0) { if (f.fin && finRage(b, f, d)) return; sigSpent(b, f); if (f.last && !f.fin && f.lastCast > 0 && f.lastCast < LAST_CASTS) { f.sigT = wl + LAST_BEAT; return; } if (f.last && !f.fin && FINALE[d.sig]) return startFinale(b, f, wl); if (f.last) return startKill(b, f); if (!f.only) f.mix = { t: 0, k: 0 }; } // (f.only: 개발자 모드 '보기', nothing mixed in) (its 종전 비기 outlasted: its finishing move, then the last stroke) // spent: straight on to its other attacks (11-08: "보스들 쉬는 모션 없애 달라니까" — no rest, no heaving)
     if (f.actWait > 0 && (f.actWait -= dt) <= 0) finAct(b, f, d); // (마지막 발악: its rage over, its next act, FIN_RAGE)
     if (f.wind) { f.wind.t += dt; b.wind = Math.min(1, f.wind.t / (f.wind.len || wl)); G.dark = Math.max(G.dark, 0.7 * b.wind); }
     if (f.mix && !talking) mixStep(dt, f, d);
@@ -5474,11 +5481,11 @@ sdk.initializeAsync()
     // halfway between its first two, so never on the same frame as one of them)
     const ok = SL().overK, o2 = over && ok < 1 ? (over * ok) / (1 - ok) : 0;
     if (o2 && f.busy > 0 && f.busy < 30 && !iced && !talking) { if ((f.over2 = (f.over2 ?? over * 1.5) - dt) <= 0) { f.over2 = o2; fixed("mix2", () => mixAttack(f, d, true, true, true)); } } else if (f.over2 != null && !(f.busy > 0)) f.over2 = null;
-    if (b.hp <= 0 && !f.last && f.said && !(f.busy > 0) && !talking) startLast(b, f, wl, d);
+    if (b.hp <= 0 && cycled && !f.last && f.said && !(f.busy > 0) && !talking) startLast(b, f, wl, d);
     else if (f.wait > 0) { // it has said its line: now the technique, a moment after the box has gone
       if (!talking) f.wait -= dt;
       if (f.wait <= 0) f.sigT = wl;
-    } else if ((f.sigT -= dt) <= wl && (b.hp > 0 || f.last)) {
+    } else if ((f.sigT -= dt) <= wl && (b.hp > 0 || f.last || !cycled)) {
       if (!f.wind && f.said && f.sigT > 0) { // it gathers itself, once the field is clear (or it has waited HOLD_MAX)
         if (!f.last && fieldBusy() && (f.hold = (f.hold || 0) + dt) < HOLD_MAX) f.sigT = wl;
         else windUp(b, nextSig(f, d).name);
@@ -5488,7 +5495,7 @@ sdk.initializeAsync()
         if (f.n === 0 && !f.said) { f.said = true; say([{ who: d.name, text: withName(d.sigLine) }], null); f.wait = 0.5; f.sigT = Infinity; return; }
         const next = f.fin ? FINALE[d.sig] : nextSig(f, d); // its first 비기 or its second, by turns (its finishing move last of all)
         if (f.fin) callout(next.name[0], next.name[1]);
-        else if (f.last) callout(d.sigName[0], d.sigName[1]);
+        else if (f.last) callout(...next.name); // (its 종전: its first 비기, then its second: LAST_CASTS)
         else if (!f.wind) { callout(...next.name); patternBark(f, d); } // (no wind-up this time: named, and shouted, as it comes)
         if (G.callout) { G.callout.castAt = performance.now(); G.callout.side = b.x < W / 2 ? 1 : -1; } // its name off to the corner, away from it
         f.wind = null; b.wind = 0; // (11-08: its spring is in the cast's own curve now: bossPose)
@@ -5497,7 +5504,10 @@ sdk.initializeAsync()
         b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; // it throws itself at you as it calls it
         f.busy = Infinity; f.busy = next.run(); // (busy while it is thrown, so that whatever it throws at once is its too)
         if (f.fin) f.busy = finPress(d, 1, f.busy); // (11-23: its last struggle's act one, pressed: FIN_PRESS)
-        if (f.last && !f.fin) f.lastDur = f.busy; // (its 종전's whole length: the gold bar burns down from it)
+        if (f.last && !f.fin) { // (its 종전's whole length: the gold bar burns down from it, half for each of its two 비기)
+          f.lastCast = (f.lastCast || 0) + 1;
+          if (f.lastCast < LAST_CASTS) { f.lastRest = f.busy; f.lastDur = f.busy * LAST_CASTS; } else { f.lastRest = 0; f.lastDur = f.busy * LAST_CASTS; }
+        }
         // its other attacks, its wind-up, the next one (the light attack before it still goes out first, and the wind-up
         // over it; the level's breath, cut by BREATH_K, was never longer than the wind-up and is gone, 11-19)
         f.sigT = f.last ? Infinity : f.busy + wl + (f.only ? DEV_REST : mixAt(d)[mixAt(d).length - 1]);
@@ -5511,10 +5521,14 @@ sdk.initializeAsync()
     else if (f.bgHeld) { f.bgHeld = false; G.timers.drift = Math.max(G.timers.drift ?? 0, 0.3); }
     // (11-15, talkprobe: `talking` was read at the top of the frame, so on the very frame its life ran out and its last words
     // came up over the cleared field — startLast, above — the backdrop could still throw one more, under the line)
-    if (d.bg && !talking && !G.lines.length && !iced && !bgHold && !f.only) { // (f.only: 개발자 모드 '보기', its 비기 alone)
+    // (11-23 제작자: "표창을 좀 줄이고 고유한 패턴으로만 피하게 … 2-5 4-5 처럼 조그만한 걸 피하는 느낌을 줄이고": in a boss
+    // fight no small things drift across behind it any more — 연화's water blades, 적염's sparks, 설귀's and 빙경's icicles,
+    // 추혼's wisps. Only the bamboo, the game's own, and 벽력's storm, which is no small blade; its stages keep theirs)
+    const bossBg = BOSS_BG_KEEP.has(d.bg) ? d.bg : null;
+    if (bossBg && !talking && !G.lines.length && !iced && !bgHold && !f.only) { // (f.only: 개발자 모드 '보기', its 비기 alone)
       G.timers.drift = (G.timers.drift ?? 0.8) - dt;
       if (G.timers.drift <= 0) fixed("drift", () => {
-        spawnDrift(d.bg, true); G.timers.drift = 1.2 * pace(); // (marked as the backdrop when it flies, after its sign: driftMark)
+        spawnDrift(bossBg, true); G.timers.drift = 1.2 * pace(); // (marked as the backdrop when it flies, after its sign: driftMark)
       });
     }
     // its body is a blade too (not while it leaps back to its place, high over your head; nor in 관창's hop till he is drawn
@@ -6237,7 +6251,8 @@ sdk.initializeAsync()
   };
   // which of its two 비기 comes next: the first, then the second, by turns (its 종전 is always the first)
   // (f.only: 개발자 모드 '보기' — "sig" its first 비기 only, "alt" its second only, "sub" neither; devViewGo, 11-23)
-  const nextSig = (f, d) => ((f.only ? f.only === "alt" : !f.last && f.n % 2 === 1) ? { name: ALTS[d.sig].name, run: ALTS[d.sig].run } : { name: d.sigName, run: SIGS[d.sig] });
+  // (its 종전 is a round of both, its first 비기 then its second, each at its fiercest: LAST_CASTS)
+  const nextSig = (f, d) => ((f.only ? f.only === "alt" : f.last ? f.lastCast === 1 : f.n % 2 === 1) ? { name: ALTS[d.sig].name, run: ALTS[d.sig].run } : { name: d.sigName, run: SIGS[d.sig] });
   const bossAt = () => (G.boss ? [G.boss.x, G.boss.y] : [W / 2, H * 0.24]);
   // 맹호's claws: three rakes side by side through where you stand, all at once as a paw comes down, its claws going up
   // over its head as they are drawn (b.tg). `late`: drawn that many seconds on, where you are by then, at `ang` (its other
@@ -9783,7 +9798,9 @@ sdk.initializeAsync()
     mirror: { tail: [0.6, 0.6, 0.6], lit: 0.75, hit: (dur) => underYou((w) => spikeErupt(w.x, w.y, w.r, "ice"), S * 0.075, dur) }, // 얼음 가시
     rain: { tail: [0.3, 0.3, 0.6], lit: 0.8, hit: (dur) => shadowThrust({ dur }) }, // his spear's shadow down through you
     swords: { tail: [0.6, 0.7, 0.6], lit: 0.75, hit: (dur) => underYou((w) => { spikeErupt(w.x, w.y, w.r, "blade"); sfx.shing(); }, S * 0.072, dur) }, // 솟는 칼
-    swarm: { tail: [0.6, 0.25, 0.6], lit: 0.85, mid: [0.3, 0.65], mid2: [0.5], hit: (dur) => mothRaid([0], 0, { fly: 0.15, near: true, aim: Math.max(0.68, dur - 0.1) }) }, // a moth out of the dream beside you
+    // (11-23: none laid on in acts one and two — a moth on top of the pouring wings shut the last way out at 15-5 보통
+    // (fairness, once the 종전 ran a round of both 비기), two things landing in one beat, "피할 시간이 없이"; act three's two kept)
+    swarm: { tail: [0.6, 0.25, 0.6], lit: 0.85, mid: [], mid2: [], hit: (dur) => mothRaid([0], 0, { fly: 0.15, near: true, aim: Math.max(0.68, dur - 0.1) }) }, // a moth out of the dream beside you
     final: { tail: [0.6, 0.5, 0.6], lit: 0.85, mid2: [0.5], hit: () => spawnSlash(false) }, // its 발도
     // (11-23 재설계, 16-5 · 17-5: their acts hold no beat of their own; act three's great blow then two of their own pieces)
     wheel: { tail: [0.2, 0.25, 0.33], lit: 0.8, midHit: (dur) => spearDrop(0, dur), hit: (dur) => wheelDive(0, dur, { r: S * 0.13 }) }, // his spear on act one; his two wheels after 火輪印
@@ -11147,7 +11164,7 @@ sdk.initializeAsync()
       head.append(who, sig);
       const what = document.createElement("p"); what.textContent = d.what;
       const lines = document.createElement("dl");
-      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["마무리", FINALE[d.sig] ? FINALE[d.sig].name.join(" ") + (FINALE[d.sig].acts ? `, ${FINALE[d.sig].acts}막` : "") : "없음"], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["하수인", d.minion && !minionsOff ? `${d.minion.name}, X-4는 ${d.minion.chief}. 칸 내내 위쪽에 서서 맛보기를 던지고, 칸이 끝나면 베인다` : "없음"], ["등장 대사", d.intro], ["비기 대사", d.sigLine], ["쓰러질 때", d.down]]) {
+      for (const [k, t] of [["배경", BOSS_BG_KEEP.has(d.bg) ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["마무리", FINALE[d.sig] ? FINALE[d.sig].name.join(" ") + (FINALE[d.sig].acts ? `, ${FINALE[d.sig].acts}막` : "") : "없음"], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["하수인", d.minion && !minionsOff ? `${d.minion.name}, X-4는 ${d.minion.chief}. 칸 내내 위쪽에 서서 맛보기를 던지고, 칸이 끝나면 베인다` : "없음"], ["등장 대사", d.intro], ["비기 대사", d.sigLine], ["쓰러질 때", d.down]]) {
         const dt = document.createElement("dt"); dt.textContent = k;
         const dd = document.createElement("dd"); dd.textContent = withName([].concat(t).join(" / ")); // (11-22: a line may be a list of lines)
         lines.append(dt, dd);
@@ -12892,7 +12909,7 @@ sdk.initializeAsync()
       // "금빛 줄 (종전만)"): the empty bar fills again in gold as it gathers itself, then burns down with its 종전 비기 on the very
       // clock that ends it (f.busy), so it is empty the frame the 비기 is spent. Its finishing move after leaves it empty. (It used
       // to beat red: no end in sight, and red spent on what does not aim.)
-      const k = f.fin ? 0 : f.lastDur > 0 ? clamp(f.busy / f.lastDur, 0, 1) : clamp((performance.now() - (f.goldAt || 0)) / 700, 0, 1);
+      const k = f.fin ? 0 : f.lastDur > 0 ? clamp((Math.max(0, f.busy) + (f.lastRest || 0)) / f.lastDur, 0, 1) : clamp((performance.now() - (f.goldAt || 0)) / 700, 0, 1);
       if (k > 0) {
         const end = x + 4 + (w - 8) * k, g = ctx.createLinearGradient(x, 0, x + w, 0);
         g.addColorStop(0, "#e0b85a"); g.addColorStop(1, GOLD);
