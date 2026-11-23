@@ -179,6 +179,8 @@
   .skin { display: grid; justify-items: center; gap: 6px; padding: 10px 8px; border: 1.5px solid var(--ink); }
   .skin.is-on { background: color-mix(in srgb, var(--ink) 8%, transparent); }
   .skin canvas { width: 72px; height: 72px; }
+  .dev-view { flex-wrap: wrap; row-gap: 6px; }
+  .dev-view button { min-width: 0; padding: 4px 9px; font-size: 13px; letter-spacing: 0; }
   .dev-inv { display: flex; gap: 8px; align-items: center; font-size: 14px; }
   .dev-inv--start { justify-content: center; }
   .dev-inv select { font: inherit; min-height: 32px; padding: 2px 6px; border: 1.5px solid var(--ink); border-radius: 0; background: transparent; color: var(--ink); }
@@ -345,10 +347,14 @@
   <div class="screen" id="dev" hidden>
     <section class="slip" data-seal="試">
       <h2 class="shop-title" id="devTitle">보스 비기</h2>
-      <p class="shop-note" id="devNote">20장까지의 보스와 비기. 보기를 누르면 보스가 비기와 섞는 공격을 번갈아 쓰다가 20초 뒤 종전에 든다. 종전에는 더 센 비기에 종전 고유기와 섞는 공격이 겹치고, 그것까지 버티면 벤다.</p>
+      <p class="shop-note" id="devNote">20장까지의 보스와 비기. 위 보기 줄에서 고른 대로 보여 준다. 처음부터는 비기와 섞는 공격을 번갈아 쓰다가 20초 뒤 종전에 들고, 종전에는 더 센 비기에 종전 고유기와 섞는 공격이 겹친다. 그것까지 버티면 벤다. 비기1만, 비기2만, 종전 고유기만은 대사 없이 그것 하나만 계속 되풀이하고, 체력은 줄지 않는다. 종전부터는 체력을 비운 채 바로 종전에 들어가 마무리 발악 세 막까지 간다. 보스만 쭉을 켜면 누른 보스부터 20-5까지 고른 보기대로 차례로 이어 보여 준다. 되풀이하는 보기는 세 번(종전 고유기는 네 번) 보고 다음 보스로 넘어간다.</p>
       <div class="lvl" id="devLvl" role="group" aria-label="보스 난이도">
         <span>난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
+      <div class="lvl dev-view" id="devView" role="group" aria-label="보기 방식">
+        <span>보기</span><button type="button" data-view="all" aria-pressed="true">처음부터</button><button type="button" data-view="sig" aria-pressed="false">비기1만</button><button type="button" data-view="alt" aria-pressed="false">비기2만</button><button type="button" data-view="sub" aria-pressed="false">종전 고유기만</button><button type="button" data-view="last" aria-pressed="false">종전부터</button>
+      </div>
+      <label class="dev-inv" id="devChainRow"><input type="checkbox" id="devChain"> 보스만 쭉: 누른 보스부터 20-5까지 이어서 보기 (무적)</label>
       <label class="dev-inv"><input type="checkbox" id="devInv"> 맞아도 죽지 않게 보기</label>
       <ol class="dev-list" id="devList"></ol>
       <button class="btn btn--ghost" id="devClose">돌아가기</button>
@@ -5105,6 +5111,16 @@ sdk.initializeAsync()
   // ---- 개발자 모드: pick a boss, watch its 비기 three times, hear its three lines
   const DEV = /[?&]dev\b/.test(location.search);
   let devLevel = LEVELS.includes(store.get("devLv", "normal")) ? store.get("devLv", "normal") : "normal"; // any of 스테이지 모드's three
+  // (11-23 제작자: "일단 비기 dev에서 다 확인해보게 다양하게 보스만 해서 다 정리해서 넣어줘") the list's 보기 row: what every boss's
+  // 보기 button shows. all: the fight as ever. sig / alt: its first or its second 비기 alone, over and over — no lines, nothing
+  // mixed in or laid on it, no backdrop, its life never going down, DEV_REST between one's 破 and the next one's wind-up — at
+  // the levels a fight throws it at, by turns (f.n: a fight's first DEV_N0 비기). sub: its 종전's own move alone every DEV_SUB
+  // seconds, at its 종전's level, form and gold bar. last: its life gone as it lands, straight into its 종전 (its last words),
+  // its finishing move's acts, the last stroke, and back to the list. Each begins once it has landed (devStep). Nothing of it
+  // runs anywhere else: f.only is set only by devViewGo.
+  const DEV_VIEWS = { all: "처음부터", sig: "비기1만", alt: "비기2만", sub: "종전 고유기만", last: "종전부터" };
+  const DEV_N0 = 3, DEV_REST = 1.2, DEV_SUB = 2.0, DEV_CHAIN = 3; // (DEV_N0: f.n as a fight's 종전 begins, the 비기 before it: 2 or 3 at 보통, 11-23 measured on all 20)
+  let devView = DEV_VIEWS[store.get("devView", "all")] ? store.get("devView", "all") : "all";
   function bossDefOf(d) {
     return { name: d.name, title: d.title, look: d.look, accent: d.accent, sig: d.sig, stage: d.stage, ring: d.ring, hp: 30, acts: [], // (ring: 천수's 종전 seal glyphs, 11-21; the rest have none)
       // (11-22: a line may be a list of lines; 어려움 adds its PATTERN_LINES hard.intro as it appears)
@@ -5113,24 +5129,49 @@ sdk.initializeAsync()
   }
   // `play`: a 보스전 picked by a player (a boss already met in 스테이지 모드), not one watched in 개발자 모드: never invulnerable,
   // its own difficulty, and it ends back at the 보스전 list with how it went
-  function startDevBoss(i, play = false) {
+  function startDevBoss(i, play = false, chain = false) { // (chain: 개발자 모드 '보스만 쭉', 11-23 — devBack goes on to the next)
     const d = BOSS_SET[i], def = bossDefOf(d), lvl = play ? bossLevel : devLevel;
     begin();
-    G.story = true; G.stageRun = false; G.dev = { i, lvl, play }; G.devInv = !play && $("devInv").checked; G.ch = 0;
+    G.story = true; G.stageRun = false; G.dev = { i, lvl, play, view: play ? "all" : devView, chain: !play && chain }; G.devInv = !play && (chain || $("devInv").checked); G.ch = 0; // (view: DEV_VIEWS, 11-23)
     reset(); G.mode = "play"; G.fight = { wait: 0, sigT: 1.5, n: 0, said: false }; // (after reset, which clears it)
     setTheme(d.theme, true);
     $("dev").hidden = true; $("boss").hidden = true; $("start").hidden = true; $("over").hidden = true; $("hud").hidden = false; $("devExit").hidden = false;
     $("devExit").textContent = play ? "그만하기" : "그만 보기";
-    $("stage").textContent = `${d.stage} · ${d.name} · ${STAGE_LEVELS[lvl].name}`;
+    $("stage").textContent = `${d.stage} · ${d.name} · ${STAGE_LEVELS[lvl].name}` + (G.dev.view !== "all" ? ` · ${DEV_VIEWS[G.dev.view]}` : "") + (G.dev.chain ? " · 쭉" : "");
     G.boss = { def, x: W / 2, y: -S * 0.3, tx: W / 2, ty: H * 0.24, wT: 1.5, hp: 1, actT: 1.4, last: "", hurtT: 0, castT: 0, downT: 0, mid: false, landed: false };
     G.phase = "bossIntro"; G.card = { boss: def, at: performance.now() }; G.dark = 1;
     sfx.taiko(); setTimeout(() => sfx.taiko(), 220);
+    if (G.dev.view !== "all") { G.card.life = 1.4; G.dev.introT = 0.4; return; } // (개발자 모드 '보기': no words; it lands, then devViewGo)
     say(def.intro(), () => { G.phase = "boss"; });
+  }
+  function devViewGo(dv) { // 개발자 모드 '보기' (DEV_VIEWS): the boss has landed, its view begins
+    const f = G.fight, b = G.boss;
+    G.phase = "boss"; f.said = true; // (its words skipped)
+    if (dv.view === "last") { b.hp = 0; f.n = DEV_N0; return; } // bossFight: startLast on its first frame, its last words and all after them
+    f.only = dv.view; f.retry = true; // (retry: its first 비기 shouts too, as on a retry — patternBark)
+    if (dv.view !== "sub") { f.n = dv.view === "alt" ? 0 : -1; f.sigT = 1.0; return; } // (its first n 1 or 2: bossFight's cast)
+    // its 종전 as gatherLast leaves it, without the gathering: its level (f.last: SL().last, no lift), its form, its gold bar
+    f.last = true; f.n = DEV_N0 + 1; f.sigT = Infinity; f.subT = 0.6; f.lastName = BOSS_SET[dv.i].sigName;
+    f.goldAt = f.sealAt = b.formAt = performance.now(); f.lastDur = 0; b.hp = 0;
+    if (b.def.sig === "final") b.mid = true;
+  }
+  function devSub(dv) { // 개발자 모드 '종전 고유기만': its 종전's own move, named in the corner as it comes
+    const d = BOSS_SET[dv.i], b = G.boss;
+    callout(SUBS[d.sig].name, "종전 고유기"); G.callout.castAt = performance.now(); G.callout.side = b.x < W / 2 ? 1 : -1;
+    fixed("mix", () => subAttack(d)); dv.subs = (dv.subs || 0) + 1;
   }
   function devStep(dt, realDt) {
     stepLines(realDt);
     if (!G.dev) return; // its last words just ended: back at the list already
+    const dv = G.dev, f = G.fight; // (개발자 모드 '보기': DEV_VIEWS)
+    if (dv.view !== "all" && G.phase === "bossIntro" && G.boss && G.boss.landed && (dv.introT -= realDt) <= 0) devViewGo(dv);
+    if (G.phase === "boss" && f && f.only === "sub" && !G.lines.length && (f.subT -= dt) <= 0) { f.subT = DEV_SUB; devSub(dv); }
+    const was = f && f.busy > 0;
     if (G.phase === "boss") { G.st += dt; bossFight(dt, BOSS_SET[G.dev.i], bossLv(G.dev.i) + SL().lv, G.dev.play ? BOSS_SECONDS + 6 : 20); } // (11-08: "dev모드에서는 종전 빨리 볼 수 있게 20초로": watching in the 개발자 list, its 종전 comes at 20 s; a player's 보스전 6 s more than a stage's boss, 26 since 11-10)
+    if (f && (f.only === "sig" || f.only === "alt") && G.boss) G.boss.hp = 1; // (its life never goes down)
+    if (was && !(f.busy > 0)) dv.spent = (dv.spent || 0) + 1; // (a 비기 outlasted: 破)
+    // (보스만 쭉, a view that would go on for ever: on to the next boss once its 비기 has come three times, its 종전 move four)
+    if (dv.chain && f && f.only && G.dev === dv && (f.only === "sub" ? dv.subs > DEV_CHAIN && f.subT < 0.4 : dv.spent >= DEV_CHAIN && f.sigT < 1.0)) return devBack(); // (just before the next would come)
     if (G.boss) moveBoss(realDt);
     G.safe = (G.phase !== "boss") || G.devInv;
   }
@@ -5168,7 +5209,7 @@ sdk.initializeAsync()
     // each 비기 in three beats: it gathers itself (the last of the breath: where it comes from, and when), it strikes,
     // and when the 비기 is spent what it threw breaks up (破); then its other attacks, and it gathers itself again
     const wl = BOSS_WIND * bp; // (half a second by the wall clock)
-    if (f.busy > 0 && (f.busy -= dt) <= 0) { if (f.fin && finRage(b, f, d)) return; sigSpent(b, f); if (f.last && !f.fin && FINALE[d.sig]) return startFinale(b, f, wl); if (f.last) return startKill(b, f); f.mix = { t: 0, k: 0 }; } // (its 종전 비기 outlasted: its finishing move, then the last stroke) // spent: straight on to its other attacks (11-08: "보스들 쉬는 모션 없애 달라니까" — no rest, no heaving)
+    if (f.busy > 0 && (f.busy -= dt) <= 0) { if (f.fin && finRage(b, f, d)) return; sigSpent(b, f); if (f.last && !f.fin && FINALE[d.sig]) return startFinale(b, f, wl); if (f.last) return startKill(b, f); if (!f.only) f.mix = { t: 0, k: 0 }; } // (f.only: 개발자 모드 '보기', nothing mixed in) (its 종전 비기 outlasted: its finishing move, then the last stroke) // spent: straight on to its other attacks (11-08: "보스들 쉬는 모션 없애 달라니까" — no rest, no heaving)
     if (f.actWait > 0 && (f.actWait -= dt) <= 0) finAct(b, f, d); // (마지막 발악: its rage over, its next act, FIN_RAGE)
     if (f.wind) { f.wind.t += dt; b.wind = Math.min(1, f.wind.t / (f.wind.len || wl)); G.dark = Math.max(G.dark, 0.7 * b.wind); }
     if (f.mix && !talking) mixStep(dt, f, d);
@@ -5179,7 +5220,7 @@ sdk.initializeAsync()
     if (l2 && f.last && !f.fin && f.busy > 0 && !iced && (f.layer2 = (f.layer2 ?? 1.2 + l2 * 0.5) - dt) <= 0) { f.layer2 = l2; fixed("mix2", () => mixAttack(f, d, true, false, true)); }
     // (11-17, BOSS_PUSH `over`: a master given it lays one of its own light moves on top of its 비기 every `over` seconds, as
     // its 종전 does: the first that far into it, none while a line is up or the air hangs frozen; overAlt: its second 비기 only)
-    const over = f.last || easeN() >= 3 ? 0 : (pushOf(d).over || (f.n % 2 === 0 && pushOf(d).overAlt) || 0) * Math.max(1, SL().overK);
+    const over = f.last || f.only || easeN() >= 3 ? 0 : (pushOf(d).over || (f.n % 2 === 0 && pushOf(d).overAlt) || 0) * Math.max(1, SL().overK);
     if (over && f.busy > 0 && f.busy < 30 && !iced && !talking) { if ((f.over = (f.over ?? over) - dt) <= 0) { f.over = over; fixed("mix", () => mixAttack(f, d, true, true)); } } else if (!(f.busy > 0)) f.over = null;
     // (11-19, overK under 1, 어려움: between those, one more light move of its own, never a small blade nor a burst; the first
     // halfway between its first two, so never on the same frame as one of them)
@@ -5204,12 +5245,13 @@ sdk.initializeAsync()
         if (G.callout) { G.callout.castAt = performance.now(); G.callout.side = b.x < W / 2 ? 1 : -1; } // its name off to the corner, away from it
         f.wind = null; b.wind = 0; // (11-08: its spring is in the cast's own curve now: bossPose)
         G.dark = Math.max(G.dark, 0.7); b.castT = b.castDur = 0.6; f.n++; fxCast(b);
+        if (f.only) f.n = f.n + 1 > DEV_N0 ? (f.only === "alt" ? 2 : 1) : f.n + 1; // (개발자 모드 '보기': the one 비기 at each level a fight throws it at, by turns — devViewGo)
         b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; // it throws itself at you as it calls it
         f.busy = Infinity; f.busy = next.run(); // (busy while it is thrown, so that whatever it throws at once is its too)
         if (f.last && !f.fin) f.lastDur = f.busy; // (its 종전's whole length: the gold bar burns down from it)
         // its other attacks, its wind-up, the next one (the light attack before it still goes out first, and the wind-up
         // over it; the level's breath, cut by BREATH_K, was never longer than the wind-up and is gone, 11-19)
-        f.sigT = f.last ? Infinity : f.busy + wl + mixAt(d)[mixAt(d).length - 1];
+        f.sigT = f.last ? Infinity : f.busy + wl + (f.only ? DEV_REST : mixAt(d)[mixAt(d).length - 1]);
       });
     }
     // behind it, the boss's own element drifting across (some have none): a backdrop. Not while it gathers itself or its
@@ -5220,7 +5262,7 @@ sdk.initializeAsync()
     else if (f.bgHeld) { f.bgHeld = false; G.timers.drift = Math.max(G.timers.drift ?? 0, 0.3); }
     // (11-15, talkprobe: `talking` was read at the top of the frame, so on the very frame its life ran out and its last words
     // came up over the cleared field — startLast, above — the backdrop could still throw one more, under the line)
-    if (d.bg && !talking && !G.lines.length && !iced && !bgHold) {
+    if (d.bg && !talking && !G.lines.length && !iced && !bgHold && !f.only) { // (f.only: 개발자 모드 '보기', its 비기 alone)
       G.timers.drift = (G.timers.drift ?? 0.8) - dt;
       if (G.timers.drift <= 0) fixed("drift", () => {
         spawnDrift(d.bg, true); G.timers.drift = 1.2 * pace(); // (marked as the backdrop when it flies, after its sign: driftMark)
@@ -5757,7 +5799,8 @@ sdk.initializeAsync()
     } },
   };
   // which of its two 비기 comes next: the first, then the second, by turns (its 종전 is always the first)
-  const nextSig = (f, d) => (!f.last && f.n % 2 === 1 ? { name: ALTS[d.sig].name, run: ALTS[d.sig].run } : { name: d.sigName, run: SIGS[d.sig] });
+  // (f.only: 개발자 모드 '보기' — "sig" its first 비기 only, "alt" its second only, "sub" neither; devViewGo, 11-23)
+  const nextSig = (f, d) => ((f.only ? f.only === "alt" : !f.last && f.n % 2 === 1) ? { name: ALTS[d.sig].name, run: ALTS[d.sig].run } : { name: d.sigName, run: SIGS[d.sig] });
   const bossAt = () => (G.boss ? [G.boss.x, G.boss.y] : [W / 2, H * 0.24]);
   // 맹호's claws: three rakes side by side through where you stand, all at once as a paw comes down, its claws going up
   // over its head as they are drawn (b.tg). `late`: drawn that many seconds on, where you are by then, at `ang` (its other
@@ -6082,7 +6125,7 @@ sdk.initializeAsync()
   const barkUp = () => !!G.bark && G.bark.boss === G.boss && performance.now() - G.bark.at < barkLife(G.bark) * 1000;
   function patternBark(f, d) { // its 비기 coming: at its wind-up, or at its cast when it had none
     const p = PATTERN_LINES[d.sig]; if (!p || f.last || f.fin) return;
-    const kind = f.n % 2 === 1 ? "alt" : "sig", list = p[kind];
+    const kind = f.only ? (f.only === "alt" ? "alt" : "sig") : f.n % 2 === 1 ? "alt" : "sig", list = p[kind]; // (f.only: 개발자 모드 '보기', devViewGo)
     if (!list || !list.length || (kind === "sig" && f.n === 0 && !f.retry)) return; // (its first 비기: its sigLine has just been said; on a retry it was not, so it shouts)
     const n = (f.barkN = f.barkN || { sig: 0, alt: 0 });
     bark(list[n[kind]++ % list.length]);
@@ -10821,6 +10864,7 @@ sdk.initializeAsync()
     $("hud").hidden = true; $("over").hidden = true; $("devExit").hidden = true;
     if (dv && dv.play) { $("boss").hidden = false; bossDone(dv, lasted); } else $("dev").hidden = false;
     P.x = W / 2; P.y = H * 0.58;
+    if (dv && dv.chain && !dv.quit && dv.i + 1 < BOSS_SET.length) startDevBoss(dv.i + 1, false, true); // (개발자 모드 '보스만 쭉': the next boss, as it was picked; 그만 보기 back to the list)
   }
   // ---- 개발자 모드 패턴 보기 (11-10 제작자: "dev에서는 패턴만 따로 볼 수 있는 환경, 하나하나 선택하는 형식으로 가서 패턴만
   // 보는 거지"): one attack alone, over and over, with nothing else in the air (no bamboo), at the difficulty picked on the
@@ -10877,7 +10921,7 @@ sdk.initializeAsync()
     P.x = W / 2; P.y = H * 0.58;
   }
   function renderDevPatterns() {
-    $("devTitle").textContent = "패턴 보기"; $("devNote").textContent = DEV_NOTES.pat;
+    $("devTitle").textContent = "패턴 보기"; $("devNote").textContent = DEV_NOTES.pat; $("devView").hidden = true; $("devChainRow").hidden = true;
     const list = $("devList"); list.replaceChildren();
     for (const p of DEV_PATS) {
       const li = document.createElement("li");
@@ -10890,8 +10934,9 @@ sdk.initializeAsync()
       li.append(head, go); list.append(li);
     }
   }
+  function devViewLabels() { for (const b of document.querySelectorAll("#devView button")) b.setAttribute("aria-pressed", String(b.dataset.view === devView)); }
   function renderDev() {
-    $("devTitle").textContent = "보스 비기"; $("devNote").textContent = DEV_NOTES.boss;
+    $("devTitle").textContent = "보스 비기"; $("devNote").textContent = DEV_NOTES.boss; $("devView").hidden = false; $("devChainRow").hidden = false; devViewLabels();
     const list = $("devList"); list.replaceChildren();
     BOSS_SET.forEach((d, i) => {
       const li = document.createElement("li");
@@ -10901,13 +10946,13 @@ sdk.initializeAsync()
       head.append(who, sig);
       const what = document.createElement("p"); what.textContent = d.what;
       const lines = document.createElement("dl");
-      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["하수인", d.minion && !minionsOff ? `${d.minion.name}, X-4는 ${d.minion.chief}. 칸 내내 위쪽에 서서 맛보기를 던지고, 칸이 끝나면 베인다` : "없음"], ["등장 대사", d.intro], ["비기 대사", d.sigLine], ["쓰러질 때", d.down]]) {
+      for (const [k, t] of [["배경", d.bg ? BG_NAMES[d.bg] : "없음"], ["두 번째 비기", ALTS[d.sig].name.join(" ")], ["종전 고유기", SUBS[d.sig].name], ["마무리", FINALE[d.sig] ? FINALE[d.sig].name.join(" ") + (FINALE[d.sig].acts ? `, ${FINALE[d.sig].acts}막` : "") : "없음"], ["섞는 공격", d.mix.map((m) => ATTACK_NAMES[m]).join(", ")], ["하수인", d.minion && !minionsOff ? `${d.minion.name}, X-4는 ${d.minion.chief}. 칸 내내 위쪽에 서서 맛보기를 던지고, 칸이 끝나면 베인다` : "없음"], ["등장 대사", d.intro], ["비기 대사", d.sigLine], ["쓰러질 때", d.down]]) {
         const dt = document.createElement("dt"); dt.textContent = k;
         const dd = document.createElement("dd"); dd.textContent = withName([].concat(t).join(" / ")); // (11-22: a line may be a list of lines)
         lines.append(dt, dd);
       }
       const go = document.createElement("button"); go.type = "button"; go.textContent = "보기";
-      go.addEventListener("click", () => startDevBoss(i));
+      go.addEventListener("click", () => startDevBoss(i, false, $("devChain").checked)); // (보스만 쭉: from this one on, devBack)
       li.append(head, what, lines, go); list.append(li);
     });
   }
@@ -14557,6 +14602,8 @@ sdk.initializeAsync()
   $("devOpen").addEventListener("click", () => { renderDev(); $("start").hidden = true; $("dev").hidden = false; });
   $("devPatOpen").addEventListener("click", () => { renderDevPatterns(); $("start").hidden = true; $("dev").hidden = false; });
   const devLabels = () => { for (const b of document.querySelectorAll("#devLvl button")) b.setAttribute("aria-pressed", String(b.dataset.lvl === devLevel)); };
+  // (11-23 개발자 모드 '보기': DEV_VIEWS; kept, as the level is)
+  for (const b of document.querySelectorAll("#devView button")) b.addEventListener("click", () => { devView = b.dataset.view; store.set("devView", devView); devViewLabels(); });
   for (const b of document.querySelectorAll("#devLvl button")) b.addEventListener("click", () => { devLevel = b.dataset.lvl; store.set("devLv", devLevel); devLabels(); });
   devLabels();
   $("devClose").addEventListener("click", () => { $("dev").hidden = true; $("start").hidden = false; });
