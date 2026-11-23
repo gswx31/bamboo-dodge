@@ -1131,11 +1131,14 @@ sdk.initializeAsync()
     { at: 0, name: "一段 · 첫 칼" },
     { at: 8, name: "二段 · 발도" },
     { at: 16, name: "三段 · 죽순" },
-    { at: 24, name: "四段 · 장풍" },
+    // (11-23 제작자: "움직임을 제한하는 패턴을 최대한 빼줬으면": 장풍, a palm sweeping a lane across the whole field, and 천잠사,
+    // wires that shut the field off for three seconds, are gone from 죽림 수련. 四段 opens 도죽 in 장풍's place; 탄지신통, which
+    // opened unannounced at 36, is pushed later to open 八段 in 천잠사's place. Every 段 keeps its number and time)
+    { at: 24, name: "四段 · 도죽" },
     { at: 32, name: "五段 · 그림자" },
     { at: 40, name: "六段 · 칼바람" },
     { at: 48, name: "七段 · 십자 발도" }, // (11-10: 따라붙는 칼 is gone from the game; 십자 발도 opens here, not at 72)
-    { at: 56, name: "八段 · 천잠사" }, // (11-10: 천라지망 is gone from the game, "비슷한 맥락" as 사자후; 천잠사 opens here instead of at 68)
+    { at: 56, name: "八段 · 탄지신통" }, // (11-10: 천라지망 is gone from the game, "비슷한 맥락" as 사자후; 천잠사 opened here instead of at 68, and is gone too: 11-23)
     { at: 64, name: "九段 · 칼비" },
     { at: 72, name: "十段 · 삼연참" },
     // (11-17 제작자: "레이저가 12시에서 5시로 쓸고가면서 레이저 나오는 패턴… 너무 짜치고 별로같아 빼줘 모든곳에서": 十一段 · 검기,
@@ -1231,10 +1234,11 @@ sdk.initializeAsync()
     { from: 64, key: "rain", run: bigRain },
     { from: 72, key: "triple", run: bigTriple },
     { from: 80, key: "iseom", run: bigIseom, name: ["一閃", "일섬"] }, // (11-17: in the 검기's place, opens 十一段 again)
-    { from: 24, key: "palm", run: bigPalm, name: ["掌風", "장풍"] }, // opens 四段
-    { from: 36, key: "flick", run: bigFlick, name: ["彈指神通", "탄지신통"] },
-    { from: 56, key: "silk", run: bigSilk, name: ["天蠶絲", "천잠사"] },
-  ]; // (독무, which slowed your feet, is gone: a dragging thumb never feels slowed, 11-06. 11-10 제작자: "사자후 패턴 그냥
+    { from: 24, key: "fallen", run: bigFallen, name: ["倒竹", "도죽"] }, // opens 四段 (11-23: in 장풍's place)
+    { from: 56, key: "flick", run: bigFlick, name: ["彈指神通", "탄지신통"] }, // opens 八段 (11-23: was at 36, unannounced; now in 천잠사's place)
+  ]; // (11-23 제작자: "움직임을 제한하는 패턴을 최대한 빼줬으면": 장풍 and 천잠사 are out of the list. bigPalm and bigSilk stay
+  // for the old story mode's acts, which is hidden)
+  // (독무, which slowed your feet, is gone: a dragging thumb never feels slowed, 11-06. 11-10 제작자: "사자후 패턴 그냥
   // 없애는게 좋은거같아, 저거 너무 피하는 구속을 줘서 피할 수 없게 만든다, 게임 전체적으로 빼버려", "천라지망도 그냥 빼버렸으면,
   // 비슷한 맥락": both are gone as attacks of their own, everywhere — rings that leave you one road out)
   function runBig(b) { for (const k in G.timers) G.timers[k] = Math.max(G.timers[k], 1.4); /* the ordinary throws hold off a moment: one thing to read at a time */ G.lastBig = b.key; G.bigSeen.add(b.key); b.run(); G.dark = 1; sfx.taiko(); if (b.name) callout(...b.name); }
@@ -1601,6 +1605,28 @@ sdk.initializeAsync()
     sfx.warn();
   }
 
+  // ---- 도죽(倒竹) (11-23, opens 四段 in 장풍's place): a great bamboo of the grove topples, its shadow lying through where you
+  // stand, and comes down along it with a crash; from 七段 a second one after it, across it, where you are by then. Each is
+  // one stroke and nothing is left lying: step out of its shadow
+  function bigFallen() {
+    const n = G.t >= 48 ? 2 : 1, a0 = rnd(0, Math.PI), turn = rnd(Math.PI / 3, Math.PI / 2) * (Math.random() < 0.5 ? 1 : -1);
+    for (let i = 0; i < n; i++) G.warns.push({ kind: "band", x: 0, y: 0, ang: a0 + i * turn, w: S * 0.085, t: 0, dur: 0.9, delay: i * 0.55,
+      place(v) { v.x = P.x; v.y = P.y; sfx.warn(); }, fire(v) { landCut({ ...v, tint: "79,101,52" }); fallenTrunk(v); } });
+  }
+  function fallenTrunk(v) { // (drawing only) the stalk lying along the cut a moment, its nodes and a spray of leaves
+    sfx.thud(); G.shake = Math.max(G.shake, reduced ? 0 : 12);
+    if (reduced) return;
+    const L = Math.hypot(W, H) * 1.1, w = v.w * 0.7;
+    G.parts.push({ kind: "trunk", x: v.x, y: v.y, vx: 0, vy: 0, t: 0, life: 0.7, keep: true,
+      draw(p, a) {
+        const k = Math.min(1, p.t / 0.08);
+        ctx.globalAlpha = a * k; ctx.translate(p.x, p.y); ctx.rotate(v.ang);
+        ctx.fillStyle = "#6f8a4a"; ctx.fillRect(-L, -w / 2, L * 2, w);
+        ctx.fillStyle = "#4f6534"; ctx.fillRect(-L, w * 0.15, L * 2, w * 0.35);
+        ctx.fillStyle = "#d9c79a"; for (let x = -L; x < L; x += S * 0.22) ctx.fillRect(x, -w / 2, S * 0.012, w); // (its nodes)
+      } });
+    for (let i = 0; i < 10; i++) { const s = frnd(-S * 0.6, S * 0.6); fxMote("leaf", v.x + Math.cos(v.ang) * s, v.y + Math.sin(v.ang) * s, "#6f8a4a", true); } // (frnd: the pattern's dice untouched)
+  }
   // ---- 탄지신통: qi flicked from a fingertip — small and very fast, the aim line only a blink ahead
   function bigFlick() {
     const n = 5 + Math.min(4, Math.floor(G.t / 40));
@@ -1656,7 +1682,7 @@ sdk.initializeAsync()
     { name: "쌍영", title: "雙影 · 흑월교 척후", look: "twins", accent: "#c8321f", hp: 18, acts: ["twin", "fan", "clones"],
       intro: () => [{ who: "쌍영", text: "둘이서 하나를 벤다. 그것이 우리의 검이다." }],
       down: () => [{ who: "쌍영", text: "둘이 아니면… 그림자도 아니었군." }] },
-    { name: "연화", title: "蓮華 · 수류검", look: "lotus", accent: "#3d6a8a", hp: 18, acts: ["wave", "spiral", "fan", "silk"],
+    { name: "연화", title: "蓮華 · 수류검", look: "lotus", accent: "#3d6a8a", hp: 18, acts: ["wave", "spiral", "fan"], // (11-23: 천잠사 out, as from 죽림 수련)
       intro: () => [{ who: "연화", text: `${me()}${josa(me(), "이라", "라")} 했던가. 물은 베어도 갈라지지 않는 법.` }],
       down: () => [{ who: "연화", text: "갈라지지 않는 것은… 없었구나." }] },
     { name: "적염 대사", title: "赤炎 · 파계승", look: "monk", accent: "#d0651e", hp: 20, acts: ["pillars", "staff", "fan", "burst"], // (11-10: 사자후 out)
@@ -1665,7 +1691,7 @@ sdk.initializeAsync()
     { name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", hp: 20, acts: ["icicles", "spiral", "burst", "fan"], // (11-10: 천라지망 and 따라붙는 칼 out)
       intro: () => [{ who: "설귀", text: "이 고개를 넘은 자는 없다." }],
       down: () => [{ who: "설귀", text: "이 고개를… 넘는 자가 있었군." }] },
-    { name: "흑월교주", title: "黑月 · 검은 달의 교주", look: "lord", accent: "#8b1a12", hp: 30, acts: ["fan", "twin", "spiral", "pillars", "icicles", "staff", "palm"], // (11-10: 천라지망, 사자후 out)
+    { name: "흑월교주", title: "黑月 · 검은 달의 교주", look: "lord", accent: "#8b1a12", hp: 30, acts: ["fan", "twin", "spiral", "pillars", "icicles", "staff"], // (11-10: 천라지망, 사자후 out; 11-23: 장풍 out)
       intro: () => [{ who: "흑월교주", text: `${me()}. 네 사부도 그 검으로는 나를 막지 못했다.` }],
       mid: () => [{ who: "흑월교주", text: "…그 검로. 그 늙은이의 것이로구나." }],
       down: () => [{ who: "흑월교주", text: "결국… 그 늙은이의 검이었나." }] },
@@ -2381,7 +2407,7 @@ sdk.initializeAsync()
     { name: "천하봉", theme: "grove", boss: 19, fresh: "", pats: ["line", "draw", "cross"], big: BIG.map((b) => b.key), diff: [152, 176] },
   ];
   const ATTACK_NAMES = { line: "던지는 칼", draw: "발도", cross: "십자 발도", burst: "터지는 칼",
-    spikes: "죽순", palm: "장풍", clones: "그림자", spiral: "칼바람", flick: "탄지신통",
+    spikes: "죽순", palm: "장풍", fallen: "도죽", clones: "그림자", spiral: "칼바람", flick: "탄지신통",
     rain: "칼비", silk: "천잠사", triple: "삼연참", iseom: "일섬" };
   // the five stages of a 장: how long, and how far apart the attacks (× their usual wait)
   const STEPS = [ // thirty seconds each (the boss stage: the boss from the start, for BOSS_SECONDS)
@@ -2987,10 +3013,52 @@ sdk.initializeAsync()
     ["c_shadow2", "저승 그림자", MID, () => oneClone()],
     ["c_shadow3", "도깨비불 셋", HEAVY, () => SUBS.shadow.run(), true],
   ]);
-  kit("swarm", [ // 호접: poison moths
-    ["c_swarm1", "독나비", LIGHT, () => edgeAim((x, y, a) => shoot("kunai", x, y, a, S * 1.05, { r: S * 0.016, skin: "wing" }))],
-    ["c_swarm2", "독 날개", MID, () => { const [x, y] = burstSpot(); burstAt(x, y, 10, rnd(0, Math.PI), 0.9, true, "wing"); sfx.warn(); }],
-    ["c_swarm3", "독 날개 둘", HEAVY, () => SUBS.swarm.run(), true],
+  // 호접's moths (11-23 제작자: "보라색이 좀 흩뿌리는게 너무 어정쩡해보여 그걸 빼고 나비로 공격하는 느낌처럼", "작은게 많아서
+  // 어려워 적당한 선으로"): no burst of violet scales, no small wing thrown off the edge. A few great moths come in off the
+  // edges on curving flights, faint and harmless as they fly (as her ring's are), each to a spot of its own round you; there
+  // it hangs, wings shivering, its red line drawn to where you are as it shows, darts down it and is gone off the field.
+  // sides: where round you each one hangs (from the first, whose angle is cast now); gap: seconds between one line and the
+  // next, each aimed where you are by then. All its dice are cast as it is made; its flight follows you, nothing drawn later.
+  function mothRaid(sides, gap = 0.4, o = {}) {
+    const n = sides.length, aim = o.aim || 0.7, speed = S * 1.45, ring = S * (o.ring || 0.4), fly = o.fly || 0.75, flies = [];
+    const a0 = rnd(0, Math.PI * 2), turn = Math.random() < 0.5 ? 1 : -1, m = S * 0.06;
+    const top = barTop() + m;
+    for (let i = 0; i < n; i++) {
+      const [x, y] = edgePoint(true), a = Math.atan2(P.y - y, P.x - x) + turn * rnd(0.9, 1.3); // (it comes in slantwise: a curve, not a line)
+      const f = { x: clamp(x, -S * 0.05, W + S * 0.05), y: clamp(y, -S * 0.05, H + S * 0.05), vx: Math.cos(a) * S * 0.8, vy: Math.sin(a) * S * 0.8, ph: i * 1.7, a: a0 + sides[i], mode: "drift", at: fly + i * gap, wait: 0 };
+      if (o.near) { f.x = clamp(P.x + Math.cos(f.a) * ring, m, W - m); f.y = clamp(P.y + Math.sin(f.a) * ring, top, H - m); f.vx = f.vy = 0; } // (o.near: out of the air at its spot, as out of her dream)
+      flies.push(f);
+    }
+    G.hazards.push({ kind: "swarm", flies, t: 0, dur: fly + (n - 1) * gap + aim + 2.4, best: Infinity, near: true, r: S * 0.026,
+      step(dt) {
+        for (const f of flies) {
+          f.ph += dt * 9;
+          if (f.mode === "drift") { // to its spot round you, swaying as it goes
+            const tx = clamp(P.x + Math.cos(f.a) * ring, m, W - m), ty = clamp(P.y + Math.sin(f.a) * ring, top, H - m);
+            f.vx += ((tx - f.x) * 7 - f.vx * 3.2) * dt + Math.sin(f.ph * 0.5) * S * 0.5 * dt; f.vy += ((ty - f.y) * 7 - f.vy * 3.2) * dt + Math.cos(f.ph * 0.4) * S * 0.5 * dt;
+            if (this.t >= f.at) {
+              if (Math.hypot(P.x - f.x, P.y - f.y) < S * 0.2 && f.wait++ < 4) f.at += 0.1; // (right on you: a breath more to find its spot)
+              else {
+                f.mode = "aim";
+                G.warns.push({ kind: "line", x: f.x, y: f.y, ang: Math.atan2(P.y - f.y, P.x - f.x), t: 0, dur: aim, delay: 0,
+                  fire(w) { f.mode = "dart"; f.x = w.x; f.y = w.y; f.vx = Math.cos(w.ang) * speed; f.vy = Math.sin(w.ang) * speed; sfx.whoosh(); } });
+                sfx.warn();
+              }
+            }
+          } else if (f.mode === "aim") { f.vx *= 0.8; f.vy *= 0.8; } // it hangs, wings shivering, its line drawn
+          if (f.mode !== "aim") { f.x += f.vx * dt; f.y += f.vy * dt; }
+          if (f.mode === "dart" && (f.x < -S * 0.2 || f.x > W + S * 0.2 || f.y < -S * 0.2 || f.y > H + S * 0.2)) f.mode = "gone";
+        }
+        if (flies.every((f) => f.mode === "gone")) this.dur = Math.min(this.dur, this.t + 0.05);
+      },
+      dist() { let d = Infinity; for (const f of flies) if (f.mode === "dart") d = Math.min(d, Math.hypot(P.x - f.x, P.y - f.y)); return Math.max(0, d - this.r); },
+      draw: drawSwarm });
+    sfx.whoosh();
+  }
+  kit("swarm", [ // 호접: poison moths (11-23: her great moths, each darting at you down its red line)
+    ["c_swarm1", "독나비", LIGHT, () => mothRaid([0])],
+    ["c_swarm2", "쌍나비", MID, () => mothRaid([0, Math.PI], 0.35)], // (from either side of you, the second where you are by then)
+    ["c_swarm3", "나비 떼", HEAVY, () => SUBS.swarm.run(), true],
   ]);
   kit("wheel", [ // 화륜: wheels of fire
     ["c_wheel1", "불바퀴 자국", LIGHT, () => band(rnd(0, Math.PI), S * 0.09, 0.8, "232,134,42")], // (11-16 review: burnt in the fire's orange; "208,69,30" stroked a red that had cut already)
@@ -3735,10 +3803,11 @@ sdk.initializeAsync()
       // (11-08 제작자 19:23 "너무 쉬워": every one had darted by a little past half of it and the rest was empty; now a
       // butterfly that has darted off the screen circles back to the ring to come again, so they keep coming to the end,
       // a little sooner each time; its line held 0.65 s, not 0.6, the least any warning gets)
-      const b = G.boss, n = 14 + Math.round(lvl() * 0.4), life = 8.2, ring = S * 0.42, flies = [];
+      // (11-23 제작자: "작은게 많아서 어려워 적당한 선으로": ten or so in the ring, not fourteen to eighteen, each a little bigger)
+      const b = G.boss, n = 9 + Math.round(lvl() * 0.25), life = 8.2, ring = S * 0.42, flies = [];
       const every = Math.max(0.26, 0.4 - lvl() * 0.01), aim = 0.65, speed = S * 1.5;
       for (let i = 0; i < n; i++) flies.push({ x: b.x + rnd(-S * 0.1, S * 0.1), y: b.y + rnd(0, S * 0.1), vx: 0, vy: 0, ph: rnd(0, 6), a: (i / n) * Math.PI * 2, mode: "drift" });
-      G.hazards.push({ kind: "swarm", flies, t: 0, dur: life, best: Infinity, near: true, r: S * 0.02, next: 1.2, spin: 0,
+      G.hazards.push({ kind: "swarm", flies, t: 0, dur: life, best: Infinity, near: true, r: S * 0.023, next: 1.2, spin: 0,
         step(dt) {
           this.spin += dt * 0.5;
           const leaving = this.t > life - 0.9;
@@ -5248,6 +5317,7 @@ sdk.initializeAsync()
         if (f.only) f.n = f.n + 1 > DEV_N0 ? (f.only === "alt" ? 2 : 1) : f.n + 1; // (개발자 모드 '보기': the one 비기 at each level a fight throws it at, by turns — devViewGo)
         b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; // it throws itself at you as it calls it
         f.busy = Infinity; f.busy = next.run(); // (busy while it is thrown, so that whatever it throws at once is its too)
+        if (f.fin) f.busy = finPress(d, 1, f.busy); // (11-23: its last struggle's act one, pressed: FIN_PRESS)
         if (f.last && !f.fin) f.lastDur = f.busy; // (its 종전's whole length: the gold bar burns down from it)
         // its other attacks, its wind-up, the next one (the light attack before it still goes out first, and the wind-up
         // over it; the level's breath, cut by BREATH_K, was never longer than the wind-up and is gone, 11-19)
@@ -5938,7 +6008,10 @@ sdk.initializeAsync()
       kitLater(t, () => G.boss && soulClamp(rnd(0, Math.PI * 2), half, D2, 0.6 * D2 - 0.2), "sk"); // 勾
       return t + D2 + 0.55;
     } },
-    swarm: { name: ["毒粉", "독분"], run() { return steps(0.72, () => SUBS.swarm.run(), () => SUBS.swarm.run(), () => SUBS.swarm.run(), () => SUBS.lotus.run(), () => SUBS.swarm.run()); } },
+    // (11-23 제작자: "보라색이 좀 흩뿌리는게 너무 어정쩡해보여 그걸 빼고 나비로 공격하는 느낌처럼": was 毒粉, four times two bursts of
+    // violet wings and once 연화's ripples) 蝶舞: her great moths two by two, a pair hanging at right angles round you so their
+    // lines cross where you stand, the second a breath behind; four pairs, each about you as it comes (mothRaid)
+    swarm: { name: ["蝶舞", "접무"], run() { const pair = () => mothRaid([0, Math.PI / 2], 0.14); return steps(0.85, pair, pair, pair, pair) + 0.9; } },
     // (11-08 "패턴들이 너무 쉬워": 16~19's second 비기 closer together, one coming up before the last is gone)
     wheel: { name: ["火輪痕", "화륜흔"], run() { // (11-10: its wheel tracks, was 火環, a ring of fire)
       return steps(1.3, () => FORESHADOW.wheel(), () => SUBS.wheel.run(), () => FORESHADOW.wheel(), () => SUBS.wheel.run()); } },
@@ -6069,9 +6142,9 @@ sdk.initializeAsync()
         sfx.warn();
       });
     } },
-    swarm: { name: "독 날개", run() { // two clouds of scales bursting about the field (burstSpot: not beside you)
-      for (let k = 0; k < 2; k++) kitLater(k * 0.45, () => { const [x, y] = burstSpot(); burstAt(x, y, 12, rnd(0, Math.PI), 0.85, true, "wing"); sfx.warn(); }, "sw"); // (11-15 review: its spot still picked where you are by then, on a seed)
-    } },
+    // (11-23 제작자: "보라색이 흩뿌리는게 … 빼고 나비로 공격하는 느낌": was 독 날개, two bursts of twelve violet wings) three of
+    // her great moths from three sides of you, one after another, each line drawn where you are by then (mothRaid)
+    swarm: { name: "나비 떼", run() { mothRaid([0, Math.PI * 2 / 3, Math.PI * 4 / 3], 0.42); } },
     wheel: { name: "불바퀴 질주", run() { // it runs a road through you on its wheels, then leaps home
       const b = G.boss; if (!b) return;
       const u = bossUnit(b.def), cy = b.y + u * 0.8, ang = Math.atan2(P.y - cy, P.x - b.x);
@@ -9748,7 +9821,8 @@ sdk.initializeAsync()
     for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
     G.warns = []; G.hazards = []; G.timeK = 1; G.freezeT = 0;
     for (const c of G.cuts) c.checked = true;
-    const len = FIN_RAGE[Math.min(k, FIN_RAGE.length) - 1] * ((SL().lv || 0) < 9 ? 0.6 : 1) * (G.bossK || 1); // (in game seconds)
+    const RG = FIN_PRESS[d.sig] ? FIN_PRESS_RAGE : FIN_RAGE; // (11-23: a pressed one rages shorter)
+    const len = RG[Math.min(k, RG.length) - 1] * ((SL().lv || 0) < 9 ? 0.6 : 1) * (G.bossK || 1); // (in game seconds)
     f.actWait = len; f.wind = { t: 0, len }; // (it gathers itself as it rages: it holds its ground, the backdrop waits)
     b.surge = k; b.castT = b.castDur = 0.5;
     if (k === fin.acts - 1) { callout(fin.name[0], fin.name[1]); G.callout.wind = true; G.callout.fin = true; G.callout.life = 1.0; } // (its name again before the last act, short)
@@ -9771,7 +9845,46 @@ sdk.initializeAsync()
     if (k === fin.acts) { callout(fin.name[0], fin.name[1]); G.callout.castAt = performance.now(); G.callout.side = b.x < W / 2 ? 1 : -1; } // (off to the corner as the blow comes)
     G.dark = Math.max(G.dark, 0.7); b.castT = b.castDur = 0.6; f.n++; fxCast(b);
     b.lunge = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) };
-    fixed("finAct", () => { f.busy = Infinity; f.busy = fin.run({ act: k }); }); // (busy while it is thrown, as a 비기)
+    fixed("finAct", () => { f.busy = Infinity; f.busy = finPress(d, k, fin.run({ act: k })); }); // (busy while it is thrown, as a 비기; finPress: 11-23)
+  }
+  // ---- (11-23 제작자: "전체적으로 마지막 문구하고 나오는게 이펙트만 화려하지 어려운 느낌이 안드네?") the last struggle pressed
+  // harder, not fuller. As act three's great blow lands, one of the master's own moves comes at once where you are by then,
+  // lit afresh (its own warning), and a second after it where you went from the first (쉬움: the one), so the last act is the
+  // hardest. In acts one and two the same move is laid on the act while it runs where you are as it shows (`mid`: how far
+  // through act one, 0.5 if not given; `mid2`: through act two, none if not given; 보통 and 어려움), so its own great move is
+  // never read alone. The dead air after each act is cut (tail: how long each act's run() waited after its last blow, at
+  // 보통), and it rages between acts shorter (FIN_PRESS_RAGE). Nothing
+  // small, nothing that walls you in: every one is a single stroke of its own, a shadow, a pillar, a moon, a cut. The masters
+  // listed are those 11-23's polish took (1, 3–7, 9–11, 15, 20장); the rest are as they were
+  // (the coordinator's finding, 11-23: the field stood empty 0.6 s and 0.75 s between acts — a pressed one rages 0.3 s; and act
+  // three's two follow-ups are lit 0.75 then 0.7 game seconds, 0.64 and 0.6 by the wall clock at 보통, over the 0.55 floor)
+  const FIN_PRESS_RAGE = [0.3, 0.3], FIN_PRESS_LIT3 = [0.75, 0.7];
+  const FIN_PRESS = {
+    twin: { tail: [0.45, 0.3, 0.6], lit: 0.8, hit: (dur) => { // 그림자 돌진: a shadow out of the edge through you
+      const [ex, ey] = edgePoint(true), m = S * 0.05;
+      G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur, delay: 0, place(w) { w.x = clamp(ex, m, W - m); w.y = clamp(ey, m, H - m); w.edge = true; w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); }, fire(w) { cloneDash(w.x, w.y, w.ang); } }); } },
+    fire: { tail: [0.55, 0.1, 0.6], lit: 0.75, hit: (dur) => underYou((w) => spikeErupt(w.x, w.y, w.r, "fire"), S * 0.075, dur) }, // 불기둥
+    frost: { tail: [0.55, 0.35, 0.6], lit: 0.75, hit: () => spawnSlash(false) }, // its 발도 (its own length, about 0.75 s, its way kept off the walls)
+    void: { tail: [0.3, 0.52, 0.6], lit: 0.95, mid: [0.3, 0.65], mid2: [0.5], hit: (dur) => { const R = S * 0.11; blackMoon(clamp(P.x, R * 0.6, W - R * 0.6), clamp(P.y, H * 0.16, H - R * 0.6), R, dur, 0.5); } }, // a moon where you stand
+    charge: { tail: [0.85, 0.1, 0.46], lit: 0.8, mid: [0.3, 0.65], mid2: [0.45], hit: (dur) => band(rnd(0, Math.PI), S * 0.06, dur, "199,120,42") }, // a claw across you
+    veil: { tail: [0.55, 0.1, 0.6], lit: 0.8, mid2: [0.5], hit: () => oneClone() }, // a shadow out of the air round you
+    mirror: { tail: [0.6, 0.6, 0.6], lit: 0.75, hit: (dur) => underYou((w) => spikeErupt(w.x, w.y, w.r, "ice"), S * 0.075, dur) }, // 얼음 가시
+    rain: { tail: [0.3, 0.3, 0.6], lit: 0.8, hit: (dur) => shadowThrust({ dur }) }, // his spear's shadow down through you
+    swords: { tail: [0.6, 0.7, 0.6], lit: 0.75, hit: (dur) => underYou((w) => { spikeErupt(w.x, w.y, w.r, "blade"); sfx.shing(); }, S * 0.072, dur) }, // 솟는 칼
+    swarm: { tail: [0.6, 0.25, 0.6], lit: 0.85, mid: [0.3, 0.65], mid2: [0.5], hit: (dur) => mothRaid([0], 0, { fly: 0.15, near: true, aim: Math.max(0.68, dur - 0.1) }) }, // a moth out of the dream beside you
+    final: { tail: [0.6, 0.5, 0.6], lit: 0.85, mid2: [0.5], hit: () => spawnSlash(false) }, // its 발도
+  };
+  function finPress(d, act, busy) {
+    const p = FIN_PRESS[d.sig];
+    if (!p || !(busy > 0) || busy === Infinity) return busy;
+    const lv = SL().lv || 0, ez = lv < 9, tail = p.tail[act - 1] ?? 0.5, land = Math.max(0, busy - tail);
+    const lits = act === 3 ? FIN_PRESS_LIT3.slice(0, ez ? 1 : 2) : []; // (acts one and two: laid on, not after — the struggle stays about 10 s)
+    const still = () => G.phase === "boss" && G.fight && G.fight.fin && !G.fight.kill && (G.fight.act || 1) === act;
+    const mids = act === 1 ? [].concat(p.mid === undefined ? 0.5 : p.mid || []) : act === 2 ? [].concat(p.mid2 || []) : []; // (so far through it, 보통 and 어려움)
+    if (!ez) mids.forEach((m, i) => kitLater(land * m, () => still() && (p.midHit || p.hit)(p.lit), "fpm" + i));
+    let at = land; // (each one shows a breath before the last lands: where you are as you get out of it)
+    lits.forEach((dur, i) => { kitLater(at, () => still() && p.hit(dur), "fp" + i); at += dur - (i < lits.length - 1 ? 0.1 : 0); });
+    return lits.length ? at + 0.3 : Math.min(busy, land + 0.3);
   }
   // a great stroke's way through (x, y), of `angs` in turn: the first that leaves room to get out on both its sides (half
   // its width, your size and a step more), else the roomiest. finFit (11-20 제작자: "탈출 방향 2개 이상" — by a wall or in
