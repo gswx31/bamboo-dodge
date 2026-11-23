@@ -2801,7 +2801,7 @@ sdk.initializeAsync()
       what: "하늘이 어두워지고, 번개가 줄지어 나를 향해 걸어온다. 이어서 내 자리에 큰 번개 자국이 생기고, 떨어지는 순간 하늘이 하얗게 갈라지며 여덟 갈래 번개가 사방으로 뻗는다. 자국 밖, 갈래와 갈래 사이에 서야 한다. 셀수록 두 번 떨어지고, 마지막엔 내 둘레에 열십자로 다섯 개가 떨어진다.",
       intro: ["사십 년을 하늘만 올려다본 도사다. 이제 하늘이 내 말을 듣지.", "스무 해 전엔 둘이 지나갔다. 하나는 벼락을 베었고, 하나는 하늘에 절을 했지."], sigLine: "부적 한 장에 벼락 하나. 세어 봐라.", down: ["부릴수록 하늘이 무서워지더군. 절하던 놈은 스무 해 전에 그걸 알았다.", "하늘이 처음으로… 내 말을 안 듣는구나."] },
     { stage: "14-5", name: "추혼", title: "追魂 · 혼을 쫓는 저승사자", look: "ghost", accent: "#4a6b6f", theme: "temple", sig: "shadow", sigName: ["追魂", "추혼"],
-      what: "1.4초 전의 내가 그림자가 되어, 내가 지나온 길을 그대로 따라온다. 멈춰 서면 따라잡히고, 닿으면 죽는다.",
+      what: "조금 전의 내가 그림자가 되어 내가 지나온 길을 그대로 따라온다. 멈춰 서면 따라잡히고, 닿으면 죽는다. 둘째 비기 쇄혼은 화면 밖 어둠에서 혼 사슬을 뻗어 내 자리 위에 활처럼 느슨하게 걸쳐 두었다가 단번에 팽팽하게 당긴다. 사슬이 휘어 있던 자리가 통째로 베이니, 사슬이 펴질 곧은 줄을 넘어가거나 휜 사슬 바깥으로 나가야 한다. 사슬은 올 때마다 다른 쪽 어둠에서 나와 좌우로 번갈아 휘고, 두 번 잇달아 온 뒤에는 두 가닥이 양쪽으로 휘어 한꺼번에 조여 든다.",
       intro: ["{me}. 명부에 네 이름이 올랐다. 사흘을 기다렸다.", "네 사부의 이름은 내가 거뒀다. 불 속에서도 조용히 가더군."], sigLine: "거둔 혼은 셀 수 없다. 놓친 혼은… 없었다.", down: ["그자가 버린 이름을 네 사부가 지고 다녔다. 이제 그 둘을… 네가 지는군.", "명부를… 고쳐 써야겠군. 처음 있는 일이다."] },
     { stage: "15-5", name: "호접", title: "胡蝶 · 독나비의 여인", look: "butterfly", accent: "#7b4a9e", theme: "field", sig: "swarm", sigName: ["胡蝶陣", "호접진"],
       what: "나비 떼가 나를 멀찍이 둘러싸고 따라 돈다. 한 마리씩 나를 겨누면 붉은 선이 그어지고, 곧 그 선을 따라 쏜살같이 날아든다. 맴도는 나비는 닿아도 괜찮다.",
@@ -5673,6 +5673,155 @@ sdk.initializeAsync()
   // (11-17 review: each step cast on a seed of its own, kitLater — a cut's angle, an edge, a side, the moves it calls and
   // theirs — so a fight replays exactly; they were cast as each step came, and the second 비기 differed every try)
   const steps = (gap, ...fns) => { fns.forEach((fn, k) => kitLater(k * gap, () => G.boss && fn(), "st")); return fns.length * gap + 0.9; };
+  // the boss's body as a blow's part (it cuts you to touch it: bossFight), for finWays (추혼 鎖魂)
+  const altBody = () => { const b = G.boss; if (!b) return []; const u = bossUnit(b.def); return bossBodies(b).map(([bx, by]) => ({ c: [bx, by + u * 0.8, u] })); };
+  // ---- 14-5 추혼 鎖魂 (11-23 리메이크, docs/설계/1122-둘째비기/14-5-추혼-shadow.md; was 百鬼, its goblin fires and 무영's
+  // 그림자 습격, borrowed): a soul chain shoots out of the dark past the screen's edge (11-23 제작자: "5-5 … 달이 화면 밖에서
+  // 떨어지는 연출 … 이런식으로 다 생동감있는 패턴": the underworld's dark, where the reaper calls it from) and falls slack in a
+  // bow over where you stand, its hook bitten in beyond you; then it is yanked taut back into the dark: the whole bow it lay
+  // over cuts at once (a crescent: the dark to the hook, the slack its curved edge, the line it snaps to its straight edge).
+  // Laid on you: red, there whole from the first frame while the chain is still flying out along it. Out over the straight
+  // edge (near) or past the bow (far). From one side of the dark and another, bowed one way and the other by turns, two
+  // quick, then two at once out of one dark either side of the line through you (勾), shut together. Nothing small, nothing
+  // sweeping: the crack is the whole crescent in one blink (0.16 s). Dice: kitLater.
+  const SOUL_WISP = "#8fd0c8", SOUL_PALE = "#e6fbf6", SOUL_OUT = 0.28; // (game s: the chain flying out to its hook)
+  function soulFrom(a) { // where the chain comes out of the dark for a strand through you from the way `a`: past the field's edge
+    const [x, y] = spearEnd(P.x, P.y, a);
+    return [x + Math.cos(a) * S * 0.04, y + Math.sin(a) * S * 0.04];
+  }
+  function soulBow(hx, hy, ang, L, dep, side, n = 14) { // the slack bow, from the dark to the hook: `dep` deep at its middle, toward `side`
+    const ux = Math.cos(ang), uy = Math.sin(ang), nx = -uy * side, ny = ux * side, pts = [];
+    for (let i = 0; i <= n; i++) { const f = i / n, y = 4 * dep * f * (1 - f); pts.push([hx + ux * L * f + nx * y, hy + uy * L * f + ny * y]); }
+    return pts;
+  }
+  // one strand out of the dark at (hx, hy) over where you stand: you `off` inside its straight edge, its bow `ex` past you.
+  // null: you are too near the edge it comes from
+  function soulStrand(hx, hy, side, off, ex) {
+    const d = Math.hypot(P.x - hx, P.y - hy); if (d < S * 0.3) return null;
+    const dl = Math.asin(Math.min(0.85, off / d)), ang = Math.atan2(P.y - hy, P.x - hx) - side * dl, xp = d * Math.cos(dl);
+    const [rx, ry] = spearEnd(hx, hy, ang), L = Math.max(Math.min(2 * xp, Math.hypot(rx - hx, ry - hy) - S * 0.12), xp / 0.72), f = xp / L; // (you mid-chord if the field allows, its hook on the field; never past 0.72 of it)
+    const dep = (d * Math.sin(dl) + ex) / (4 * f * (1 - f)), pts = soulBow(hx, hy, ang, L, dep, side); // (d·sin dl: how far you are off its chord)
+    return { parts: [{ p: pts }], pts, hx, hy, ang, L, dep, side, end: [hx + Math.cos(ang) * L, hy + Math.sin(ang) * L] }; // (bow + chord: a convex polygon)
+  }
+  function soulTaut(hx, hy) { // no slack: straight out of the dark through you to the far edge
+    const ang = Math.atan2(P.y - hy, P.x - hx), [ex, ey] = spearEnd(hx, hy, ang);
+    return { parts: [{ s: [hx, hy, ex, ey, S * 0.045] }], pts: [[hx, hy], [(hx + ex) / 2, (hy + ey) / 2], [ex, ey]], hx, hy, ang, L: Math.hypot(ex - hx, ey - hy), dep: 0, side: 1, end: [ex, ey], taut: true };
+  }
+  // the first that is on you and leaves two ways out (finWays), out of the dark from the way `a`, then the opposite way, then
+  // across; counting the strands still lying out and its body, then its body alone; else none (no strand this beat)
+  function soulPick(a, side, off, ex, reach) {
+    const body = altBody(), lit = G.warns.filter((w) => w.soul).flatMap((w) => w.parts), froms = [a, a + Math.PI, a + Math.PI / 2, a - Math.PI / 2].map(soulFrom);
+    const ok = (st, also) => !!st && finDist(st.parts, P.x, P.y) < HIT() && finWays([...st.parts, ...also], P.x, P.y, reach) >= 2;
+    for (const also of lit.length ? [[...lit, ...body], body] : [body]) {
+      for (const [hx, hy] of froms) for (const [ko, ke] of [[1, 1], [0.8, 0.8], [0.4, 1]]) for (const sd of [side, -side]) { const st = soulStrand(hx, hy, sd, off * ko, ex * ke); if (ok(st, also)) return st; }
+      for (const [hx, hy] of froms) { const st = soulTaut(hx, hy); if (ok(st, also)) return st; }
+    }
+    return null;
+  }
+  function soulThrow(st, D, o = {}) { // lay it: red shape (on you) at once, the chain flying out of the dark along it; at its end, the snap
+    const b = G.boss; if (!b || !st) return null;
+    const w = { kind: "shape", soul: true, parts: st.parts, x: P.x, y: P.y, t: 0, dur: D, delay: 0, fire() { soulSnap(st, o); } };
+    G.warns.push(w);
+    const len = st.pts.reduce((s, p, i) => (i ? s + Math.hypot(p[0] - st.pts[i - 1][0], p[1] - st.pts[i - 1][1]) : 0), 0);
+    controller(6, function () { if (!G.warns.includes(w)) this.t = this.dur; }, (h, time) => { // (cuts nothing, drawn under the hero)
+      if (!G.warns.includes(w)) return;
+      const k = clamp(w.t / w.dur, 0, 1), go = reduced ? 1 : clamp(w.t / SOUL_OUT, 0, 1), out = 1 - (1 - go) ** 2; ctx.save(); // (out: how far along it the chain has flown)
+      soulRift(st.hx, st.hy, st.ang, 0.6 + 0.4 * k, time); // the dark it comes out of
+      if (!st.taut && go >= 1) soulEdge(st, k, time); // the line it straightens to, darkening
+      ctx.globalAlpha = 0.7 + 0.3 * k;
+      const tip = soulLinks(st.pts, st.taut ? 0 : S * 0.01 * (1 - k), time, len * out); // the chain on its bow, its sway dying as it is drawn in
+      soulHook(go >= 1 ? st.end : tip, st.ang, k, go >= 1); // its hook, flying at the chain's head, then bitten in with a goblin fire on it
+      ctx.restore(); });
+    if (!o.quiet) { sfx.warn(); sfx.whoosh(); }
+    b.castT = b.castDur = 0.35; b.swing = { t: 0, ang: Math.atan2(P.y - b.y, P.x - b.x) }; // (it calls it: its chain arm flung at you)
+    later(SOUL_OUT, () => { if (G.warns.includes(w) && !reduced) for (let i = 0; i < 5; i++) fxMote("wisp", st.end[0], st.end[1], SOUL_WISP, true); }); // (its hook bites in: drawing only, frnd; laid whatever the motion setting, so the field is the same)
+    return w;
+  }
+  function soulSnap(st, o = {}) { // yanked taut: for 0.16 s the whole bow cuts (finDist), then the chain is drawn back into the dark
+    const { hx, hy, ang, L, dep, side, parts } = st;
+    const ghosts = st.taut ? [] : [soulBow(hx, hy, ang, L, dep * 0.6, side, 10), soulBow(hx, hy, ang, L, dep * 0.25, side, 10)]; // (made now, not per frame)
+    const mid = st.pts[st.pts.length >> 1]; // (where a 간발's sparks read it from: the middle of the bow, not the dark)
+    G.hazards.push({ kind: "finBlow", x: mid[0], y: mid[1], parts, t: 0, dur: 0.45, best: Infinity, near: false,
+      dist() { return this.t < 0.16 ? finDist(this.parts, P.x, P.y) : Infinity; }, // (the crack of a whip: 0.16 s, as spearBlow)
+      draw(h, time) {
+        ctx.save();
+        if (h.t < 0.16) { finPath(parts); ctx.fillStyle = `rgba(230,251,246,${(0.55 * (1 - h.t / 0.16)).toFixed(3)})`; ctx.fill(); } // (the whole ground it cut, pale, while it cuts)
+        if (h.t < 0.08) ghosts.forEach((g, i) => { ctx.globalAlpha = (0.28 + 0.22 * i) * (1 - h.t / 0.08); soulLinks(g, 0, time); }); // (where it lay a blink ago)
+        const back = clamp((h.t - 0.16) / 0.26, 0, 1), r = L * (1 - back * back); // (taut, then drawn back into the dark it came from)
+        ctx.globalAlpha = 1; if (r > 2) soulLinks([[hx, hy], [hx + Math.cos(ang) * r, hy + Math.sin(ang) * r]], 0, time);
+        soulRift(hx, hy, ang, 1 - back, time); ctx.restore();
+      } });
+    sfx.clang(); if (!o.quiet) sfx.whoosh();
+    const b = G.boss; if (b) { b.castT = b.castDur = 0.3; b.swing = { t: 0, ang: Math.atan2(mid[1] - b.y, mid[0] - b.x) }; }
+    if (o.big) { sfx.issen(); buzz([30, 20, 60]); flash("214,246,240", 0.25); if (!reduced) { G.stopT = Math.max(G.stopT, 0.05); G.shake = Math.max(G.shake, 10); } }
+    if (reduced || !fxOn()) return;
+    for (let d = S * 0.14; d < L; d += S * 0.2) { const x = hx + Math.cos(ang) * d, y = hy + Math.sin(ang) * d; if (x < 0 || x > W || y < 0 || y > H) continue;
+      fxPillar(x, y + S * 0.02, S * 0.04, S * 0.28, SOUL_WISP, 0.35); fxFlare(x, y, S * 0.022, SOUL_PALE, 0.2); } // (ghost fire up the chain)
+  }
+  function soulClamp(a, half, D2, reach) { // 勾: two strands at once out of one dark, bowed either side of the line through you (a lens), shut together
+    const b = G.boss, body = altBody(), lit = G.warns.filter((w) => w.soul).flatMap((w) => w.parts), froms = [a, a + Math.PI, a + Math.PI / 2, a - Math.PI / 2].map(soulFrom);
+    for (const also of lit.length ? [[...lit, ...body], body] : [body]) for (const [hx, hy] of froms) for (const k of [1, 0.8, 0.65]) {
+      const s1 = soulStrand(hx, hy, 1, 0, half * k), s2 = soulStrand(hx, hy, -1, 0, half * k); if (!s1 || !s2) break;
+      const both = [...s1.parts, ...s2.parts];
+      if (finDist(both, P.x, P.y) < HIT() && finWays([...both, ...also], P.x, P.y, reach) >= 2) {
+        if (b) b.raise = { t: 0, dur: (D2 * 0.82) / (G.bossK || 1) }; sfx.gather();
+        soulThrow(s1, D2, { big: true }); soulThrow(s2, D2, { quiet: true }); return;
+      }
+    }
+    soulThrow(soulPick(a, Math.random() < 0.5 ? 1 : -1, S * 0.08, S * 0.16, reach), D2, { big: true }); // (no lens leaves two ways: one strand)
+  }
+  // 勾魂奪魄's iron links along a polyline (flat and edge-on by turns), a little sway across it; upto: only so far along it
+  // (the chain flying out). Returns where it ends
+  function soulLinks(pts, sway, time, upto = Infinity) {
+    const st = S * 0.032; ctx.lineWidth = Math.max(1.5, S * 0.0055); let carry = 0, i = 0, run = 0, tip = pts[0];
+    for (let j = 0; j + 1 < pts.length; j++) {
+      const [ax, ay] = pts[j], [bx, by] = pts[j + 1], sl = Math.hypot(bx - ax, by - ay); if (sl < 1e-3) continue;
+      const ux = (bx - ax) / sl, uy = (by - ay) / sl, an = Math.atan2(uy, ux), lim = Math.min(sl, upto - run);
+      for (let d = carry; d < lim; d += st, i++) {
+        const sw = sway ? Math.sin(time * 9 + i * 0.6) * sway : 0, x = ax + ux * d - uy * sw, y = ay + uy * d + ux * sw;
+        if (x < -st || x > W + st || y < -st || y > H + st) continue;
+        ctx.save(); ctx.translate(x, y); ctx.rotate(an); ctx.strokeStyle = i % 2 ? "#5d6168" : "#8a8780";
+        ctx.beginPath(); ctx.ellipse(0, 0, st * 0.62, st * (i % 2 ? 0.16 : 0.32), 0, 0, Math.PI * 2); ctx.stroke(); ctx.restore();
+      }
+      if (lim < sl) return [ax + ux * Math.max(0, lim), ay + uy * Math.max(0, lim)];
+      run += sl; tip = [bx, by]; carry = (((carry - sl) % st) + st) % st;
+    }
+    return tip;
+  }
+  function soulEdge(st, k, time) { // the straight line it will snap to: dashed iron, running, darkening (spearWarn's)
+    ctx.strokeStyle = `rgba(29,26,23,${(0.25 + 0.4 * k).toFixed(3)})`; ctx.lineWidth = Math.max(1, S * 0.003);
+    ctx.setLineDash([S * 0.024, S * 0.016]); ctx.lineDashOffset = -time * S * 0.5;
+    ctx.beginPath(); ctx.moveTo(st.hx, st.hy); ctx.lineTo(st.end[0], st.end[1]); ctx.stroke(); ctx.setLineDash([]);
+  }
+  function soulHook([x, y], ang, k, bit = true) { // a small iron hook (flying at the chain's head, then bitten in, turned back, a goblin fire on it); nothing off screen
+    if (x < -S * 0.05 || x > W + S * 0.05 || y < -S * 0.05 || y > H + S * 0.05) return;
+    const r = S * 0.022;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(ang);
+    ctx.strokeStyle = "#5d6168"; ctx.lineWidth = Math.max(2, S * 0.007); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.moveTo(-r * 1.4, 0); ctx.lineTo(0, 0); ctx.arc(0, -r * 0.7, r * 0.7, Math.PI / 2, -Math.PI * 0.6, true); ctx.stroke();
+    ctx.restore();
+    if (!bit) return;
+    const g = glowOf(SOUL_WISP), fr = S * (0.018 + 0.008 * k);
+    ctx.save(); ctx.globalAlpha *= 0.55 + 0.35 * k; ctx.drawImage(g, x - fr * 2, y - fr * 2.4, fr * 4, fr * 4);
+    ctx.fillStyle = hexA(SOUL_WISP, 0.85); ctx.beginPath(); ctx.moveTo(x - fr * 0.6, y); ctx.quadraticCurveTo(x - fr * 0.7, y - fr * 1.1, x, y - fr * 1.9); ctx.quadraticCurveTo(x + fr * 0.7, y - fr * 1.1, x + fr * 0.6, y); ctx.closePath(); ctx.fill();
+    ctx.restore();
+  }
+  // the dark past the screen's edge the chain comes out of: where its way crosses into the field, a pool of black with
+  // teal light at its lip, opening as it is called and closing as the chain goes back (drawing only)
+  function soulRift(hx, hy, ang, a, time) {
+    if (a <= 0.02) return;
+    const ux = Math.cos(ang), uy = Math.sin(ang); let t = 0; // (from the dark along its way to the field's edge)
+    if (hx < 0 && ux > 1e-6) t = Math.max(t, -hx / ux); else if (hx > W && ux < -1e-6) t = Math.max(t, (W - hx) / ux);
+    if (hy < 0 && uy > 1e-6) t = Math.max(t, -hy / uy); else if (hy > H && uy < -1e-6) t = Math.max(t, (H - hy) / uy);
+    const x = hx + ux * t, y = hy + uy * t, r = S * (0.07 + 0.012 * Math.sin(time * 5));
+    ctx.save(); ctx.globalAlpha *= 0.75 * a;
+    const g = ctx.createRadialGradient(x, y, 0, x, y, r * 1.6);
+    g.addColorStop(0, "rgba(10,9,8,0.95)"); g.addColorStop(0.55, "rgba(15,14,13,0.6)"); g.addColorStop(1, "rgba(15,14,13,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r * 1.6, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = hexA(SOUL_WISP, 0.55); ctx.lineWidth = Math.max(1.5, S * 0.005); ctx.lineCap = "round";
+    ctx.beginPath(); ctx.arc(x, y, r * 0.9, ang - Math.PI * 0.45, ang + Math.PI * 0.45); ctx.stroke(); // (its lip, lit toward the field)
+    ctx.restore();
+  }
   const ALTS = {
     // (11-08 제작자 19:23 "패턴들이 너무 쉬워… 빠르게 빠르게": 쌍영·적염·흑월·무영's second 비기 likewise, more moves and
     // closer, each one's warning up before the last has struck; every warning as long as before, none under 0.65 s)
@@ -5764,7 +5913,31 @@ sdk.initializeAsync()
       const net = () => { const g = rnd(0, Math.PI); boltLine(g); if (ez) boltLine(g + Math.PI / 2); else kitLater(0.3, () => G.boss && boltLine(g + Math.PI / 2), "nt"); };
       return steps(ez ? 0.85 : 0.72, net, () => SUBS.thunder.run(), net, net, () => SUBS.thunder.run(), net) + (ez ? 0 : 0.3);
     } },
-    shadow: { name: ["百鬼", "백귀"], run() { return steps(0.9, () => SUBS.shadow.run(), () => SUBS.veil.run(), () => SUBS.shadow.run(), () => SUBS.veil.run(), () => SUBS.shadow.run(), () => SUBS.veil.run()); } },
+    // (11-23 리메이크, docs/설계/1122-둘째비기/14-5-추혼-shadow.md; was 百鬼, goblin fires and 무영's 그림자 습격 by turns)
+    // 鎖魂: soul chains out of the dark past the screen's edge, each from another side, flung slack over you and yanked taut,
+    // bowed one way and the other by turns (쉬움 3, 보통 4, 어려움 5; one more on its second time in a fight), then two quick
+    // from opposite sides, then 勾: two at once out of one dark either side of you, shut together. Each lit D (쉬움 1.0, 보통
+    // 0.92, 어려움 0.88), the next laid as the one before is half spent; 勾 lit 1.0 / 1.0 / 0.95. No small blade of its own
+    shadow: { name: ["鎖魂", "쇄혼"], run() {
+      if (!G.boss) return 1;
+      // (its goblin fires still in the air go home as it opens the dark: the volley of its kit between 追魂 and this left 10
+      // small blades in the air on average under 鎖魂, against 5.6 under 追魂 (보통, 제작자 봇; "작은 표창 늘리지 않기"). As
+      // 勾魂奪魄 clears its field; drawing only, frnd)
+      for (const s of G.shots) if (!s.dead && s.skin === "wisp") { s.dead = true; if (!reduced) fxMote("wisp", s.x, s.y, SOUL_WISP, true); }
+      const sl = SL().lv || 0, lo = sl < 9, hi = sl >= 11, L = lvl();
+      const n = Math.max(3, 4 + sigStep()) + (G.fight && G.fight.n >= 4 ? 1 : 0); // (its second cast in a fight: one strand more)
+      const gap = Math.max(0.42, 0.56 - (L - 7) * 0.01), D = lo ? 1.0 : hi ? 0.88 : 0.92, reach = 0.6 * D - 0.2;
+      const off = S * (lo ? 0.075 : hi ? 0.085 : 0.08), ex = S * (lo ? 0.14 : hi ? 0.17 : 0.16);
+      const one = (sd, a, quiet) => G.boss && soulThrow(soulPick(a + rnd(-0.35, 0.35), sd, off, ex, reach), D, { quiet }); // (its dice as it comes: kitLater)
+      let side = Math.random() < 0.5 ? 1 : -1, t = 0.15;
+      const a0 = rnd(0, Math.PI * 2);
+      for (let i = 0; i < n; i++) { const sd = side, a = a0 + i * 2.2; kitLater(t, () => one(sd, a), "sl"); side = -side; t += gap; } // (from another side each time, bowed by turns)
+      t += D - gap; // (the last has cracked)
+      { const sd = side, a = a0 + n * 2.2; kitLater(t, () => one(sd, a), "sl"); kitLater(t + (lo ? 0.4 : 0.24), () => one(sd, a + Math.PI, true), "sl"); t += D; } // two quick, from opposite sides (the same `side` from the other way round: bowed the other way, so the two together leave you only past either bow)
+      const D2 = hi ? 0.95 : 1.0, half = S * (lo ? 0.13 : hi ? 0.16 : 0.15);
+      kitLater(t, () => G.boss && soulClamp(rnd(0, Math.PI * 2), half, D2, 0.6 * D2 - 0.2), "sk"); // 勾
+      return t + D2 + 0.55;
+    } },
     swarm: { name: ["毒粉", "독분"], run() { return steps(0.72, () => SUBS.swarm.run(), () => SUBS.swarm.run(), () => SUBS.swarm.run(), () => SUBS.lotus.run(), () => SUBS.swarm.run()); } },
     // (11-08 "패턴들이 너무 쉬워": 16~19's second 비기 closer together, one coming up before the last is gone)
     wheel: { name: ["火輪痕", "화륜흔"], run() { // (11-10: its wheel tracks, was 火環, a ring of fire)
@@ -6077,7 +6250,7 @@ sdk.initializeAsync()
       hard: { intro: "절하던 놈은 내려올 땐 비를 그냥 맞더군. 절도 안 하고.", act: { 3: "사십 년 치다. 받아라!" } },
     },
     shadow: { // 14-5 추혼
-      sig: ["네 그림자가 일어선다.", "네 발자국이 너를 데리러 온다."], alt: ["백귀가 마중 나왔다.", "먼저 간 자들이 부른다."],
+      sig: ["네 그림자가 일어선다.", "네 발자국이 너를 데리러 온다."], alt: ["이름 석 자면 족하다.", "걸린 혼은 놓지 않는다."],
       half: "이름을 버린 자는 나도 못 거둔다.", sub: "불빛을 따라오너라.",
       act: { 2: "혼이 먼저 간다.", 3: "넋까지 거둔다!" },
       hard: { intro: "스무 해 전 네 사부는 이름 둘을 지고 내려왔다. 제 것과, 버려진 것.", act: { 3: "네 이름은, 내 손으로 거둔다!" } },
