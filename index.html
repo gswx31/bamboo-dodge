@@ -1682,9 +1682,9 @@ sdk.initializeAsync()
     { name: "쌍영", title: "雙影 · 흑월교 척후", look: "twins", accent: "#c8321f", hp: 18, acts: ["twin", "fan", "clones"],
       intro: () => [{ who: "쌍영", text: "둘이서 하나를 벤다. 그것이 우리의 검이다." }],
       down: () => [{ who: "쌍영", text: "둘이 아니면… 그림자도 아니었군." }] },
-    { name: "연화", title: "蓮華 · 수류검", look: "lotus", accent: "#3d6a8a", hp: 18, acts: ["wave", "spiral", "fan"], // (11-23: 천잠사 out, as from 죽림 수련)
-      intro: () => [{ who: "연화", text: `${me()}${josa(me(), "이라", "라")} 했던가. 물은 베어도 갈라지지 않는 법.` }],
-      down: () => [{ who: "연화", text: "갈라지지 않는 것은… 없었구나." }] },
+    { name: "탁랑", title: "濁浪 · 흑월교 뱃길의 수적", look: "lotus", accent: "#4d6b73", hp: 18, acts: ["wave", "spiral", "fan"], // (11-23: 천잠사 out, as from 죽림 수련; 11-24: 연화 → 탁랑, BOSS_SET's 2-5)
+      intro: () => [{ who: "탁랑", text: `${me()}${josa(me(), "이라", "라")} 했던가. 강을 건너려면 삯을 내야지.` }],
+      down: () => [{ who: "탁랑", text: "삯은… 강에 두고 가지." }] },
     { name: "적염 대사", title: "赤炎 · 파계승", look: "monk", accent: "#d0651e", hp: 20, acts: ["pillars", "staff", "fan", "burst"], // (11-10: 사자후 out)
       intro: () => [{ who: "적염 대사", text: "아미타불. 이 불은 내가 지은 업이다." }],
       down: () => [{ who: "적염 대사", text: "불은 꺼진다. 업은 남는다." }] },
@@ -1868,7 +1868,7 @@ sdk.initializeAsync()
     fxWave(x, y, S * 0.2 * k, color, 0.38, S * 0.016 * k);
   }
   // its element: what drifts through its 종전 and bursts off it when it falls
-  const FX_MOTE = { twin: "ash", lotus: "petal", fire: "ember", frost: "flake", void: "ash", charge: "leaf", veil: "ash", drum: "ember",
+  const FX_MOTE = { twin: "ash", lotus: "drop", fire: "ember", frost: "flake", void: "ash", charge: "leaf", veil: "ash", drum: "ember",
     mirror: "flake", rain: "drop", swords: "spark", time: "mote", thunder: "spark", shadow: "wisp", swarm: "scale", wheel: "ember",
     pendulum: "spark", crumble: "leaf", glare: "dust", final: "leaf" }; // (11-23: 노근 bamboo leaves, 설붕 powder snow)
   const FALLS = { flake: 1, petal: 1, leaf: 1, scale: 1, drop: 1 };
@@ -2351,7 +2351,7 @@ sdk.initializeAsync()
       G.parts.push({ kind: "glow", color: moteOf(b.def), x: x + rnd(-u * 1.3, u * 1.3), y: y + rnd(-u * 0.5, u * 2), vx: rnd(-12, 12), vy: -rnd(25, 60), r: rnd(1.4, 3 + 1.5 * c), life: rnd(0.5, 1), t: 0 });
     }
   }
-  const MOTE = { twins: "#c8321f", lotus: "#f2c9d0", monk: "#e8862a", snow: "#dbe9f4", lord: "#b0241a", tiger: "#e2a24a", veil: "#8a8790",
+  const MOTE = { twins: "#c8321f", lotus: "#9fc4cf", monk: "#e8862a", snow: "#dbe9f4", lord: "#b0241a", tiger: "#e2a24a", veil: "#8a8790",
     drum: "#c8321f", mirror: "#cfe6f3", rain: "#9fc6d2", swords: "#c9ccce", time: "#e8cf6a", thunder: "#fff3a8", ghost: "#8fd0c8",
     butterfly: "#d9a6ea", wheel: "#ff9a3a", chain: "#f0a050", totem: "#6f8a4a", eye: "#e8ecef", final: "#f7f0de" }; // (11-23: 노근, 설붕)
   // red on the field means one thing, a blade's way: a boss whose colour is red shows gold in the fight instead
@@ -2426,7 +2426,7 @@ sdk.initializeAsync()
   // X-2 to X-4 are what the 강호 says about the 장's master, nearer the truth each time; X-5 is the hush before it.
   const STAGE_LINES = [
     ["“대나무는 타도 뿌리가 남는다”", "숲에서 쓰러진 자들은 상처가 꼭 둘이었다", "발소리는 하나인데 칼은 두 번 온다", "흑월교 척후 쌍영, 둘을 본 자는 살아남지 못했다", "대숲이 갑자기 조용해졌다"],
-    ["“흐르는 물은 앞을 다투지 않는다”", "달 뜨는 밤엔 물소리가 칼 소리로 들린다", "물 위를 걷는 여인을 봤다는 뱃사공이 있다", "수류검 연화, 벤 자리에 물자국만 남긴다", "물안개 사이로 연꽃 향이 난다"],
+    ["“흐르는 물은 앞을 다투지 않는다”", "달 뜨는 밤엔 물소리가 칼 소리로 들린다", "검은 돛을 단 배 한 척이 밤에만 강을 건넌다고 한다", "탁랑, 그 밤 흑월교를 건네준 수적", "물안개 너머에서 노 젓는 소리가 난다"], // (11-24 재설계: 연화 → 탁랑)
     ["“불은 남을 태우고 제 몸도 태운다”", "불탄 절의 종이 밤마다 혼자 운다", "파계한 중 하나가 아직 절을 지킨다고 한다", "적염 대사, 제 손으로 절에 불을 지른 자", "염불 소리가 들린다"],
     ["“칼이 오래 기다리면 사람이 먼저 늙는다”", "고개를 넘던 상인들은 봄이 되어서야 발견됐다", "눈 위에 발자국은 없고 칼자국만 있다", "머리가 하얗게 센 검귀가 산다고 한다", "눈보라가 멎었다"],
     ["“원수를 베는 날, 네 칼이 무엇이 될지 생각해라”", "교주는 칼을 두 번 휘두른 적이 없다고 한다", "청죽문이 불탄 밤에도 교주가 앞장서 있었다", "사부의 원수가 저 봉우리 위에 있다", "검은 달이 떴다"],
@@ -2790,15 +2790,18 @@ sdk.initializeAsync()
     { stage: "1-5", name: "쌍영", title: "雙影 · 흑월교 척후", look: "twins", accent: "#c8321f", theme: "grove", sig: "twin", sigName: ["雙影斬", "쌍영참"],
       what: "그림자 둘이 거울처럼 마주 보며 달려든다. 양쪽 벽에서, 위아래에서 번갈아 일곱 번 넘게, 갈수록 촘촘하게. 마지막엔 두 쌍이 한꺼번에 열십자로.",
       intro: ["흑월교 척후, 쌍영. 마지막 목을 거두러 왔다.", "그 밤 청죽문의 목은 우리가 셌다. 하나가 모자라더군."], sigLine: "칼은 두 번 온다. 어느 쪽을 막을 테냐.", down: ["그 늙은이가 불 속에서 그러더군. 대나무는 타도 뿌리가 남는다고. …너였나.", "형… 이번엔 우리 쪽이 하나 모자라."] },
-    { stage: "2-5", name: "연화", title: "蓮華 · 수류검", look: "lotus", accent: "#3d6a8a", theme: "gorge", sig: "lotus", sigName: ["蓮華歸", "연화귀"],
-      what: "보스 둘레로 표창이 꽃잎처럼 퍼져 나갔다가 멈추고, 다시 보스에게 돌아온다. 나갈 때와 돌아올 때 두 번 피해야 한다.",
-      intro: ["수류검 연화. 내가 벤 자리엔 물자국만 남지.", "흑월교든 청죽문이든 몰라. 물은 낮은 데로 흐를 뿐이야."], sigLine: "베어도 갈라지지 않는 게 물이야. 나도 그래.", down: ["불 앞에서도 네 사부는 물처럼 고요하더라. 다투지 않는다는 게… 그런 거였네.", "물자국 하나 안 남기고 가는구나… 나도."] },
+    // (11-24 재설계 §4 안 A, 제작자 "발도를 좀 더 생동감있게", "표창을 좀 줄이고 고유한 패턴으로만 피하게": was 연화 蓮華 · 수류검, 蓮華歸;
+    // sig and look "lotus" kept as keys)
+    { stage: "2-5", name: "탁랑", title: "濁浪 · 흑월교 뱃길의 수적", look: "lotus", accent: "#4d6b73", theme: "gorge", sig: "lotus", sigName: ["逆浪斬", "역랑참"],
+      what: "세 박자로 온다. 탁랑이 잔상을 남기며 뛰어 자리를 옮겨 언월도를 뽑는다. 첫 칼은 나를, 다음 칼부터는 각도를 바꿔 내가 가는 쪽을 벤다. 이어서 손으로 닻을 던져 내 자리에 꽂고, 닻이 박히는 순간 그 닻을 되잡아 선 자리에서 두 번 더 벤다. 둘째 비기 약선참은 높이 뛰어올라 내 자리에 내려앉고, 내려앉는 순간 그 자리에서 내가 피한 쪽으로 한 칼이 더 온다.",
+      intro: ["그 밤 흑월교를 건네준 배가 이 배다. 삯은 넉넉히 받았지.", "강을 건너려면 삯을 내야지. 너는 목으로 내라."], sigLine: "강에서 칼 맞은 놈은 떠오르지도 않는다.", down: ["노 젓다 봤다. 웬 사내가 갈대밭에 애를 눕혀 두고 불붙은 대숲으로 도로 들어가더라. …그 애, 울지도 않았다.", "강에 진 빚은… 강에 갚는 법이지."] },
     { stage: "3-5", name: "적염 대사", title: "赤炎 · 파계승", look: "monk", accent: "#d0651e", theme: "temple", sig: "fire", sigName: ["業火陣", "업화진"],
       what: "땅이 칸으로 나뉘고 박자마다 다른 무늬로 불기둥이 솟는다. 바둑판, 줄, 대각선, 내 둘레의 고리, X자, 보스에서 퍼지는 물결이 번갈아 나오고 박자가 점점 빨라진다. 무늬가 나올 때는 내가 선 칸이 늘 타고 옆 칸 하나는 늘 비어 있다. 네 박마다 한 번은 무늬 대신 내 칸과 둘레 여덟 칸이 한 덩어리로 타오르니, 그 밖으로 크게 비켜야 한다. 종전에는 이 큰 불이 없다.",
       intro: ["제 손으로 절을 태운 중이다. 종소리가 아직도 들리느냐.", "대숲에 불을 놓은 것도 이 손이다. 업이 하나 더 늘었지."], sigLine: "염불은 잊었다. 불 지피는 법만 남았지.", down: ["네 사부를 태운 불이 여기까지 따라왔구나. 남을 태우면 제 몸도 탄다더니.", "종이… 멎었구나. 이제야… 조용하다."] },
-    { stage: "4-5", name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", theme: "snow", sig: "frost", sigName: ["氷花亂舞", "빙화난무"],
-      what: "백발을 휘날리며 도는 팔을 따라 얼음꽃을 흩뿌린다. 얼음꽃은 천천히 돌며 흘러가다가, 하얗게 깜빡이며 여섯 갈래 빛줄기를 보인 뒤 그 길로 얼음 바늘 여섯 개가 되어 터진다. 처음엔 듬성듬성, 갈수록 촘촘하고 빠르게. 마지막엔 보스 앞의 큰 얼음꽃이 작은 꽃 여섯으로, 그 꽃들이 다시 바늘로 두 번 갈라진다. 꽃 사이를 비집고, 터질 꽃에서 비켜 바늘 사이 틈으로 빠져야 한다.",
-      intro: ["백발 검귀. 백 년 동안 이 고개를 넘은 자는 없었다.", "흑월교? 이 고개를 못 넘어 뒷길로 숨어든 것들이다."], sigLine: "눈꽃 하나에 목숨 하나. 세어 보거라.", down: ["백 년을 기다린 칼이… 너였구나. 오래도 걸렸다.", "녹는구나… 봄이란 게… 이런 것이었나."] },
+    // (11-24, 제작자 "4-5도 좀 표창 비중 줄이고 눈으로만 공격하는 컨셉으로": was 氷花亂舞, ice flowers breaking into needles)
+    { stage: "4-5", name: "설귀", title: "雪鬼 · 백발 검귀", look: "snow", accent: "#5f8fb4", theme: "snow", sig: "frost", sigName: ["無人足跡", "무인족적"],
+      what: "세 박자로 온다. 설귀가 눈 속으로 사라지면 아무도 없는 발자국이 눈 위를 걸어 다가오다 멈추고, 멈춘 자리에 그가 잠깐 나타나 나를 지나는 선으로 칼을 뽑는다. 첫 칼 다음부터는 내가 가는 쪽을 벤다. 이어서 양쪽에서 걸어온 발자국 두 줄이 한꺼번에 엇갈려 베고, 끝에는 발밑 눈이 부풀었다가 터진다. 둘째 비기 설총은 발밑 눈이 내 자리마다 연달아 터지고, 마지막이 터질 때 걸어온 발자국 끝에서 칼이 온다.",
+      intro: ["백발 검귀. 백 년 동안 이 고개를 넘은 자는 없었다.", "흑월교? 이 고개를 못 넘어 뒷길로 숨어든 것들이다."], sigLine: "발소리는 없다. 발자국이 다가오거든 그게 나다.", down: ["백 년을 기다린 칼이… 너였구나. 오래도 걸렸다.", "녹는구나… 봄이란 게… 이런 것이었나."] },
     { stage: "5-5", name: "흑월교주", title: "黑月 · 검은 달의 교주", look: "lord", accent: "#8b1a12", theme: "moon", sig: "void", sigName: ["黑月墜", "흑월추"],
       what: "내가 선 자리에 검은 달의 그림자가 드리우고, 1초 뒤 달이 내려앉아 잠시 땅에 박혀 있다. 달은 쉬지 않고 나를 따라 떨어져 설 곳이 점점 줄고, 그 사이 교주가 나를 가로질러 칼을 긋는다.",
       intro: ["{me}. 그 늙은이가 남긴 마지막 검이 네놈이냐.", "청죽문을 태우면 내려올 줄 알았던 놈이 있다. 온 건 네놈이군."], sigLine: "나는 칼을 두 번 휘두른 적이 없다. 오늘도 마찬가지다.", down: ["그자는 천하봉에 있다. 제 문파가 타도 안 내려오는… 이름 없는 놈이.", "이것이… 패배라는 건가. 우습군. 검은 달은… 다시 뜬다."] },
@@ -2859,7 +2862,7 @@ sdk.initializeAsync()
   // what drifts across each boss's fight behind its 비기, unannounced, read as it comes: the boss's own element
   // (the grove's bamboo only where the grove is; nothing at all where the 비기 should stand alone)
   const BOSS_BG = {
-    twin: "bamboo", lotus: "water", fire: "fire", frost: "ice", void: null, charge: "bamboo", veil: null, drum: null,
+    twin: "bamboo", lotus: null, fire: "fire", frost: null, void: null, charge: "bamboo", veil: null, drum: null, // (11-24: 2장's water blades and 4장's icicles out, nothing small: 탁랑, 설귀)
     mirror: "ice", rain: null, swords: null, time: null, thunder: "bolt", shadow: "wisp", swarm: null, wheel: null,
     pendulum: null, crumble: null, glare: null, final: null,
   };
@@ -2927,20 +2930,20 @@ sdk.initializeAsync()
     ["c_twin2", "발도", MID, () => { const f = G.phase === "boss" && G.fight, prev = f && f.twinCut && G.st - f.twinCut.st < 1 ? f.twinCut.ang : null, ang = spawnSlash(false, prev); if (f) f.twinCut = { ang, st: G.st }; }],
     ["c_twin3", "교차 그림자", HEAVY, () => SUBS.twin.run(), true],
   ]);
-  kit("lotus", [ // 연화: the water sword
-    ["c_lotus1", "물방울 칼", LIGHT, () => edgeAim((x, y, a) => shoot("star", x, y, a, S * 1.3, { spin: 16, r: S * 0.016, skin: "water" }))],
-    ["c_lotus2", "발도", MID, () => spawnSlash(false)],
-    ["c_lotus3", "물결", HEAVY, () => { const [x, y] = burstSpot(); burstAt(x, y, 10, rnd(0, Math.PI), 0.9, true, "water"); sfx.warn(); }, true],
+  kit("lotus", [ // 탁랑: the river pirate and his 언월도 (11-24 재설계; was 연화's 물방울 칼, 발도 and 물결)
+    ["c_lotus1", "발도", LIGHT, () => bladeCut(0, 0.8, { ...TL_CUT(), tag: "k1" })],
+    ["c_lotus2", "이연참", MID, () => { const ch = {}; bladeCut(0, 0.8, { ...TL_CUT(), ch, tag: "k2" }); bladeCut(0.45, 0.75, { ...TL_CUT(), ch, trk: handTrack(2), tag: "k2b" }); }],
+    ["c_lotus3", "투묘", HEAVY, () => SUBS.lotus.run(), true],
   ]);
   kit("fire", [ // 적염 대사: the burning monk (no blade)
     ["c_fire1", "불기둥", LIGHT, () => underYou((w) => spikeErupt(w.x, w.y, w.r, "fire"))],
     ["c_fire2", "불덩이", MID, () => edgeAim((x, y, a) => shoot("kunai", x, y, a, S * 1.15, { r: S * 0.016, skin: "fire" }))],
     ["c_fire3", "불길 행진", HEAVY, () => SUBS.fire.run(), true],
   ]);
-  kit("frost", [ // 설귀: the white-haired sword ghost
-    ["c_frost1", "고드름 투척", LIGHT, () => edgeAim((x, y, a) => shoot("sword", x, y, a, S * 1.3, { len: S * 0.1, r: S * 0.007, ice: true }))],
+  kit("frost", [ // 설귀: the white-haired sword ghost, with the snow (11-24: was 고드름 투척 and 고드름 비)
+    ["c_frost1", "눈 무덤", LIGHT, () => sgMound(0, 0.8)],
     ["c_frost2", "발도", MID, () => spawnSlash(false)],
-    ["c_frost3", "고드름 비", HEAVY, () => SUBS.frost.run(), true],
+    ["c_frost3", "발자국", HEAVY, () => SUBS.frost.run(), true],
   ]);
   kit("void", [ // 흑월교주: the black moon and his sword
     // (11-15, measured: 5장's stages hit as often as its master, moons from two sides lying on the ground at once) in its
@@ -3104,7 +3107,7 @@ sdk.initializeAsync()
   // the same man, bigger, with one mark of rank in his master's colour (`mark`: a cape, a sash, a plume on the helmet or
   // a banner on his back; minionRank). The names show only in ?dev.
   const MINIONS = {
-    twin: { name: "흑월 정탐꾼", chief: "흑월 척후장", mark: "sash", stand: "clone" }, lotus: { name: "수류문 제자", chief: "수류문 대제자", mark: "cape", stand: "perch" },
+    twin: { name: "흑월 정탐꾼", chief: "흑월 척후장", mark: "sash", stand: "clone" }, lotus: { name: "뱃길 수적", chief: "수적 갑판장", mark: "cape", stand: "perch" },
     fire: { name: "파계 무승", chief: "파계승 수좌", mark: "sash", stand: "origin" }, frost: { name: "얼어붙은 무사", chief: "얼어붙은 장수", mark: "plume", plume: [0.06, -1.44], stand: "perch" },
     void: { name: "흑월교 호법", chief: "흑월교 장로", mark: "cape", stand: "perch" }, charge: { name: "호피 산적", chief: "산적 두목", mark: "sash", stand: "perch" },
     veil: { name: "무영문 살수", chief: "무영문 두령", mark: "cape", stand: "clone" }, drum: { name: "전고수", chief: "전고 대장", mark: "plume", plume: [0.05, -1.8], stand: "perch" },
@@ -3402,23 +3405,24 @@ sdk.initializeAsync()
       }
       return at + 1.2;
     },
-    lotus() { // rings of petals out from the boss, a stop, and home again through you
-      // (11-08: "2-5는 속도감이 더 있었으면") three rings, not two, hard on each other's heels, each turned half a gap from the last so
-      // the gaps run round like water; faster out and faster home, and a shorter overshoot before they turn. Each ring's
-      // warning is as long as it was, and a petal's turn is cued earlier (cue), so it still shows well before it reaches you.
-      const n = 11 + Math.round(lvl() * 0.5), rings = 3, gap = 0.65;
-      for (let k = 0; k < rings; k++) G.warns.push({ kind: "ring", x: G.boss.x, y: G.boss.y, n, off: 0, t: 0, dur: 0.85, delay: k * gap,
-        // one petal of the first and last rings flies straight at you (out, and home along the same line): no gap stays safe
-        place(w) { w.x = G.boss.x; w.y = G.boss.y; w.off = Math.atan2(P.y - w.y, P.x - w.x) + ((k % 2) * Math.PI) / n; sfx.warn(); },
-        fire(w) {
-          // they turn only once past you, so the one aimed at you crosses you going out and again coming home
-          // (11-19, 11-17 QA "엄지 그늘에서 되돌아옴": they turned 0.2 s past you, down under your thumb, and came home from
-          // there; now 0.1 s past, a shallower turn still in sight)
-          const sp = S * (0.72 + lvl() * 0.01), ret = clamp(Math.hypot(P.x - w.x, P.y - w.y) / sp + 0.1, 0.6, 2.2);
-          for (let i = 0; i < n; i++) shoot("star", w.x, w.y, w.off + (i / n) * Math.PI * 2, sp, { spin: 16, r: S * 0.015, ret, retK: 1.2, cue: 0.6 });
-          sfx.burst(); flash("242,201,208", 0.12);
-        } });
-      return (rings - 1) * gap + 0.85 + 2.2;
+    lotus() { // 逆浪斬 (11-24 재설계 §4 안 A, 탁랑; was 蓮華歸, rings of petals out and home). Three beats, each its own:
+      // 逆浪 ▶ 投錨 ▶ 回錨. A chain of his 발도, he going off a leap each time to another spot on the line he cuts (his afterimages
+      // strung out, the river flying off the line), through you, then where you are going at another angle each time (보통 four,
+      // 0.48 s apart, each lit 0.72 s); as the last lands his anchor thrown by hand at you (lit 0.85 s); as it bites he has it back
+      // and cuts twice from where he stands, through you and where you went. 쉬움 three cuts, slower, and one after the anchor;
+      // 어려움 five and three; its 종전 a little quicker. Each beat shows as the last lands, never on it
+      const f = G.fight || {}, last = !!f.last, sl = SL().lv || 0, lo = sl < 9, hi = sl >= 11;
+      const n = lo ? 3 : hi ? 5 : 4, D = lo ? 0.8 : 0.72, gap = (lo ? 0.6 : 0.48) * (last ? 0.92 : 1), trk = handTrack(14), o = { ...TL_CUT(), ch: {} };
+      tlAt = null;
+      let t = 0.2;
+      for (let i = 0; i < n; i++) { bladeCut(t, D, { ...o, trk: i ? trk : null, tag: "tl" }); if (i < n - 1) t += gap; }
+      t += D; // (the anchor as the last cut lands)
+      const DA = lo ? 0.9 : 0.85; tlAnchor(t, DA); t += DA;
+      const m = lo ? 1 : hi ? 3 : 2; // (回錨: his anchor back in his hand, cuts from where he stands)
+      for (let i = 0; i < m; i++) { bladeCut(t, D, { ...o, still: true, trk: i ? trk : null, tag: "tla" }); if (i < m - 1) t += 0.36; }
+      t += D;
+      kitLater(t + 0.25, cutHome, "tlh");
+      return t + 0.45;
     },
     fire() { // the ground in cells, half of them burning at a time: checkerboard, rows or columns, faster each beat
       // A cell burns edge to edge: a cold cell is all yours to stand in, but every edge and corner touches a burning
@@ -3540,41 +3544,23 @@ sdk.initializeAsync()
       }
       return at + 1.0;
     },
-    frost() { // 氷花亂舞 (11-08 제작자 19:17: the cuts rising out of the snow were "멋도 없고 너무 촌스럽다", and nothing may hang
-      // still: something to slip through instead). It whirls, white hair flying, and flings ice flowers out along turning
-      // arms; they flow and slowly turn, then flash white with their six ways lit and break into six needles down them. Few
-      // at first, then thicker and quicker; last, one great flower out in front of it breaks twice over: six small flowers,
-      // and each of those six needles. Slip between the flowers, out of the way of one about to break, through the gaps.
-      if (!G.boss) return 1;
-      const L = lvl(), K = Math.max(1, G.bossK || 1), tele = 0.6 * K, born = 0.58 * K; // (by the wall clock, at least 0.55 s each)
-      const arms = L >= 6.5 ? 3 : 2, dur = 4.4 + Math.min(1.2, L * 0.12), dir = Math.random() < 0.5 ? 1 : -1, ph0 = rnd(0, Math.PI * 2);
-      const aimP = Math.min(0.95, 0.6 + L * 0.035), nsp = S * (0.56 + Math.min(0.32, L * 0.026)), len = S * 0.05;
-      let t = 0;
-      while (t < dur) {
-        const q = t / dur, at = t; // how far into it: sparse at first, thick and quick at the end
-        kitLater(at, () => { // (11-17 review: each flower's turn, fuse and aim on a seed of its own, kitLater, so 4-5 replays)
-          const b = G.boss; if (!b) return;
-          const u = bossUnit(b.def), cx = b.x, cy = b.y + u * 0.8, ph = ph0 + dir * at * 1.3;
-          for (let a = 0; a < arms; a++) {
-            const th = ph + (a / arms) * Math.PI * 2, v = S * (0.3 + 0.28 * Math.max(0, Math.sin(th))) * (1 + 0.25 * q); // (farther downward, where you are)
-            iceFlower({ x: cx + Math.cos(th) * u * 0.9, y: cy + Math.sin(th) * u * 0.9, vx: Math.cos(th) * v, vy: Math.sin(th) * v, drag: 0.75, curl: dir * 0.55,
-              rot: rnd(0, Math.PI), spin: dir * rnd(0.8, 1.4), r: S * 0.024, born, tele, fuse: rnd(1.55, 2.2) * (1 - 0.15 * q),
-              aim: Math.random() < aimP, needle: { sp: nsp * (1 + 0.2 * q), len } });
-          }
-          b.castT = b.castDur = 0.25; sfx.whoosh();
-        }, "fz");
-        t += (0.66 - 0.28 * q) * Math.max(0.78, 1 - Math.max(0, L - 5) * 0.03);
-      }
-      const fin = t + 0.45, big = 1.75 * K, bigTele = 0.95 * K; // the great flower, between it and you
-      later(fin, () => {
-        const b = G.boss; if (!b) return;
-        const u = bossUnit(b.def), cx = b.x, cy = b.y + u * 0.8, a = Math.atan2(P.y - cy, P.x - cx), d = Math.min(S * 0.3, Math.hypot(P.x - cx, P.y - cy) * 0.42), drag = 2.4;
-        iceFlower({ x: cx + Math.cos(a) * u, y: cy + Math.sin(a) * u, vx: Math.cos(a) * d * drag, vy: Math.sin(a) * d * drag, drag, curl: 0, rot: a, spin: dir * 0.9,
-          r: S * 0.055, born, tele: bigTele, fuse: big, aim: true,
-          kids: { sp: S * 0.62, drag: 2.6, r: S * 0.026, born: tele, tele, needle: { sp: nsp * 1.15, len } } });
-        b.castT = b.castDur = 0.5; sfx.shing();
-      });
-      return fin + big + tele + 2.2;
+    frost() { // 無人足跡 (11-24, 제작자 "4-5도 좀 표창 비중 줄이고 눈으로만 공격하는 컨셉으로"; was 氷花亂舞, ice flowers breaking
+      // into needles). Three beats, each its own: 足音 ▶ 雙跡 ▶ 雪塚. He is gone into the snow, and footprints come walking in at you,
+      // no one in them, each set from another quarter; where they stop he is there in ghost for a breath and draws through you
+      // (after the first, through where you are going). Each next set walks while the last cut is lit, its cut lit as that one
+      // lands (보통 five, 0.5 s apart, each lit 0.75 s). Then two sets at once from either side, their cuts crossed through you;
+      // last, the snow swells under you and bursts. 쉬움 four, slower, and no burst; 어려움 six and the burst twice; its 종전 quicker
+      const f = G.fight || {}, last = !!f.last, sl = SL().lv || 0, lo = sl < 9, hi = sl >= 11;
+      const n = lo ? 4 : hi ? 6 : 5, D = lo ? 0.82 : 0.75, gap = (lo ? 0.62 : 0.5) * (last ? 0.92 : 1), trk = handTrack(14), a0 = rnd(0, Math.PI * 2);
+      let t = 0.15;
+      for (let i = 0; i < n; i++) { sgSteps(t, D, { a: a0 + i * 2.4, trk: i ? trk : null }); if (i < n - 1) t += gap; }
+      let end = t + SG_WALK + D; // (the last single cut lands)
+      const ap = rnd(0, Math.PI * 2); // 雙跡: two sets from either side at once, walking so their cuts show as the last lands
+      sgSteps(end - SG_WALK, D, { a: ap }); sgSteps(end - SG_WALK, D, { a: ap + Math.PI * 0.55 });
+      end += D;
+      if (!lo) for (let i = 0; i < (hi ? 2 : 1); i++) { const DM = 0.8; sgMound(end, DM); end += DM; } // 雪塚: the snow bursting up under you
+      sgGone(end + 0.1);
+      return end + 0.45;
     },
     void() { // black moons, one after another, each coming down where you stand and lying a while; and between them its
       // sword drawn across you, a crescent's cut (it threw fans of stars here: "어울리는 발도 넣는게 좋아보이는데")
@@ -5311,8 +5297,9 @@ sdk.initializeAsync()
   function cutSpray(w, kind) { // off the line where it bit: bamboo leaves and chips (노근) or a spray of snow (설붕), drawn only
     if (reduced) return;
     const ux = Math.cos(w.ang), uy = Math.sin(w.ang);
-    for (let i = 0; i < 9; i++) { const d = frnd(-S * 0.45, S * 0.45), x = w.x + ux * d, y = w.y + uy * d; if (x < 0 || x > W || y < 0 || y > H) continue; fxMote(kind === "snow" ? "dust" : "leaf", x, y, kind === "snow" ? "#f4f2ec" : BAMBOO, true); }
-    if (kind === "snow") fxStreaks(w.x, w.y, 6, "#f4f2ec", S * 0.7, S * 0.05, 0.3, 0.5, w.ang + Math.PI / 2);
+    const wet = kind === "water"; // (11-24 탁랑: the river off his 언월도's line)
+    for (let i = 0; i < 9; i++) { const d = frnd(-S * 0.45, S * 0.45), x = w.x + ux * d, y = w.y + uy * d; if (x < 0 || x > W || y < 0 || y > H) continue; fxMote(kind === "snow" ? "dust" : wet ? "drop" : "leaf", x, y, kind === "snow" ? "#f4f2ec" : wet ? TL_SPRAY : BAMBOO, true); }
+    if (kind === "snow" || wet) fxStreaks(w.x, w.y, 6, wet ? "#d8eaef" : "#f4f2ec", S * 0.7, S * 0.05, 0.3, 0.5, w.ang + Math.PI / 2);
   }
   // one cut, `at` fight s on: through you (or, o.trk, through where you are going), at o.ang if given, else `turn` off the last
   // cut of its chain (o.ch: { ang }) or at a die's angle; lit dur. o.still: he cuts from where he stands (no blink)
@@ -5400,6 +5387,250 @@ sdk.initializeAsync()
       if (sp === "snow") xCut(dur + 0.42, o.dur2 || 0.75, { n: 4, trk: o.trk, spray: sp, tint: o.tint, tag: "slx" }); // (설붕: where his slide ends he draws four ways at once where you went)
       else bladeCut(dur + 0.42, o.dur2 || 0.72, { still: true, trk: o.trk, spray: sp, tint: o.tint, knock: true, tag: "slc" }); // (from where his rush ends)
     }, "sl19");
+  }
+  // ---- 2-5 탁랑 (11-24, docs/설계/1123-보스-재설계-8명.md §4 안 A; then 제작자 "뭐가 화면 밖에서 떨어지는 모션으로만 떡칠해둔거
+  // 같은데 이거 말고 발도를 좀 더 생동감있게", "표창을 좀 줄이고 고유한 패턴으로만 피하게 … 발도를 여러번 피하거나 큰 기술을 피하는
+  // 느낌으로"; was 연화 and her petals). The river pirate who ferried 흑월교 over the night 청죽문 burned. He fights with his own body:
+  // his 발도 off a leap each time (bladeCut, his 언월도's line broad, the river flying off it), his anchor thrown by hand (no chain: it
+  // bites where you stand, a print of its own shape, and flies back to his hand as he cuts again), and his leap off the gunwale (躍船:
+  // down on where you stand, and from where he lands a cut through where you are going). One thing only comes from beyond the
+  // screen: his ship, capsizing over from a side in act three of 覆舟. Nothing small, nothing that stays, sweeps, rolls or swings
+  const CUT_RIVER = "77,107,115", TL_SPRAY = "#9fc4cf", TL_WOOD = "#4a3628", TL_SAIL = "#24211f", TL_IRON = "#2f3236";
+  const TL_W = () => S * 0.095, TL_CUT = () => ({ tint: CUT_RIVER, spray: "water", w: TL_W() });
+  let tlAt = null; // (where his last leap came down: the next goes up from there)
+  function goneFor(t, color, mote) { // out of sight and reach for t game s (a leap, a ghost gone into the snow); only the first sets off its flourish
+    const b = G.boss; if (!b || G.phase !== "boss") return;
+    if (b.vanish > 0) { b.vanish = b.home = Math.max(b.home || 0, t / (G.bossK || 1)); return; }
+    bossAway(t, color, mote);
+  }
+  // his anchor about (x, y), its shank along a (ring end back, crown forward), L long: the shank, the stock across near the ring, two
+  // flukes curving back off the crown. Its print is exactly these strokes (tlAnchorParts), so what is drawn is what bites
+  function tlAnchorParts(x, y, a, L) {
+    const ux = Math.cos(a), uy = Math.sin(a), px = -uy, py = ux, h = S * 0.03;
+    const rx = x - ux * L * 0.5, ry = y - uy * L * 0.5, cx = x + ux * L * 0.5, cy = y + uy * L * 0.5, sx = x - ux * L * 0.36, sy = y - uy * L * 0.36;
+    const p = [{ s: [rx, ry, cx, cy, h] }, { s: [sx - px * L * 0.24, sy - py * L * 0.24, sx + px * L * 0.24, sy + py * L * 0.24, h * 0.8] }];
+    for (const s of [-1, 1]) p.push({ s: [cx, cy, x + ux * L * 0.2 + px * L * 0.36 * s, y + uy * L * 0.2 + py * L * 0.36 * s, h] });
+    p.at = [x, y, a]; return p;
+  }
+  function tlAnchorDraw(x, y, a, L) {
+    const h = S * 0.03;
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.strokeStyle = TL_IRON; ctx.lineWidth = h * 2;
+    ctx.beginPath(); ctx.moveTo(-L * 0.5, 0); ctx.lineTo(L * 0.5, 0); for (const s of [-1, 1]) { ctx.moveTo(L * 0.5, 0); ctx.lineTo(L * 0.2, L * 0.36 * s); } ctx.stroke(); // the shank, its flukes (straight: just their print)
+    ctx.strokeStyle = "#5b3a2a"; ctx.lineWidth = h * 1.6; ctx.beginPath(); ctx.moveTo(-L * 0.36, -L * 0.24); ctx.lineTo(-L * 0.36, L * 0.24); ctx.stroke(); // the stock
+    ctx.strokeStyle = TL_IRON; ctx.lineWidth = h * 0.7; ctx.beginPath(); ctx.arc(-L * 0.5 - h * 0.9, 0, h * 0.9, 0, Math.PI * 2); ctx.stroke(); // its ring, the rope cut off it
+    ctx.strokeStyle = "rgba(215,230,235,0.55)"; ctx.lineWidth = Math.max(1, h * 0.35); ctx.beginPath(); ctx.moveTo(-L * 0.3, -h * 0.45); ctx.lineTo(L * 0.42, -h * 0.45); ctx.stroke(); // (wet light down it)
+    ctx.restore();
+  }
+  // 投錨: he throws his anchor by hand (in a stage, it comes in off the top of the field). It turns over once in the air and bites
+  // where you stand, its print lit dur, laid where it leaves two ways out of it and of whatever else is lit (dropLay); as it bites it
+  // is wrenched out and flies back to his hand (drawn only): 回錨, his next cuts from where he caught it
+  function tlAnchor(at, dur, o = {}) {
+    const L = S * (o.L || 0.34), a0 = rnd(0, Math.PI * 2), fu = rnd(-0.3, 0.3), ox = rnd(-0.25, 0.25);
+    let from = null;
+    return dropBlow(at, dur, { after: 0.35,
+      lay(w) {
+        const cands = [];
+        for (const t of [0, 0.5, -0.5, Math.PI / 2, Math.PI]) for (const f of [fu, 0, 0.3, -0.3]) { const a = a0 + t; cands.push(tlAnchorParts(P.x - Math.cos(a) * f * L, P.y - Math.sin(a) * f * L, a, L)); }
+        const parts = dropLay(cands, w); w.parts = parts; [w.x, w.y, w.ang] = parts.at; w.r = L * 0.3;
+        const b = G.boss;
+        if (b && G.phase === "boss" && !(b.vanish > 0)) { const u = bossUnit(b.def); from = [b.x + u * 0.8, b.y + u * 0.2]; b.castT = b.castDur = dur; b.raise = { t: 0, dur: Math.min(0.35, dur * 0.4) }; }
+        else from = [clamp(w.x + ox * S, 0, W), -S * 0.15];
+        sfx.whoosh();
+      },
+      art(w, k) {
+        if (k <= 1) { // turning over in the air from his hand down onto its print (faint, under every warning)
+          const x = from[0] + (w.x - from[0]) * k, y = from[1] + (w.y - from[1]) * k * k - Math.sin(Math.PI * k) * S * 0.22;
+          ctx.globalAlpha = comeA(k); tlAnchorDraw(x, y, w.ang + (1 - k) * Math.PI * 2, L * (1 + 0.4 * Math.sin(Math.PI * k)));
+          return;
+        }
+        const s = clamp(((k - 1) * w.dur) / 0.35, 0, 1), b = G.boss, to = b && G.phase === "boss" ? [b.x + bossUnit(b.def) * 0.8, b.y + bossUnit(b.def) * 0.2] : from; // (回錨: back to his hand)
+        ctx.globalAlpha = 0.75 * (1 - s * 0.5); tlAnchorDraw(w.x + (to[0] - w.x) * s * s, w.y + (to[1] - w.y) * s * s, w.ang + s * Math.PI * 3, L * (1 - 0.35 * s));
+      },
+      land(w) {
+        sfx.thud(); sfx.shing(); buzz(30); G.shake = Math.max(G.shake, reduced ? 0 : 8); flash("230,240,242", 0.2);
+        const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.35; bb.swing = { t: 0, ang: Math.atan2(w.y - bb.y, w.x - bb.x) }; }
+        if (reduced) return;
+        fxWave(w.x, w.y, S * 0.5, TL_SPRAY, 0.45, S * 0.03);
+        for (let i = 0; i < 12; i++) fxMote("drop", w.x + frnd(-S * 0.12, S * 0.12), w.y + frnd(-S * 0.12, S * 0.12), TL_SPRAY, true);
+      },
+      blow(w, e) { finPath(w.parts); ctx.strokeStyle = `rgba(29,26,23,${(0.7 * (1 - e)).toFixed(3)})`; ctx.lineWidth = 2; ctx.stroke(); } }); // (the gouge it leaves, its own shape, as long as it bites)
+  }
+  // 躍船: he leaps off his ground (out of reach) and comes down out of the air on where you stand: a round print lit dur, his shadow
+  // gathering in it, he himself drawn faint coming down; he lands (finBlow, 0.28 s, the ring of the river thrown up just its size), and
+  // from where he landed his 언월도 through where you are going (lit dur2, shown as he lands). Then he leaps home
+  function tlLeap(at, dur, o = {}) {
+    const R = S * (o.R || 0.15), dur2 = o.dur2 || 0.72, fu = rnd(0.2, 0.5), fa = rnd(0, Math.PI * 2), trk = o.trk || handTrack(at + dur + dur2 + 1);
+    let from = null;
+    return dropBlow(at, dur, { after: dur2 + 0.3,
+      lay(w) {
+        const cands = [];
+        for (const f of [0, fu, 0.5]) for (const q of [fa, fa + 2.1, fa + 4.2]) cands.push([{ c: [clamp(P.x + Math.cos(q) * f * R, R * 0.2, W - R * 0.2), clamp(P.y + Math.sin(q) * f * R, barTop() + R * 0.2, H - R * 0.2), R] }]);
+        const parts = dropLay(cands, w); w.parts = parts; [w.x, w.y] = parts[0].c; w.r = R;
+        const b = G.boss; if (b) from = tlAt || [b.x, b.y + bossUnit(b.def) * 0.8];
+        goneFor(dur + dur2 + 0.35, "#d8eaef", "drop"); sfx.whoosh();
+      },
+      art(w, k, time) {
+        const b = G.boss; if (!b || !from) return;
+        const U = bossUnit(b.def), side = w.x < from[0] ? -1 : 1;
+        ctx.save(); ctx.globalAlpha = Math.min(0.45, 0.1 + 0.35 * k); ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.ellipse(w.x, w.y, R * Math.min(1, 0.3 + 0.7 * k), R * Math.min(1, 0.3 + 0.7 * k) * 0.45, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore(); // (his shadow, gathering)
+        if (k <= 1) { // up off his ground and down on the print, slowly and then all at once
+          const x = from[0] + (w.x - from[0]) * k, y = from[1] + (w.y - from[1]) * k * k - Math.sin(Math.PI * k) * H * 0.28;
+          ctx.globalAlpha = 0.2 + 0.4 * k * k; bossFigure(b.def, x, y - U * 0.8, U, time, { ghost: true, mid: true, side });
+          return;
+        }
+        const s = (k - 1) * w.dur, fade = 1 - clamp((s - dur2 - 0.1) / 0.2, 0, 1); // (crouched where he came down while his cut is lit, then gone)
+        if (fade > 0) { ctx.globalAlpha = 0.65 * fade; bossFigure(b.def, w.x, w.y - U * 0.8, U, time, { ghost: true, mid: true, cast: true, side: Math.cos(w.cutAng ?? 0) < 0 ? -1 : 1 }); }
+      },
+      land(w) {
+        tlAt = [w.x, w.y];
+        sfx.thud(); buzz(30); G.shake = Math.max(G.shake, reduced ? 0 : 8); flash("225,238,240", 0.22);
+        if (!reduced) {
+          fxWave(w.x, w.y, S * 0.55, TL_SPRAY, 0.5, S * 0.035); fxWave(w.x, w.y, S * 0.3, "#fffdf4", 0.35, S * 0.02);
+          for (let i = 0; i < 16; i++) { const g = frnd(0, Math.PI * 2); fxMote("drop", w.x + Math.cos(g) * R * frnd(0.6, 1.1), w.y + Math.sin(g) * R * frnd(0.6, 1.1), TL_SPRAY, true); }
+        }
+        const { ux, uy, d } = handAhead(trk, dur2), tx = clamp(P.x + ux * d * 0.8, S * 0.05, W - S * 0.05), ty = clamp(P.y + uy * d * 0.8, barTop() + S * 0.02, H - S * 0.05);
+        const ang = Math.hypot(tx - w.x, ty - w.y) > S * 0.04 ? Math.atan2(ty - w.y, tx - w.x) : fa;
+        w.cutAng = ang;
+        G.warns.push({ kind: "band", x: tx, y: ty, ang, w: TL_W(), t: 0, dur: dur2, delay: 0, tint: CUT_RIVER,
+          fire(v) { landCut(v); cutSpray(v, "water"); later(0.18, () => sfx.sheath()); } });
+        sfx.warn();
+      },
+      blow(w, e) { ctx.strokeStyle = `rgba(159,196,207,${(0.9 * (1 - e)).toFixed(3)})`; ctx.lineWidth = Math.max(2, S * 0.008); ctx.beginPath(); ctx.arc(w.x, w.y, R, 0, Math.PI * 2); ctx.stroke(); } });
+  }
+  // 覆舟's last: his own ship comes over from beyond a side of the field, keel up, onto where you stand: a hull's print 0.62 S long and
+  // 0.3 S wide, its length up and down the field, lit a full second (out by either long side, or past an end); drawn faint as it
+  // comes, on its side beyond the edge and rolling over, slowly and then all at once (k³). It slams down (finBlow, 0.28 s), the
+  // river bursting up round it, splits and is gone. The one thing in his fight from beyond the screen
+  function tlHull(x, y, a, hl, hw) {
+    const c = Math.cos(a), s = Math.sin(a), pt = (u, v) => [x + c * v - s * u, y + s * v + c * u];
+    const p = [{ p: [pt(-hw, -hl * 0.7), pt(0, -hl), pt(hw, -hl * 0.7), pt(hw, hl * 0.76), pt(0, hl), pt(-hw, hl * 0.76)] }]; p.at = [x, y, a]; return p;
+  }
+  function tlShipDraw(x, y, a, hl, hw, roll, far) { // keel up, seen from above (roll 1: still on its side, its black sail and mast out on the far side)
+    ctx.save(); ctx.translate(x, y); ctx.rotate(a); ctx.lineJoin = "round"; ctx.lineCap = "round";
+    if (roll > 0.02) {
+      ctx.fillStyle = TL_SAIL; ctx.beginPath(); ctx.moveTo(-hl * 0.45, far * hw * 0.3); ctx.lineTo(hl * 0.4, far * hw * 0.3); ctx.lineTo(hl * 0.3, far * hw * (0.4 + 2.4 * roll)); ctx.lineTo(-hl * 0.5, far * hw * (0.4 + 2.2 * roll)); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = TL_WOOD; ctx.lineWidth = hw * 0.14; ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(0, far * hw * (0.5 + 2.6 * roll)); ctx.stroke();
+    }
+    ctx.scale(1, 1 - 0.55 * roll); // (edge on while it is still on its side)
+    ctx.beginPath(); ctx.moveTo(-hl, 0); ctx.lineTo(-hl * 0.7, -hw); ctx.lineTo(hl * 0.76, -hw); ctx.lineTo(hl, 0); ctx.lineTo(hl * 0.76, hw); ctx.lineTo(-hl * 0.7, hw); ctx.closePath();
+    ctx.fillStyle = "#3e2c20"; ctx.fill(); ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = Math.max(2, hw * 0.08); ctx.stroke();
+    ctx.strokeStyle = "rgba(140,104,70,0.65)"; ctx.lineWidth = Math.max(1, hw * 0.04); ctx.beginPath();
+    for (const f of [-0.66, -0.33, 0.33, 0.66]) { ctx.moveTo(-hl * (0.72 - 0.12 * Math.abs(f)), hw * f); ctx.lineTo(hl * (0.78 - 0.12 * Math.abs(f)), hw * f); } ctx.stroke(); // (its planks)
+    ctx.strokeStyle = "#241a12"; ctx.lineWidth = hw * 0.16; ctx.beginPath(); ctx.moveTo(-hl * 0.95, 0); ctx.lineTo(hl * 0.95, 0); ctx.stroke(); // its keel
+    ctx.fillStyle = "rgba(215,230,235,0.5)"; for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(hl * (-0.5 + i * 0.25), hw * (i % 2 ? 0.45 : -0.5), hw * 0.06, 0, Math.PI * 2); ctx.fill(); } // (wet)
+    ctx.restore();
+  }
+  function tlShip(at, dur, ez) {
+    const hl = S * (ez ? 0.29 : 0.31), hw = S * (ez ? 0.14 : 0.15), sd = rnd(0, 1) < 0.5 ? -1 : 1, a3 = rnd(-0.18, 0.18), fu = rnd(-0.3, 0.3);
+    return dropBlow(at, dur, { after: 0.01,
+      lay(w) {
+        const cands = [];
+        for (const t of [0, Math.PI / 10, -Math.PI / 10]) for (const uu of [fu, 0, 0.45, -0.45]) for (const v of [0, 0.35, -0.35]) {
+          const a = Math.PI / 2 + a3 + t, c = Math.cos(a), s = Math.sin(a);
+          cands.push(tlHull(P.x - (c * v * hl - s * uu * hw), P.y - (s * v * hl + c * uu * hw), a, hl, hw));
+        }
+        const parts = dropLay(cands, w); w.parts = parts; [w.x, w.y, w.ang] = parts.at; w.r = hw;
+      },
+      shown() {
+        const bb = G.boss; if (bb) { bb.castT = bb.castDur = dur; bb.raise = { t: 0, dur: dur * 0.82 }; }
+        sfx.gather(); G.dark = Math.max(G.dark, 0.9); sfx.whoosh();
+        if (bb && !reduced) fxPillar(bb.x, bb.y + bossUnit(bb.def) * 2.2, bossUnit(bb.def) * 1.4, H * 0.6, TL_SPRAY, dur);
+      },
+      art(w, k) {
+        if (k > 1) return;
+        const e = k * k * k, x0 = sd < 0 ? -hw * 2.6 : W + hw * 2.6, far = Math.sin(w.ang) > 0 ? -sd : sd; // (the side it came from, in its own turn)
+        ctx.save(); ctx.globalAlpha = 0.08 + 0.22 * k; finPath(w.parts); ctx.fillStyle = "#1d1a17"; ctx.fill(); ctx.restore(); // (its shadow, darkening)
+        ctx.globalAlpha = comeA(k); tlShipDraw(x0 + (w.x - x0) * e, w.y, w.ang, hl * (1 + 0.2 * (1 - e)), hw, 1 - e, far);
+      },
+      land(w) {
+        const bb = G.boss; if (bb) { bb.raise = null; bb.castT = bb.castDur = 0.7; bb.swing = { t: 0, ang: Math.atan2(w.y - bb.y, w.x - bb.x) }; }
+        sfx.thud(); sfx.taiko(); sfx.issen(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 12); flash("225,238,240", 0.5);
+        later(0.22, () => { sfx.shing(); chopKnock(); }); // (the second beat: its planks split)
+        if (reduced) return;
+        G.stopT = Math.max(G.stopT, 0.12);
+        fxWave(w.x, w.y, S * 1.1, TL_SPRAY, 0.7, S * 0.045); fxWave(w.x, w.y, S * 0.6, "#fffdf4", 0.45, S * 0.02);
+        for (let i = 0; i < 26; i++) fxMote("drop", w.x + frnd(-hw, hw) * 1.6, w.y + frnd(-hl, hl), TL_SPRAY, true);
+        for (let i = 0; i < 10; i++) { const g = (i / 10) * Math.PI * 2; fxStreaks(w.x + Math.cos(g) * hw, w.y + Math.sin(g) * hl * 0.8, 1, "#d8eaef", S * 0.6, S * 0.05, 0.35, 0.5, g); }
+      },
+      blow(w, e) { ctx.globalAlpha = 0.9 * (1 - e) ** 2; tlShipDraw(w.x, w.y, w.ang, hl, hw, 0, 1); } });
+  }
+  // ---- 4-5 설귀 (11-24, 제작자 "4-5도 좀 표창 비중 줄이고 눈으로만 공격하는 컨셉으로 가줬으면해"; was 氷花亂舞's ice flowers and their
+  // needles, 고드름 and the thrown icicles). The white-haired sword ghost of the pass fights in the snow and with it, quietly. He is
+  // gone into the white; footprints come walking over the snow toward you with no one in them (drawn only, sgSteps), and where they
+  // stop he is there in ghost for a breath and draws through you (a band from there through where you stand, or where you are
+  // going). The snow swells under your feet and bursts (sgMound, a round print just its size). Nothing flies, nothing small, nothing
+  // stays. Unlike 19-5 설붕 (slabs of the cornice out of the sky, his long sword sliding down a lit road): light, and from the ground
+  const SG_CUT = "95,143,180", SG_INK = "70,92,112", SG_STEP = 0.11, SG_N = 5, SG_WALK = SG_STEP * SG_N, SG_W = () => S * 0.085;
+  const sgGone = (t) => { const b = G.boss; if (b && b.def.sig === "frost") goneFor(t, "#f4f2ec", "dust"); };
+  function sgGhost(x, y, al, ang, time) { // him, in ghost, where his footprints stopped (drawn only)
+    const def = G.boss && G.boss.def.sig === "frost" ? G.boss.def : BOSS_SET.find((d) => d.sig === "frost"), U = bossUnit(def) * 0.8;
+    ctx.save(); ctx.globalAlpha *= al; bossFigure(def, x, y - U * 0.8, U, time, { ghost: true, mid: true, cast: true, side: Math.cos(ang) < 0 ? -1 : 1 }); ctx.restore();
+  }
+  function sgTrail(tx, ty, a, d0, d1, n) { // n prints from d0 off (tx, ty) along a in to d1 off it, left and right by turns
+    const ux = Math.cos(a), uy = Math.sin(a), out = [];
+    for (let i = 0; i < n; i++) { const f = n > 1 ? i / (n - 1) : 1, d = d0 + (d1 - d0) * f, s = i % 2 ? 1 : -1; out.push([tx + ux * d - uy * s * S * 0.018, ty + uy * d + ux * s * S * 0.018]); }
+    return out;
+  }
+  function sgPrints(prints, wa, t, step, fadeAt) { // pressed into the snow one by one; the snow fills them again after the cut
+    const fade = 1 - clamp((t - fadeAt) / 0.7, 0, 1); if (fade <= 0) return;
+    ctx.save(); ctx.fillStyle = `rgb(${SG_INK})`;
+    prints.forEach(([x, y], i) => {
+      const k = step > 0 ? clamp((t - i * step) / 0.08, 0, 1) : clamp(t / 0.12, 0, 1); if (k <= 0) return;
+      ctx.globalAlpha = 0.5 * k * fade; ctx.save(); ctx.translate(x, y); ctx.rotate(wa);
+      ctx.beginPath(); ctx.ellipse(S * 0.006, 0, S * 0.02, S * 0.01, 0, 0, Math.PI * 2); ctx.moveTo(-S * 0.014, 0); ctx.ellipse(-S * 0.022, 0, S * 0.008, S * 0.0075, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    });
+    ctx.restore();
+  }
+  // footprints walking in over the snow toward where you are (o.trk: where you are going), from 0.48 S off along o.a (turned on
+  // toward the field if that is off it) to 0.2 S off, one every SG_STEP (o.step 0: there already); where they stop he draws through
+  // you, or through where you are going, along the line from there: a band lit dur from when the last print is down
+  function sgSteps(at, dur, o = {}) {
+    const step = o.step ?? SG_STEP, T = step * SG_N, a0 = o.a ?? rnd(0, Math.PI * 2);
+    kitLater(at, () => {
+      if (!(G.phase === "fight" || G.phase === "boss")) return;
+      let tx = P.x, ty = P.y;
+      if (o.trk) { const { ux, uy, d } = handAhead(o.trk, T + dur); tx = clamp(P.x + ux * d * 0.7, S * 0.05, W - S * 0.05); ty = clamp(P.y + uy * d * 0.7, barTop() + S * 0.02, H - S * 0.05); }
+      const on = (q) => { const x = tx + Math.cos(q) * S * 0.48, y = ty + Math.sin(q) * S * 0.48; return x > S * 0.03 && x < W - S * 0.03 && y > barTop() && y < H - S * 0.03; };
+      let a = a0; for (let i = 0; i < 8 && !on(a); i++) a += Math.PI / 4;
+      const prints = sgTrail(tx, ty, a, S * 0.48, S * 0.2, SG_N), ex = tx + Math.cos(a) * S * 0.2, ey = ty + Math.sin(a) * S * 0.2, wa = a + Math.PI;
+      const h = { kind: "ctl", x: ex, y: ey, t: 0, dur: T + dur + 1.0, best: Infinity, near: true, dist: () => Infinity, spent: () => true, cutAt: Infinity, n: 0, ang: wa,
+        step() { while (this.n < SG_N && this.t >= this.n * step) { const [x, y] = prints[this.n++]; if (!reduced) fxMote("dust", x, y, "#f4f2ec", true); } },
+        draw(hh, time) { sgPrints(prints, wa, hh.t, step, hh.cutAt); if (hh.t >= T - 0.05 && hh.t < hh.cutAt + 0.3) sgGhost(ex, ey, 0.55 * (1 - clamp((hh.t - hh.cutAt) / 0.3, 0, 1)), hh.ang, time); } };
+      G.hazards.push(h);
+      G.warns.push({ kind: "band", x: ex, y: ey, ang: wa, w: o.w || SG_W(), t: 0, dur, delay: T, tint: SG_CUT,
+        place(v) {
+          let px = P.x, py = P.y;
+          if (o.trk) { const { ux, uy, d } = handAhead(o.trk, dur); px = clamp(P.x + ux * d * 0.7, S * 0.05, W - S * 0.05); py = clamp(P.y + uy * d * 0.7, barTop() + S * 0.02, H - S * 0.05); }
+          v.x = px; v.y = py; v.ang = Math.hypot(px - ex, py - ey) > S * 0.04 ? Math.atan2(py - ey, px - ex) : wa; h.ang = v.ang; sfx.warn();
+        },
+        fire(v) { landCut(v); cutSpray(v, "snow"); h.cutAt = h.t; const b = G.boss; if (b && b.def.sig === "frost") b.swing = { t: 0, ang: v.ang }; later(0.18, () => sfx.sheath()); } });
+    }, o.tag || "sg");
+  }
+  function sgMoundArt(x, y, R, k) { // the snow swelling, white, cracking as it is about to go
+    const r = R * (0.45 + 0.55 * k), hgt = R * 0.45 * k;
+    ctx.save(); ctx.globalAlpha *= 0.3 + 0.5 * k;
+    const g = ctx.createRadialGradient(x - r * 0.3, y - hgt - r * 0.2, r * 0.1, x, y - hgt * 0.5, r * 1.1); g.addColorStop(0, "#ffffff"); g.addColorStop(1, "rgba(196,210,224,0.95)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.ellipse(x, y - hgt * 0.5, r, r * 0.7 + hgt * 0.5, 0, 0, Math.PI * 2); ctx.fill();
+    if (k > 0.6) { ctx.strokeStyle = `rgba(${SG_INK},${((k - 0.6) * 1.6).toFixed(3)})`; ctx.lineWidth = Math.max(1, S * 0.004); ctx.beginPath(); for (let i = 0; i < 5; i++) { const q = i * 1.26 + 0.4; ctx.moveTo(x, y - hgt * 0.6); ctx.lineTo(x + Math.cos(q) * r * 0.8, y - hgt * 0.6 + Math.sin(q) * r * 0.55); } ctx.stroke(); }
+    ctx.restore();
+  }
+  // the snow swells under where you stand (a round print lit dur, the mound rising in it) and bursts: powder thrown up just its
+  // size (finBlow, 0.28 s), and gone. Laid where it leaves two ways out of it and of whatever else is lit (dropLay)
+  function sgMound(at, dur, o = {}) {
+    const R = S * (o.R || 0.11), fq = rnd(0, Math.PI * 2), fu = rnd(0.2, 0.5);
+    return dropBlow(at, dur, { after: 0.01,
+      lay(w) {
+        const cands = [];
+        for (const f of [0, fu, 0.5]) for (const q of [fq, fq + 2.1, fq + 4.2]) cands.push([{ c: [clamp(P.x + Math.cos(q) * f * R, R * 0.3, W - R * 0.3), clamp(P.y + Math.sin(q) * f * R, barTop() + R * 0.3, H - R * 0.3), R] }]);
+        const parts = dropLay(cands, w); w.parts = parts; [w.x, w.y] = parts[0].c; w.r = R;
+      },
+      art(w, k) { if (k <= 1) sgMoundArt(w.x, w.y, R, k); },
+      land(w) { snowLand(w, R, false); },
+      blow(w, e) {
+        ctx.globalAlpha = 0.85 * (1 - e) ** 2; ctx.fillStyle = "#f7f9fb"; ctx.beginPath(); ctx.ellipse(w.x, w.y, R, R * 0.9, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = `rgba(${SG_INK},0.55)`; ctx.lineWidth = Math.max(1.5, S * 0.005); ctx.beginPath(); ctx.arc(w.x, w.y, R, 0, Math.PI * 2); ctx.stroke();
+      } });
   }
   // ---- 12-5 천기 (11-23 재설계 §6 안 A, docs/설계/1123-보스-재설계-8명.md; 제작자 "12-5도 컨셉 다시 잡아줬으면 좋겠는데 느렸다
   // 빨랐다 하는게 마음에 안들어 패턴도 멋있지않고", 11-23 "발도를 좀 더 생동감있게"): an old fortune-teller with a sword in his
@@ -6050,10 +6281,11 @@ sdk.initializeAsync()
     if (f.wind) { f.wind.t += dt; b.wind = Math.min(1, f.wind.t / (f.wind.len || wl)); G.dark = Math.max(G.dark, 0.7 * b.wind); }
     if (f.mix && !talking) mixStep(dt, f, d);
     const iced = G.freezeT > 0; // (설한정: while the air hangs frozen nothing new is thrown into it, its 종전 layers and its backdrop wait)
-    if (f.last && !f.fin && f.busy > 0 && !iced && (f.layer -= dt) <= 0) { f.layer = (pushOf(d).layer || SL().layer) * Math.max(1, SL().layerK); fixed("mix", () => (f.alt = !f.alt) ? subAttack(d) : mixAttack(f, d, true)); } // 종전: its other moves on top, by turns (11-16 review: of its kit only the light ones — whatever goes up here goes up over its 비기)
+    const alone = !!pushOf(d).alone; // (11-24, BOSS_PUSH `alone`: its 종전 lays nothing on its own chains)
+    if (f.last && !f.fin && f.busy > 0 && !iced && !alone && (f.layer -= dt) <= 0) { f.layer = (pushOf(d).layer || SL().layer) * Math.max(1, SL().layerK); fixed("mix", () => (f.alt = !f.alt) ? subAttack(d) : mixAttack(f, d, true)); } // 종전: its other moves on top, by turns (11-16 review: of its kit only the light ones — whatever goes up here goes up over its 비기)
     // (11-19, layerK under 1, 어려움: between those, one more light move of its own every so often, never a small blade nor a burst)
     const lk = SL().layerK, l2 = lk < 1 ? ((pushOf(d).layer || SL().layer) * lk) / (1 - lk) : 0;
-    if (l2 && f.last && !f.fin && f.busy > 0 && !iced && (f.layer2 = (f.layer2 ?? 1.2 + l2 * 0.5) - dt) <= 0) { f.layer2 = l2; fixed("mix2", () => mixAttack(f, d, true, false, true)); }
+    if (l2 && !alone && f.last && !f.fin && f.busy > 0 && !iced && (f.layer2 = (f.layer2 ?? 1.2 + l2 * 0.5) - dt) <= 0) { f.layer2 = l2; fixed("mix2", () => mixAttack(f, d, true, false, true)); }
     // (11-17, BOSS_PUSH `over`: a master given it lays one of its own light moves on top of its 비기 every `over` seconds, as
     // its 종전 does: the first that far into it, none while a line is up or the air hangs frozen; overAlt: its second 비기 only)
     const over = f.last || f.only || easeN() >= 3 ? 0 : (pushOf(d).over || (f.n % 2 === 0 && pushOf(d).overAlt) || 0) * Math.max(1, SL().overK);
@@ -6155,9 +6387,12 @@ sdk.initializeAsync()
     // comes again twice 0.75 s apart (was four, 0.65) and a level less; 연화 lays one on each 비기 every 0.9 s (was 0.75) and her
     // 발도 comes again twice 0.7 s apart (was four, 0.55). docs/작업기록/1120-integ.md
     twin: { lift: 2, mix: [0.1, 0.3, 0.5, 0.7, 0.9, 1.1], overAlt: 0.9, layer: 0.5, again: ["c_twin2", 0.75, 2] },
-    lotus: { lift: 3, mix: [0.1, 0.3, 0.5, 0.7, 0.9, 1.1], over: 0.9, layer: 0.5, again: ["c_lotus2", 0.7, 2] },
+    // (11-24 재설계, 탁랑 and 설귀: as 노근 and 설붕, their own moves well apart between 비기 and the light one again where you went;
+    // `alone`: nothing laid on their 비기, nor on their 종전 — each a chain of its own beats, one landing as the next shows, and a move
+    // of theirs laid over it could land in the same beat, 제작자 "마지막 패턴 나오고 빨리 다음 패턴 가서 피할 시간이 없이")
+    lotus: { mix: [0.1, 0.8, 1.5, 2.2], again: ["c_lotus1", 0.6, 1], alone: true },
     fire: { mix: [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1.0, 1.15], overAlt: 0.3, layer: 0.5, again: ["c_fire1", 0.65, 4] },
-    frost: { mix: [0.1, 0.35, 0.6, 0.85, 1.1], over: 0.9, layer: 0.7, again: ["c_frost2", 0.35, 2] },
+    frost: { mix: [0.1, 0.8, 1.5, 2.2], again: ["c_frost1", 0.6, 1], alone: true },
     mirror: { mix: [0.1, 0.35, 0.6, 0.85, 1.1], over: 0.9, layer: 0.7, again: ["c_mirror2", 0.4, 3] },
     // (11-20, 10-5 관창: 9-5 빙경 ≤ 10-5 ≤ 11-5 검총주, critic 보통 본판 새 위협/초 — 빙경 5.2, 관창 4.6 before this) his 梨花槍
     // a little quicker (lift), his own moves closer between 비기, one laid on his 回馬槍 every 0.8 s (that 비기 is one thrust a
@@ -6250,7 +6485,15 @@ sdk.initializeAsync()
     // (11-10 제작자: "2-1… 표창 날라오는거 보면 너무 어려워, 피하는 워닝사인이 너무 커 보이고", then "2-1에서만 3발 연속
     // 나가는 표창을 빼달라는거야, 다른데도 원복") At 2-1 연화's 물결 — three bursts of kunai round you, one after another —
     // is a 발도 through you instead; 2-2 to 2-4 keep her 물결 as it is.
-    lotus: () => (stageDef(G.sg).s === 0 ? bandsAt([rnd(0, Math.PI)], S * 0.075, 0.8) : SUBS.lotus.run()),
+    // (11-24 재설계, 탁랑: no 물결 anywhere now) 2장's stages: a taste of 逆浪斬 — one of his cuts through you, the river flying off
+    // its line (he waits down the river: no master, the line comes in off the edge); from 2-2 a second where you are going; from 2-3
+    // his anchor thrown in off the top at you, and as it bites a cut where you went (투묘)
+    lotus: () => { const s = stageDef(G.sg).s;
+      if (s >= 2) return SUBS.lotus.run();
+      bladeCut(0, 0.85, { ...TL_CUT(), tag: "fl" }); if (s === 1) bladeCut(0.5, 0.8, { ...TL_CUT(), trk: handTrack(2), tag: "fl2" }); },
+    // (11-24, 설귀: no icicles now) 4장's stages: a taste of 無人足跡 — footprints walking in over the snow with no one in them, and a
+    // cut through you where they stop; from 4-2 the snow bursting up under you as it lands; from 4-3 a second set after that
+    frost: () => { const s = stageDef(G.sg).s; sgSteps(0, 0.85, { tag: "ff" }); if (s >= 1) sgMound(SG_WALK + 0.85, 0.85); if (s >= 2) sgSteps(1.7, 0.8, { trk: handTrack(4), tag: "ff2" }); }, // (its cut shows as the mound bursts)
     // (11-10: no 사자후 or 천라지망 in the game, so 뇌음 and 화륜 foretell themselves otherwise in their stages)
     drum: () => { // 뇌음's paths on the beat: three side by side across you (was 북소리, 사자후's rings off the drum)
       const g = rnd(0, Math.PI), nx = Math.cos(g + Math.PI / 2), ny = Math.sin(g + Math.PI / 2), dur = drumBeat() * 1.5, n = moreN(3); // (11-19 more: 쉬움 two, 어려움 a fourth on the next half-beat)
@@ -6673,12 +6916,32 @@ sdk.initializeAsync()
     // its last 0.8 s, where they were under its last 1.2: no more at once than before)
     // (11-17: its blade of water sweeping round is gone with the rotating 검기, everywhere; between the two sets of ripples, her
     // own 발도 three times where you are, each on a seed, kitLater)
-    lotus: { name: ["蓮池", "연지"], run() { SUBS.lotus.run(); for (let k = 0; k < 3; k++) kitLater(1.6 + k * 0.8, () => G.boss && PAT("c_lotus2").spawn(), "lo2"); later(4.3, () => G.boss && SUBS.lotus.run()); return 5.9; } },
+    // 躍船斬 (11-24 재설계 §4 안 A, 탁랑; was 蓮池, its ripples of water blades): he leaps off his gunwale and comes down on where you
+    // stand, and from where he lands his 언월도 through where you are going (tlLeap); the next leap shown as that cut lands. 쉬움 and
+    // 보통 twice (쉬움 slower), 어려움 three times. Out of reach till the last cut is in, then home
+    lotus: { name: ["躍船斬", "약선참"], run() {
+      const sl = SL().lv || 0, lo = sl < 9, hi = sl >= 11, n = hi ? 3 : 2, D = lo ? 0.9 : 0.85, D2 = lo ? 0.8 : 0.72, trk = handTrack(12);
+      tlAt = null;
+      let t = 0.15;
+      for (let i = 0; i < n; i++) { tlLeap(t, D, { dur2: D2, trk }); t += D + D2; }
+      return t + 0.4;
+    } },
     fire: { name: ["火龍", "화룡"], run() { const go = () => marchAt((w) => spikeErupt(w.x, w.y, w.r, "fire"), S * 0.08, 0.07, 9); return steps(0.7, go, go, go, go, go, go); } },
     // (11-10 제작자: "천라지망 그 플레이어 주변에 사방으로 쿠나이 생기고 한 부분만 비어 있고 일정 시간 지나면 플레이어 쪽으로 날라오는
     // 거 빼달라니까 아직 남아 있는 거 같은데") the ring of kunai is gone from these 비기 too: 설귀 crosses two cuts of ice
     // over you, 광음 throws two aimed stars from the edges, 화륜 burns its wheel tracks through you
-    frost: { name: ["氷獄", "빙옥"], run() { const cross = () => { const g = rnd(0, Math.PI); bandsAt([g, g + Math.PI / 2]); }; return steps(1.5, cross, () => SUBS.frost.run(), cross, () => SUBS.frost.run()); } },
+    // 雪塚 (11-24, 설귀; was 氷獄, crosses of ice and his icicles): he is gone into the snow, and it swells under you and bursts, again
+    // where you are as it bursts, and again (each lit about 0.8 s); as the last bursts, footprints have walked in and he draws through
+    // where you went. 쉬움 two and the cut; 어려움 four, and a second set after the cut
+    frost: { name: ["雪塚", "설총"], run() {
+      const sl = SL().lv || 0, lo = sl < 9, hi = sl >= 11, n = lo ? 2 : hi ? 4 : 3, DM = lo ? 0.85 : 0.78, D = lo ? 0.82 : 0.75, trk = handTrack(12);
+      let t = 0.15;
+      for (let i = 0; i < n; i++) { sgMound(t, DM); t += DM; }
+      sgSteps(t - SG_WALK, D, { trk, tag: "sga" }); t += D; // (walking in while the last swells: its cut shows as it bursts)
+      if (hi) { sgSteps(t - SG_WALK, D, { trk, tag: "sgb" }); t += D; }
+      sgGone(t + 0.1);
+      return t + 0.4;
+    } },
     void: { name: ["月蝕斬", "월식참"], run() { // a moon, a cut across you, a moon, a crossed cut
       const moon = () => { const R = S * 0.16; blackMoon(clamp(P.x, R * 0.6, W - R * 0.6), clamp(P.y, H * 0.16, H - R * 0.6), R, 0.95, 1.8); }, cut = () => bandsAt([rnd(0, Math.PI)]);
       return steps(0.8, moon, cut, moon, () => SUBS.void.run(), moon, cut, moon, () => SUBS.void.run());
@@ -6900,18 +7163,13 @@ sdk.initializeAsync()
       for (const x of [S * 0.05, W - S * 0.05]) G.warns.push({ kind: "clone", x, y: H * 0.2, ang: Math.atan2(P.y - H * 0.2, P.x - x), t: 0, dur: 0.8, delay: 0, fire(w) { cloneDash(w.x, w.y, w.ang); } });
       sfx.warn();
     } },
-    lotus: { name: "물결", run() { // three ripples bursting about the field, one after another (burstSpot: not beside you)
-      // (11-17 review: its spot still picked where you are by then, on a seed of its own, kitLater: in 2-2 to 2-4 and
-      // 2-5 every burst landed somewhere new every try, sound on or off)
-      for (let k = 0; k < 3; k++) kitLater(k * 0.4, () => { const [x, y] = burstSpot(); burstAt(x, y, 10, rnd(0, Math.PI), 0.9, true, "water"); sfx.warn(); }, "lo");
+    lotus: { name: "투묘", run() { // (11-24 탁랑; was 물결, three bursts of water blades) his anchor at you, and as it bites, back in his hand, a cut through where you are going
+      tlAnchor(0, 0.85); bladeCut(0.85, 0.75, { ...TL_CUT(), still: true, trk: handTrack(2.5), tag: "tls" });
     } },
     // (11-17, measured with the mended bot: 3-4 was hit more often than 적염 himself, 5.3 against 3.5 a minute, nearly all by
     // this march, which its stages throw twice over: his c_fire3 and his foretelling. In a stage it walks five steps, not seven)
     fire: { name: "불길 행진", run() { marchAt((w) => spikeErupt(w.x, w.y, w.r, "fire"), S * 0.075, 0.09, G.phase === "fight" ? 5 : 7); } },
-    frost: { name: "고드름", run() { // five icicles let go, lanes round you lit first
-      for (let k = 0; k < 5; k++) G.warns.push({ kind: "drop", side: 0, p: clamp(P.x + (k - 2) * S * 0.13 + rnd(-S * 0.03, S * 0.03), S * 0.03, W - S * 0.03), t: 0, dur: 0.6, delay: k * 0.12, fire(w) { fireDrop(w); } });
-      sfx.warn();
-    } },
+    frost: { name: "발자국", run() { sgSteps(0, 0.8, { tag: "sgs" }); } }, // (11-24 설귀; was 고드름, five icicles let go) footprints walking in at you, and his cut where they stop
     void: { name: "월광참", run() { const g = rnd(0, Math.PI), n = moreN(2); bandsAt(n > 1 ? [g, g + Math.PI / 2] : [g]); // its sword twice across you, crossed
       if (n > 2) G.warns.push({ kind: "band", x: 0, y: 0, ang: g + Math.PI / 4, w: S * 0.075, t: 0, dur: 0.75, delay: 0.4, place(v) { v.x = P.x; v.y = P.y; sfx.warn(); }, fire(v) { landCut(v); } }); } }, // (11-19 more: 쉬움 once, 어려움 a third where you are by then)
     charge: { name: "쌍조", run() { const a = tigerRake(0.8), n = moreN(2), side = n > 1 ? (Math.random() < 0.5 ? 0.8 : -0.8) : 0; if (n > 1) tigerRake(0.75, 0.4, a + side); if (n > 2) tigerRake(0.75, 0.8, a - side); } }, // both paws, crossing (11-10: was 덮치기, its pounce: "땅울림 없애 줬으면"; 11-19 more: 쉬움 one paw, 어려움 a third rake)
@@ -7043,11 +7301,11 @@ sdk.initializeAsync()
       act: { 2: "한 번 더, 형.", 3: "둘이서 하나를 벤다!" },
       hard: { intro: "대숲은 새벽까지 탔다. 대나무 터지는 소리에 형 말도 안 들렸다.", act: { 3: "교주님께 바칠 목이다!" } },
     },
-    lotus: { // 2-5 연화
-      sig: ["간 건 돌아와. 꽃잎도, 칼도.", "한 번 피하면 끝인 줄 알았어?"], alt: ["연못이 넓어지네.", "발밑이 젖었어."],
-      half: "너는 네 사부보다 급하네.", sub: "물은 어디든 스며.",
-      act: { 2: "아직 오백 장 남았어.", 3: "마지막 한 송이야." },
-      hard: { intro: "그 밤 연못 물이면 불을 끌 수 있었어. 나는 구경만 했지.", act: { 3: "구경은 그 밤으로 끝이야." } },
+    lotus: { // 2-5 탁랑 (11-24 재설계; was 연화)
+      sig: ["물살 거슬러 간다!", "도망갈 쪽은 이미 봤다!"], alt: ["뱃전에서 뛴다!", "물 먹을 준비 해라!"],
+      half: "삯을 더 받을 걸 그랬다. 이런 놈이 남아 있을 줄 알았으면.", sub: "닻 내려라!",
+      act: { 2: "한 번 더 뛴다!", 3: "배째로 엎는다. 강바닥에서 보자!" },
+      hard: { intro: "그 밤 흑월교 놈들 칼에서 그을음 냄새가 났다. 난 노만 저었다.", act: { 3: "그 밤 뱃삯, 오늘 다 치른다!" } },
     },
     fire: { // 3-5 적염 대사
       sig: ["칸칸이 불에 공양한다.", "설 자리는 하나 남겨 주마."], alt: ["용이 깼다.", "불은 제 길을 안다."],
@@ -7056,9 +7314,9 @@ sdk.initializeAsync()
       hard: { intro: "그 밤엔 타는 대나무가 종처럼 울더구나. 그 소리도 아직 들린다.", act: { 3: "이 몸까지 장작으로 넣는다!" } },
     },
     frost: { // 4-5 설귀
-      sig: ["꽃이 지면 바늘이 남는다.", "눈은 소리 없이 쌓인다."], alt: ["얼음 감옥에는 문이 없다.", "고개가 언다."],
-      half: "벨 만한 칼을 기다리다 머리가 셌다.", sub: "고드름도 칼이다.",
-      act: { 2: "여섯 송이로 모자라느냐.", 3: "눈 밑에서 자거라!" },
+      sig: ["발자국을 세어 보거라.", "눈은 소리 없이 쌓인다."], alt: ["네 발밑 눈도 내 편이다.", "고개가 언다."], // (11-24: 氷花亂舞·氷獄·고드름 → 無人足跡·雪塚·발자국)
+      half: "벨 만한 칼을 기다리다 머리가 셌다.", sub: "뒤에 발자국이 하나 더 있다.",
+      act: { 2: "눈 무덤은 넉넉히 파 두었다.", 3: "눈 밑에서 자거라!" },
       hard: { intro: "고개 아래 하늘이 밤새 붉던 날이 있었지. 눈이 다 녹는 줄 알았다.", act: { 3: "이 고개에 봄은 없다!" } },
     },
     void: { // 5-5 흑월교주
@@ -7171,7 +7429,7 @@ sdk.initializeAsync()
   }
   // what each says as its life runs out, before its 종전 (11-06: "종전 전에 보스 대사 추가")
   const LAST_LINES = {
-    twin: "형… 이 녀석, 진짜다. 숨는 건 여기까지다.", lotus: "연못이… 마르기 전에… 마지막 꽃을 피우겠어.",
+    twin: "형… 이 녀석, 진짜다. 숨는 건 여기까지다.", lotus: "닻줄은 끊었다. 이제 이 배는 어디서도 안 선다.", // (lotus: 탁랑, 11-24 재설계)
     fire: "업이… 업이 타오른다. 너도 함께 타라!", frost: "백 년… 백 년을 기다렸다. 네 발자국까지 덮어 주마.",
     void: "두 번째 칼을… 뽑게 해? 청죽문 놈들…!", charge: "크하하! 이제야 피가 끓는군. 여기서부턴 사냥이다!",
     veil: "버릴 게… 하나 남았군. 내 목숨이다.", drum: "한 번도 멈춘 적 없는 북이다. 마지막 장단을 들어라!",
@@ -7186,8 +7444,8 @@ sdk.initializeAsync()
   // 대사"): in the same box as its other lines, but the fight does not stop for it — it is said while it gathers (the
   // gathering lasts till the line is out), and the box goes as the move comes. Every time, on a retry too.
   const FINALE_LINES = {
-    twin: "형, 마지막이다. 같이 뽑자.", lotus: "꽃잎 천 장. 하나만 스쳐도 끝이야.",
-    fire: "삼계가 불타는 집이다. 어디로 달아나려느냐.", frost: "네 무덤엔 눈꽃 여섯 송이면 족하다.",
+    twin: "형, 마지막이다. 같이 뽑자.", lotus: "배 엎는 놈이 누군지 아냐. 사공이다.", // (lotus 탁랑, frost 설귀: 11-24 재설계)
+    fire: "삼계가 불타는 집이다. 어디로 달아나려느냐.", frost: "백 년 치 발자국이다. 다 너한테 간다.",
     void: "검은 달이 진다. 네 사부가 쓰러진, 그 시각에.", charge: "비켜라. 범이 지나간다.",
     veil: "칼집 닫히는 소리가 들리면, 넌 이미 베였다.", drum: "북이 찢어지면, 산도 너도 함께 잠든다.",
     mirror: "거울 속 꽃이야. 꺾을 수 있으면 꺾어 봐.", rain: "일부당관. 만 명이 와도 못 지나간다.",
@@ -7377,157 +7635,35 @@ sdk.initializeAsync()
         fire(w) { if (!w.skip) cloneDash(w.x, w.y, w.ang); } })));
       return tf + bd + 0.45;
     } },
-    // 千瓣蓮華: lotuses of water open round you one after another, each throwing its petals out through where you stand
-    // and calling them home along the same lines, the ways home crossing; last, a great lotus of two rings of petals
-    // beside you opens, its petals go out together and come home together, and it closes on them in a burst of light.
-    // (11-17 제작자: "연꽃 수를 줄여 쉽게" — the second boss's last ran harder than most later ones', three lotuses' petals out
-    // and home across each other at once: two lotuses now, not three, and the great one a little after the second)
-    // (11-20, 세 막: FIN_ACTS) act two, 雙蓮: lotuses two at a time, one each side of you, their petals crossing where you
-    // stand; each pair laid as the last pair's petals come home (never more than two lotuses' petals out at once, two
-    // petals fewer each: no more of them in the air than in act one); 쉬움 one pair. Act three, the execution: the great
-    // lotus opens under you, lit a full second, and closes on what is in it: out of it, any way
-    lotus: { name: ["千瓣蓮華", "천판연화"], acts: 3, run(o = {}) {
+    // 覆舟 (11-24 재설계 §4 안 A, 탁랑; was 千瓣蓮華, lotuses of water whose petals flew out and home). Three acts (FIN_ACTS), no beat
+    // held in any (its own timing; the rage between acts FIN_PRESS_RAGE's): act one, 逆浪 — his chain of cuts quicker (보통 four, each
+    // shown before the last lands), and as the last lands his anchor at you; act two, 躍船 — he leaps on you twice (쉬움 once, 어려움
+    // three times), each landing's cut where you went shown as he lands; act three, the execution, three clashes: his ship comes over
+    // from beyond a side, keel up, onto where you stand (a hull's print, lit a full second: out by either long side or past an end),
+    // and as it lands his cut where you are going, and again (FIN_PRESS.lotus). The one thing in his fight from beyond the screen
+    lotus: { name: ["覆舟", "복주"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
-      const L = lvl(), q = clamp((L - 9) / 13, 0, 1), tint = fightTint(b.def), u = bossUnit(b.def);
-      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
-      const sp = S * (0.7 + 0.12 * q), retK = 1.3, gap = 0.48 - 0.05 * q, dur = 0.85, n = 9 + Math.round(2 * q), NB = 2; // (NB: lotuses before the great one)
-      const x0 = S * 0.08, x1 = W - S * 0.08, y0 = H * 0.16, y1 = H - S * 0.08;
-      // where a lotus may open: `d` from you along `th` (or the other ways round), on the field, never beside you nor on its master
-      const spot = (th, d) => { // (11-16: eight ways round, and failing all of them the one furthest from you, never one right by you)
-        let best = null, bd = -1;
-        for (const o of [0, Math.PI, Math.PI / 2, -Math.PI / 2, Math.PI / 4, -Math.PI / 4, Math.PI * 0.75, -Math.PI * 0.75]) {
-          const x = clamp(P.x + Math.cos(th + o) * d, x0, x1), y = clamp(P.y + Math.sin(th + o) * d, y0, y1), dm = Math.hypot(x - P.x, y - P.y);
-          if (Math.hypot(x - b.x, y - (b.y + u * 0.8)) <= u * 3) continue;
-          if (dm >= S * 0.24) return [x, y];
-          if (dm > bd) { bd = dm; best = [x, y]; }
-        }
-        return best || [clamp(P.x + Math.cos(th) * d, x0, x1), clamp(P.y + Math.sin(th) * d, y0, y1)];
-      };
-      const bloomFx = (x, y, big) => {
-        sfx.burst(); flash("214,232,244", big ? 0.16 : 0.1);
-        if (reduced) return;
-        fxFlare(x, y, S * (big ? 0.09 : 0.05), tint, 0.3); fxWave(x, y, S * (big ? 0.4 : 0.22), tint, 0.38, S * 0.014);
-        for (let i = 0; i < (big ? 10 : 5); i++) fxMote("petal", x + frnd(-S * 0.03, S * 0.03), y + frnd(-S * 0.03, S * 0.03), moteOf(b.def), true);
-      };
-      // its petals: out along each line, a stop, and home to its heart, gone into it (range: out and back again)
-      const throwPetals = (x, y, cnt, off, T, speeds) => {
-        for (const v of speeds) for (let i = 0; i < cnt; i++) {
-          const s = shoot("star", x, y, off + (i / cnt) * Math.PI * 2, v, { spin: 16, r: S * 0.015, ret: T, retK, cue: 0.45, skin: "water" });
-          s.range = 2 * Math.hypot(s.vx, s.vy) * T * 0.995;
-        }
-      };
-      if (act === 2) { // 雙蓮: a pair at a time; the second of a pair opposite the first, or failing that well away from it
-        const np = ez ? 1 : 3, pg = hi ? 0.95 : 1.0, n2 = n - 2, a0 = rnd(0, Math.PI * 2), tn = Math.random() < 0.5 ? 1 : -1;
-        const prs = Array.from({ length: np }, (_, k) => ({ th: a0 + tn * k * (Math.PI * 0.4 + rnd(-0.2, 0.2)), d: S * rnd(0.3, 0.38) }));
-        prs.forEach((pr, k) => [0, Math.PI].forEach((s) => G.warns.push({ kind: "ring", x: 0, y: 0, n: n2, off: 0, t: 0, dur, delay: k * pg,
-          place(w) {
-            let p = spot(pr.th + s, pr.d);
-            if (s && pr.at) for (const e of [Math.PI / 2, -Math.PI / 2, Math.PI / 4, -Math.PI / 4]) { if (Math.hypot(p[0] - pr.at[0], p[1] - pr.at[1]) >= S * 0.3) break; p = spot(pr.th + s + e, pr.d); }
-            if (!s) { pr.at = p; sfx.warn(); }
-            [w.x, w.y] = p; w.d = Math.hypot(P.x - w.x, P.y - w.y); w.off = Math.atan2(P.y - w.y, P.x - w.x); // (one petal straight at you)
-          },
-          fire(w) {
-            throwPetals(w.x, w.y, n2, w.off, clamp(w.d / sp + 0.18, 0.5, 0.9), [sp]); bloomFx(w.x, w.y, false);
-            const bb = G.boss; if (bb && !s) { bb.castT = bb.castDur = 0.35; bb.swing = { t: 0, ang: Math.atan2(w.y - bb.y, w.x - bb.x) }; }
-          } })));
-        return (np - 1) * pg + dur + clamp(S * 0.38 / sp + 0.18, 0.5, 0.9) * (ez ? 1 : 1 + 1 / retK) + (ez ? 0.15 : 0.25); // (쉬움: it ends as its petals turn home, and they break with its rage)
+      const act = o.act || 1, sl = SL().lv || 0, ez = sl < 9, hi = sl >= 11;
+      for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); } // (alone on the field: what its 종전 left in the air breaks as the name goes up)
+      G.warns = []; G.hazards = []; for (const c of G.cuts) c.checked = true;
+      if (b.dash || b.home > 0 || b.y > H * 0.33) { b.dash = null; b.home = 0; b.vanish = 0; bossBlink(clamp(b.x, W * 0.25, W * 0.75), H * 0.24); } // (on its own ground first, never onto you)
+      tlAt = null;
+      if (act === 1) { // 逆浪 ▶ 投錨
+        const n = ez ? 3 : hi ? 5 : 4, gap = ez ? 0.6 : 0.45, D = ez ? 0.8 : 0.72, ch = {}, trk = handTrack(9);
+        for (let i = 0; i < n; i++) bladeCut(0.1 + i * gap, D, { ...TL_CUT(), ch, trk: i % 2 ? trk : null, tag: "tf1" });
+        const tA = 0.1 + (n - 1) * gap + D, DA = ez ? 0.9 : 0.85;
+        tlAnchor(tA, DA);
+        return tA + DA + 0.2;
       }
-      if (act === 3) { // the great lotus under you: lit a full second, it closes (by a wall it hangs off the edge, never shuts you in)
-        const R3 = S * (ez ? 0.22 : 0.26), D3 = 1.0, at3 = 0.1, sd = rnd(0, 6);
-        G.warns.push({ kind: "spike", x: 0, y: 0, r: R3, seed: sd, t: 0, dur: D3, delay: at3,
-          place(w) {
-            w.x = clamp(P.x, R3 * 0.2, W - R3 * 0.2); w.y = clamp(P.y, H * 0.16, H - R3 * 0.2);
-            const bb = G.boss; if (bb) { bb.castT = bb.castDur = D3; bb.raise = { t: 0, dur: D3 * 0.82 }; }
-            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.85);
-            if (reduced || !fxOn()) return;
-            if (bb) fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H, tint, D3);
-            G.parts.push({ kind: "lotusArt", x: w.x, y: w.y, vx: 0, vy: 0, keep: true, life: D3 + 0.25, t: 0, draw(p, a, time) { // (its flower, opening over the red)
-              const k = clamp(p.t / (D3 * 0.7), 0, 1), shut = clamp((p.t - D3) / 0.2, 0, 1), open = (1 - (1 - k) ** 3) * (1 - 0.8 * shut);
-              ctx.translate(p.x, p.y); ctx.rotate(time * 0.25); ctx.globalAlpha = 0.5 * (1 - 0.5 * shut);
-              for (let ly = 0; ly < 2; ly++) for (let i = 0; i < 8; i++) {
-                const rr = R3 * (ly ? 0.55 : 0.92) * open; if (rr < 1) continue;
-                ctx.save(); ctx.rotate(((i + ly * 0.5) / 8) * Math.PI * 2);
-                ctx.beginPath(); ctx.ellipse(rr * 0.55, 0, rr * 0.48, rr * 0.2, 0, 0, Math.PI * 2);
-                ctx.fillStyle = ly ? "rgba(247,240,222,0.85)" : "rgba(61,106,138,0.45)"; ctx.fill();
-                ctx.strokeStyle = "rgba(29,26,23,0.35)"; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
-              }
-            } });
-          },
-          fire(w) {
-            const x = w.x, y = w.y, bb = G.boss;
-            G.hazards.push({ kind: "lotusShut", x, y, r: R3, t: 0, dur: 0.45, best: Infinity, near: false,
-              dist() { return this.t < 0.28 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - this.r) : Infinity; },
-              draw(h) { // its petals folding in over it, white water, gone
-                const e = clamp(h.t / 0.45, 0, 1), rr = h.r * (1 - 0.55 * e);
-                ctx.save(); ctx.translate(h.x, h.y); ctx.globalAlpha = 1 - e;
-                ctx.fillStyle = "rgba(214,232,244,0.55)"; ctx.beginPath(); ctx.arc(0, 0, h.r * (1 - 0.3 * e), 0, Math.PI * 2); ctx.fill();
-                for (let i = 0; i < 8; i++) { ctx.save(); ctx.rotate((i / 8) * Math.PI * 2 + e); ctx.beginPath(); ctx.ellipse(rr * 0.5, 0, rr * 0.5, rr * 0.18, 0, 0, Math.PI * 2); ctx.fillStyle = "rgba(247,240,222,0.9)"; ctx.fill(); ctx.strokeStyle = "rgba(61,106,138,0.7)"; ctx.lineWidth = 1.2; ctx.stroke(); ctx.restore(); }
-                ctx.restore();
-              } });
-            if (bb) { bb.castT = bb.castDur = 0.7; bb.raise = null; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
-            sfx.issen(); sfx.burst(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("220,238,248", 0.6);
-            impact(x, y, 1.6, tint);
-            if (reduced) return;
-            G.stopT = Math.max(G.stopT, 0.12);
-            fxWave(x, y, S * 1.2, tint, 0.8, S * 0.05); fxWave(x, y, S * 0.6, "#dff0fa", 0.55, S * 0.025);
-            fxPillar(x, y + S * 0.04, S * 0.1, H, tint, 0.85);
-            fxStreaks(x, y, 22, tint, S * 1.4, S * 0.08, 0.5); fxStreaks(x, y, 12, "#fffdf4", S * 1.1, S * 0.06, 0.45);
-            for (let i = 0; i < 26; i++) fxMote("petal", x + frnd(-R3, R3), y + frnd(-R3, R3), moteOf(b.def), true);
-          } });
-        return at3 + D3 + (ez ? 0.45 : 0.6);
+      if (act === 2) { // 躍船 ▶ 斬, again
+        const n = ez ? 1 : hi ? 3 : 2, D = ez ? 0.9 : 0.8, D2 = ez ? 0.8 : 0.72, trk = handTrack(9);
+        let t = 0.1;
+        for (let i = 0; i < n; i++) { tlLeap(t, D, { dur2: D2, trk }); t += D + D2; }
+        return t + 0.2;
       }
-      const th0 = rnd(0, Math.PI * 2), turn = Math.random() < 0.5 ? 1 : -1, blooms = [];
-      for (let k = 0; k < NB; k++) blooms.push({ th: th0 + turn * k * (Math.PI * 2 / 3 + rnd(-0.35, 0.35)), d: S * rnd(0.3, 0.4) });
-      blooms.forEach((bl, k) => G.warns.push({ kind: "ring", x: 0, y: 0, n, off: 0, t: 0, dur, delay: k * gap,
-        place(w) {
-          [w.x, w.y] = spot(bl.th, bl.d);
-          w.d = Math.hypot(P.x - w.x, P.y - w.y); w.off = Math.atan2(P.y - w.y, P.x - w.x); // (one petal straight at you)
-          sfx.warn();
-        },
-        fire(w) {
-          const T = clamp(w.d / sp + 0.18, 0.5, 0.9);
-          throwPetals(w.x, w.y, n, w.off, T, [sp]); bloomFx(w.x, w.y, false);
-          const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.35; bb.swing = { t: 0, ang: Math.atan2(w.y - bb.y, w.x - bb.x) }; }
-          later(T + T / retK, () => { if (!reduced) { fxFlare(w.x, w.y, S * 0.04, tint, 0.22); fxWave(w.x, w.y, S * 0.12, tint, 0.25, S * 0.01); } });
-        } }));
-      // the great lotus: twice the petals in two rings (the inner slower) along the same lines, out and home together
-      const tG = gap + 0.75, durG = 0.95, nG = 14 + 2 * Math.round(q), thG = th0 + Math.PI + turn * rnd(0.6, 1.0), dG = S * 0.3;
-      G.warns.push({ kind: "ring", x: 0, y: 0, n: nG, off: 0, t: 0, dur: durG, delay: tG,
-        place(w) {
-          [w.x, w.y] = spot(thG, dG);
-          w.d = Math.hypot(P.x - w.x, P.y - w.y); w.off = Math.atan2(P.y - w.y, P.x - w.x);
-          const bb = G.boss; if (bb) bb.castT = bb.castDur = 0.6;
-          sfx.warn(); sfx.gather();
-          if (reduced || !fxOn()) return;
-          const R = S * 0.075, life = durG + clamp(w.d / sp + 0.25, 0.65, 0.95) * (1 + 1 / retK); // (its flower, open till its petals are home)
-          G.parts.push({ kind: "lotusArt", x: w.x, y: w.y, vx: 0, vy: 0, keep: true, life, t: 0, draw(p, a, time) {
-            const k = clamp(p.t / 0.55, 0, 1), shut = clamp((p.t - (life - 0.3)) / 0.3, 0, 1), open = (1 - (1 - k) ** 3) * (1 - 0.7 * shut);
-            ctx.translate(p.x, p.y); ctx.rotate(time * 0.4); ctx.globalAlpha = 0.6;
-            for (let ly = 0; ly < 2; ly++) for (let i = 0; i < 8; i++) {
-              const rr = R * (ly ? 0.6 : 1) * open; if (rr < 1) continue;
-              ctx.save(); ctx.rotate(((i + ly * 0.5) / 8) * Math.PI * 2);
-              ctx.beginPath(); ctx.ellipse(rr * 0.55, 0, rr * 0.5, rr * 0.19, 0, 0, Math.PI * 2);
-              ctx.fillStyle = ly ? "rgba(247,240,222,0.92)" : "rgba(61,106,138,0.6)"; ctx.fill();
-              ctx.strokeStyle = "rgba(29,26,23,0.45)"; ctx.lineWidth = 1; ctx.stroke(); ctx.restore();
-            }
-          } });
-        },
-        fire(w) {
-          const T = clamp(w.d / sp + 0.25, 0.65, 0.95), home = T + T / retK;
-          throwPetals(w.x, w.y, nG, w.off, T, [sp, sp * 0.62]); bloomFx(w.x, w.y, true);
-          const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.6; bb.swing = { t: 0, ang: Math.atan2(w.y - bb.y, w.x - bb.x) }; }
-          later(home, () => { // all home at once: it closes on them, and bursts in light
-            sfx.issen(); buzz([30, 20, 60]); G.shake = Math.max(G.shake, reduced ? 0 : 18);
-            impact(w.x, w.y, 1.4, tint); flash("220,238,248", 0.5);
-            if (reduced) return;
-            fxFlare(w.x, w.y, S * 0.2, tint, 0.7); fxFlare(w.x, w.y, S * 0.1, "#fffdf4", 0.45);
-            fxWave(w.x, w.y, S * 1.0, tint, 0.7, S * 0.04); fxWave(w.x, w.y, S * 0.5, "#dff0fa", 0.5, S * 0.022);
-            fxPillar(w.x, w.y + S * 0.04, S * 0.08, H, tint, 0.85);
-            fxStreaks(w.x, w.y, 22, tint, S * 1.3, S * 0.08, 0.5); fxStreaks(w.x, w.y, 12, "#fffdf4", S * 1.0, S * 0.06, 0.45);
-            for (let i = 0; i < 22; i++) fxMote("petal", w.x + frnd(-S * 0.05, S * 0.05), w.y + frnd(-S * 0.05, S * 0.05), moteOf(b.def), true);
-          });
-        } });
-      return tG + durG + clamp(S * 0.42 / sp + 0.25, 0.65, 0.95) * (1 + 1 / retK) + 0.5;
+      const D3 = 1.0, at3 = 0.1; // 覆舟: the ship, then two cuts of his (FIN_PRESS)
+      tlShip(at3, D3, ez);
+      return at3 + D3 + 0.35;
     } },
     // 三界火宅 ("the three worlds are a house on fire", the Lotus Sutra's burning house): the 業火陣's cells burn in diagonal
     // stripes that roll across the field the same way beat after beat, quicker each beat, always over the cell you stand in,
@@ -7662,152 +7798,56 @@ sdk.initializeAsync()
       });
       return t + durX + 0.55;
     } },
-    // 六花葬送: 설귀's last (11-16, "백 년 쌓인 눈이다. 네 발자국도 덮어 주마."). It whirls, white hair flying, and with
-    // each turn of its ice blade it flings a flower of ice down off the blade's tip, as in its 氷花亂舞 — one to your left,
-    // the next to your right, by turns, each a little higher or lower — six of them. Each glides in beside you, flashes
-    // white with its six ways lit, one of them through you, and breaks down them into needles: dodge up or down, again and
-    // again. Last, the great flower of frost spreads over the ground under you, its six arms along three ways through you,
-    // and shatters in one white burst. Its dice all cast here; nothing ever comes from under you (your thumb).
-    // (11-20, 세 막: FIN_ACTS) act two, 六花陣: the great flower's frost again and again, smaller: a star of three ways through
-    // where you stand, each turned a half step from the last and laid before the last has broken (two lit at once); no
-    // needles. 쉬움 three, further apart. Act three, the execution, 葬: the snow of a hundred years over the ground under you,
-    // lit a full second, and it shatters as act one's great flower: out of it, any way (by a wall it hangs off the edge)
-    frost: { name: ["六花葬送", "육화장송"], acts: 3, run(o = {}) {
+    // 百年雪葬 (11-24, 설귀; was 六花葬送, ice flowers breaking into needles and the great flower of frost). Three acts (FIN_ACTS), no
+    // beat held in any (its own timing; the rage between acts FIN_PRESS_RAGE's): act one, 足音 — his footprints from every quarter,
+    // quicker (보통 five, each cut shown before the last lands), and as the last lands the snow bursting under you; act two, 雪塚 —
+    // mound, footprints, mound, footprints, each shown as the last lands; act three, the execution, three clashes: 百步 — eight sets
+    // of footprints walking in at once from all round you, and where they stop he is there four times over: four cuts through you at
+    // once, a star lit a full second (out between its arms); then his cut where you are going, and again (FIN_PRESS.frost)
+    frost: { name: ["百年雪葬", "백년설장"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
-      const L = lvl(), q = clamp((L - 9) / 13, 0, 1), u = bossUnit(b.def), tint = fightTint(b.def), ICE = "#cfe8f6", BLUE = "#5f8fb4";
-      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
-      const n = 6, gap = 0.29 - 0.02 * q, born = 0.4, tele = 0.8, fuse = 1.2, R0 = S * 0.3; // (each flower: harmless while it glides in, its ways lit 0.8 s before it breaks; never more than three lit at once)
-      const nsp = S * (0.72 + 0.12 * q), len = S * 0.05, DR = 5; // (DR: how hard it slows as it glides: settled by the time its ways light)
-      const turn = Math.random() < 0.5 ? 1 : -1, phis = [0, 1, 2, 3, 4, 5].map(() => rnd(0.08, 0.55)), g0 = rnd(0, Math.PI / 3);
-      const top = barTop() + S * 0.06, m = S * 0.06;
-      const spot = (side, phi) => { // where it settles: R0 to your left or right, phi above level (by a wall, higher up that side; else the other side)
-        const bb = G.boss || b;
-        for (const [sd, ph] of [[side, phi], [side, phi + 0.55], [side, 1.25], [-side, phi]]) {
-          const th = sd > 0 ? -ph : Math.PI + ph, x = P.x + Math.cos(th) * R0, y = clamp(P.y + Math.sin(th) * R0, top, H - m);
-          if (x >= m && x <= W - m && Math.hypot(x - P.x, y - P.y) >= S * 0.2 && Math.hypot(x - bb.x, y - (bb.y + u * 0.8)) > u * 2.6) return [x, y];
-        }
-        const th = side > 0 ? -phi : Math.PI + phi;
-        return [clamp(P.x + Math.cos(th) * R0, m, W - m), clamp(P.y + Math.sin(th) * R0, top, H - m)];
-      };
-      const fling = (x0, y0, x1, y1) => { // (drawing only) a white streak of snow from its blade to where the flower comes from
-        if (!fxOn()) return;
-        G.parts.push({ kind: "fxfling", x: x1, y: y1, vx: 0, vy: 0, t: 0, life: 0.3, draw(p) {
-          const e = Math.min(1, p.t / 0.12), hx = x0 + (x1 - x0) * e, hy = y0 + (y1 - y0) * e, tl = Math.max(0, e - 0.45), tx = x0 + (x1 - x0) * tl, ty = y0 + (y1 - y0) * tl;
-          ctx.globalAlpha = 1 - Math.max(0, (p.t - 0.12) / 0.18); ctx.lineCap = "round";
-          ctx.strokeStyle = "rgba(95,143,180,0.45)"; ctx.lineWidth = S * 0.014; ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
-          ctx.strokeStyle = "rgba(255,255,255,0.95)"; ctx.lineWidth = S * 0.005; ctx.stroke();
-        } });
-      };
-      // 六花: six flowers, one every `gap`, flung off its blade to your left and right by turns
-      if (act === 1) for (let k = 0; k < n; k++) later(k * gap, () => {
-        const bb = G.boss; if (!bb) return;
-        const side = (k % 2 ? -1 : 1) * turn, [tx, ty] = spot(side, phis[k]);
-        const hx = bb.x - u * 1.7, hy = bb.y + u * 2.1; // (its ice blade's tip)
-        const x0 = tx + (hx - tx) * 0.22, y0 = ty + (hy - ty) * 0.22; // (it shows a fifth of the way from the blade, gliding the rest: settled before its ways light)
-        // (11-17 review: its body harmless till WARN_MIN by the wall clock after it shows — born 0.4 game s was 0.33 s, and a
-        // hero walking into one could be cut that soon; 설귀's own 氷花亂舞 keeps its born)
-        const safeT = Math.max(born, WARN_MIN * (G.slow || 1) * (G.timeK || 1) * (G.bossK || 1) + 0.02);
-        iceFlower({ x: x0, y: y0, vx: (tx - x0) * DR * 1.04, vy: (ty - y0) * DR * 1.04, drag: DR, curl: 0, rot: phis[k] * 3, spin: side * 1.4,
-          r: S * 0.026, born: safeT, tele, fuse, aim: true, needle: { sp: nsp, len } });
-        bb.castT = bb.castDur = 0.25; bb.swing = { t: 0, ang: Math.atan2(ty - bb.y, tx - bb.x) }; sfx.whoosh();
-        fling(hx, hy, x0, y0);
-        if (!reduced) { fxFlare(x0, y0, S * 0.03, ICE, 0.24); for (let i = 0; i < 4; i++) fxMote("flake", x0, y0, moteOf(b.def), true); }
-      });
-      // the great flower of frost: spread over the ground under you, its six arms along three ways through you, and broken
-      const tB = (n - 1) * gap + fuse + 0.2, durB = 0.95, wB = S * 0.08, heart = {};
-      const crystal = (x, y, g = g0, Lc = S * 0.44, dc = durB) => G.hazards.push({ kind: "frostArt", x, y, t: 0, dur: dc + 0.02, best: Infinity, near: true, dist: () => Infinity,
-        draw(h, time) { // (it cuts nothing: the three red ways are the warning; this is the frost they are made of)
-          const k = clamp(h.t / (dc * 0.75), 0, 1), e = 1 - (1 - k) ** 3, Lr = Lc * e, br = 0.5 + 0.5 * Math.sin(time * (10 + 22 * k));
-          ctx.save(); ctx.translate(h.x, h.y); ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.globalAlpha = 0.4 + 0.5 * k;
-          ctx.beginPath();
-          for (let i = 0; i < 6; i++) {
-            const a = g + (i * Math.PI) / 3, c = Math.cos(a), s = Math.sin(a);
-            ctx.moveTo(c * S * 0.03, s * S * 0.03); ctx.lineTo(c * Lr, s * Lr);
-            for (const f of [0.34, 0.6, 0.82]) {
-              const tw = Lr * (0.3 - f * 0.22);
-              for (const d of [-1, 1]) { const a2 = a + (d * Math.PI) / 3; ctx.moveTo(c * Lr * f, s * Lr * f); ctx.lineTo(c * Lr * f + Math.cos(a2) * tw, s * Lr * f + Math.sin(a2) * tw); }
-            }
-          }
-          ctx.strokeStyle = "rgba(95,143,180,0.6)"; ctx.lineWidth = Math.max(3, S * 0.012); ctx.stroke();
-          ctx.strokeStyle = `rgba(255,255,255,${0.65 + 0.35 * br})`; ctx.lineWidth = Math.max(1.4, S * 0.005); ctx.stroke();
-          ctx.beginPath(); for (let i = 0; i < 6; i++) { const a = g + (i * Math.PI) / 3 + Math.PI / 6; ctx.lineTo(Math.cos(a) * S * 0.04 * e, Math.sin(a) * S * 0.04 * e); } ctx.closePath();
-          ctx.fillStyle = "rgba(225,240,250,0.85)"; ctx.fill(); ctx.strokeStyle = "rgba(29,26,23,0.6)"; ctx.lineWidth = 1.2; ctx.stroke();
-          ctx.restore();
-        } });
-      const shatter = () => { // one white burst: the frost breaks along every arm and the snow of a hundred years flies up
-        const x = heart.x, y = heart.y, bb = G.boss;
-        if (bb) { bb.castT = bb.castDur = 0.6; bb.swing = { t: 0, ang: Math.atan2(y - bb.y, x - bb.x) }; }
-        sfx.issen(); sfx.shing(); sfx.burst(); buzz([30, 20, 60]); G.shake = Math.max(G.shake, reduced ? 0 : 18);
-        flash("236,244,250", 0.55);
-        if (reduced) return;
-        const sf = Math.hypot(P.x - x, P.y - y) < S * 0.14 ? 0.45 : 1; // (you stand just off its heart: its light is not on you, as impact())
-        frostPop(x, y, S * 0.07, g0); frostPop(x, y, S * 0.13, g0 + Math.PI / 6);
-        fxFlare(x, y, S * 0.2 * sf, BLUE, 0.7); fxFlare(x, y, S * 0.1 * sf, "#fffdf4", 0.45);
-        fxWave(x, y, S * 1.0, tint, 0.7, S * 0.04); fxWave(x, y, S * 0.5, "#eaf4fb", 0.5, S * 0.022);
-        fxPillar(x, y + S * 0.04, S * 0.09 * sf, H, BLUE, 0.85);
-        for (let i = 0; i < 6; i++) {
-          const a = g0 + (i * Math.PI) / 3;
-          for (const f of [0.16, 0.3, 0.44]) { const px = x + Math.cos(a) * S * f, py = y + Math.sin(a) * S * f; if (px > 0 && px < W && py > 0 && py < H) frostPop(px, py, S * (0.05 - f * 0.05), a); }
-          fxStreaks(x, y, 6, ICE, S * 1.4, S * 0.08, 0.45, 0.22, a); fxStreaks(x, y, 3, "#fffdf4", S * 1.1, S * 0.06, 0.4, 0.15, a);
-        }
-        for (let i = 0; i < 26; i++) fxMote("flake", x + frnd(-S * 0.08, S * 0.08), y + frnd(-S * 0.08, S * 0.08), moteOf(b.def), true);
-      };
-      if (act === 2) { // 六花陣: a star at a time under you, three ways through you, a half step turned each time
-        const cnt = ez ? 2 : hi ? 6 : 5, iv = ez ? 0.6 : hi ? 0.5 : 0.55, dS = 0.8, wS = S * 0.07;
-        for (let k = 0; k < cnt; k++) {
-          const g = g0 + (turn * k * Math.PI) / 6, st = {};
-          for (let i = 0; i < 3; i++) G.warns.push({ kind: "band", x: 0, y: 0, ang: g + (i * Math.PI) / 3, w: wS, t: 0, dur: dS, delay: k * iv,
-            place(w) {
-              if (!st.set) {
-                st.set = true; st.x = P.x; st.y = P.y; crystal(st.x, st.y, g, S * 0.3, dS); sfx.warn();
-                const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.3; bb.swing = { t: 0, ang: Math.atan2(st.y - bb.y, st.x - bb.x) }; }
-              }
-              w.x = st.x; w.y = st.y;
-            },
-            fire(w) {
-              landCut({ ...w, tint: "95,143,180" });
-              if (i || reduced) return;
-              frostPop(st.x, st.y, S * 0.06, g); fxFlare(st.x, st.y, S * 0.08, BLUE, 0.35);
-              for (let j = 0; j < 6; j++) fxStreaks(st.x, st.y, 3, ICE, S * 0.9, S * 0.05, 0.35, 0.2, g + (j * Math.PI) / 3);
-            } });
-        }
-        return (cnt - 1) * iv + dS + (ez ? 0.2 : 0.35);
+      const act = o.act || 1, sl = SL().lv || 0, ez = sl < 9, hi = sl >= 11;
+      for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); } // (alone on the field: what its 종전 left in the air breaks as the name goes up)
+      G.warns = []; G.hazards = []; for (const c of G.cuts) c.checked = true;
+      if (b.dash || b.home > 0 || b.y > H * 0.33) { b.dash = null; b.home = 0; b.vanish = 0; bossBlink(clamp(b.x, W * 0.25, W * 0.75), H * 0.24); } // (on its own ground first, never onto you)
+      if (act === 1) { // 足音 ▶ 雪塚
+        const n = ez ? 4 : hi ? 6 : 5, gap = ez ? 0.6 : 0.45, D = ez ? 0.8 : 0.72, trk = handTrack(9), a0 = rnd(0, Math.PI * 2);
+        for (let i = 0; i < n; i++) sgSteps(0.1 + i * gap, D, { a: a0 + i * 2.4, trk: i % 2 ? trk : null, tag: "sf1" });
+        const tM = 0.1 + (n - 1) * gap + SG_WALK + D, DM = ez ? 0.85 : 0.8;
+        sgMound(tM, DM); sgGone(tM + DM);
+        return tM + DM + 0.2;
       }
-      if (act === 3) { // 葬: lit a full second, then act one's white burst over all of it
-        const R3 = S * (ez ? 0.22 : 0.26), D3 = 1.0, sd = rnd(0, 6);
-        G.warns.push({ kind: "spike", x: 0, y: 0, r: R3, seed: sd, t: 0, dur: D3, delay: 0.1,
-          place(w) {
-            w.x = clamp(P.x, R3 * 0.2, W - R3 * 0.2); w.y = clamp(P.y, H * 0.16, H - R3 * 0.2);
-            crystal(w.x, w.y, g0, R3 * 0.95, D3);
-            const bb = G.boss; if (bb) { bb.raise = { t: 0, dur: D3 * 0.82 }; bb.castT = bb.castDur = D3; }
-            sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.85);
-            if (!reduced && bb) { fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H, ICE, D3); for (let i = 0; i < 16; i++) fxMote("flake", w.x + frnd(-R3, R3), w.y + frnd(-R3, R3), moteOf(b.def), false); }
-          },
-          fire(w) {
-            G.hazards.push({ kind: "frostTomb", x: w.x, y: w.y, r: R3, t: 0, dur: 0.45, best: Infinity, near: false,
-              dist() { return this.t < 0.28 ? Math.max(0, Math.hypot(P.x - this.x, P.y - this.y) - this.r) : Infinity; },
-              draw(h) { // the frost over it, white, breaking up
-                const e = clamp(h.t / 0.45, 0, 1);
-                ctx.save(); ctx.globalAlpha = 1 - e; ctx.fillStyle = "rgba(236,244,250,0.75)"; ctx.beginPath(); ctx.arc(h.x, h.y, h.r * (1 + 0.1 * e), 0, Math.PI * 2); ctx.fill();
-                ctx.strokeStyle = "rgba(95,143,180,0.8)"; ctx.lineWidth = 2; ctx.stroke(); ctx.restore();
-              } });
-            heart.x = w.x; heart.y = w.y; shatter(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24);
+      if (act === 2) { // 雪塚 ▶ 足音, again
+        const n = ez ? 2 : hi ? 4 : 3, DM = ez ? 0.85 : 0.75, D = ez ? 0.8 : 0.72, trk = handTrack(9);
+        let t = 0.1;
+        for (let i = 0; i < n; i++) { sgMound(t, DM); t += DM; sgSteps(t - SG_WALK, D, { trk, tag: "sf2" }); t += D; }
+        sgGone(t);
+        return t + 0.2;
+      }
+      const D3 = 1.0, at3 = 0.1, g0 = rnd(0, Math.PI / 4); // 百步
+      sgGone(at3 + D3 + 1.5);
+      kitLater(at3, () => {
+        const x = P.x, y = P.y, st = (D3 * 0.6) / SG_N, trails = []; // (all walking in at once over the first 0.6 s of its lit second)
+        for (let i = 0; i < 8; i++) { const a = g0 + (i * Math.PI) / 4; trails.push({ a, pr: sgTrail(x, y, a, S * 0.5, S * 0.22, SG_N), ex: x + Math.cos(a) * S * 0.22, ey: y + Math.sin(a) * S * 0.22 }); }
+        const h = { kind: "ctl", x, y, t: 0, dur: D3 + 1.0, best: Infinity, near: true, dist: () => Infinity, spent: () => true, cutAt: Infinity,
+          draw(hh, time) {
+            for (const tr of trails) sgPrints(tr.pr, tr.a + Math.PI, hh.t, st, hh.cutAt);
+            if (hh.t >= st * SG_N && hh.t < hh.cutAt + 0.3) for (let i = 0; i < 8; i += 2) { const tr = trails[i]; sgGhost(tr.ex, tr.ey, 0.55 * (1 - clamp((hh.t - hh.cutAt) / 0.3, 0, 1)), tr.a + Math.PI, time); } // (four of him)
+          } };
+        G.hazards.push(h);
+        const bb = G.boss; if (bb) bb.castT = bb.castDur = D3;
+        sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.85);
+        for (let i = 0; i < 4; i++) G.warns.push({ kind: "band", x, y, ang: g0 + (i * Math.PI) / 4, w: S * 0.09, t: 0, dur: D3, delay: 0, tint: SG_CUT,
+          fire(v) {
+            landCut(v); cutSpray(v, "snow"); if (i) return;
+            h.cutAt = h.t; later(0.18, () => sfx.sheath());
+            sfx.issen(); snowWhump(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 12); flash("236,244,250", 0.5);
             if (reduced) return;
-            G.stopT = Math.max(G.stopT, 0.12); fxWave(w.x, w.y, S * 1.3, BLUE, 0.8, S * 0.05);
-            for (let i = 0; i < 12; i++) { const a = (i / 12) * Math.PI * 2; frostPop(w.x + Math.cos(a) * R3 * 0.8, w.y + Math.sin(a) * R3 * 0.8, S * 0.04, a); }
+            G.stopT = Math.max(G.stopT, 0.12); fxWave(x, y, S * 1.2, "#5f8fb4", 0.8, S * 0.05); fxWave(x, y, S * 0.6, "#eaf4fb", 0.5, S * 0.022);
+            for (let j = 0; j < 24; j++) fxMote("dust", x + frnd(-S * 0.3, S * 0.3), y + frnd(-S * 0.3, S * 0.3), "#f4f2ec", true);
           } });
-        return 0.1 + D3 + (ez ? 0.35 : 0.6);
-      }
-      later(tB, () => {
-        const bb = G.boss; if (!bb) return;
-        heart.x = P.x; heart.y = P.y; heart.lit = false;
-        for (let i = 0; i < 3; i++) G.warns.push({ kind: "band", x: heart.x, y: heart.y, ang: g0 + (i * Math.PI) / 3, w: wB, t: 0, dur: durB, delay: 0,
-          fire(w) { landCut({ ...w, tint: "95,143,180" }); if (!heart.lit) { heart.lit = true; shatter(); } } });
-        crystal(heart.x, heart.y);
-        bb.raise = { t: 0, dur: durB * 0.82 }; sfx.warn(); sfx.gather(); G.dark = Math.max(G.dark, 0.5);
-        if (!reduced) { fxPillar(bb.x, bb.y + u * 2.2, u * 1.4, H * 0.6, ICE, 0.8); fxFlare(bb.x - u * 1.7, bb.y + u * 2.1, S * 0.06, ICE, 0.6); for (let i = 0; i < 14; i++) fxMote("flake", heart.x + frnd(-S * 0.3, S * 0.3), heart.y + frnd(-S * 0.3, S * 0.3), moteOf(b.def), false); }
-      });
-      return tB + durB + 0.55;
+      }, "sf3");
+      return at3 + D3 + 0.35;
     } },
     // 月落三更: 흑월교주's last (11-16, "달이 지기 전에 너를 묻는다."). Three swings of his great black blade, and each one is
     // a crescent moon: a blade of a waning moon's shape, thick where you stand and thin at its two horns, laid round you
@@ -9861,7 +9901,11 @@ sdk.initializeAsync()
       const [ex, ey] = edgePoint(true), m = S * 0.05;
       G.warns.push({ kind: "clone", x: 0, y: 0, ang: 0, t: 0, dur, delay: 0, place(w) { w.x = clamp(ex, m, W - m); w.y = clamp(ey, m, H - m); w.edge = true; w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); }, fire(w) { cloneDash(w.x, w.y, w.ang); } }); } },
     fire: { tail: [0.55, 0.1, 0.6], lit: 0.75, hit: (dur) => underYou((w) => spikeErupt(w.x, w.y, w.r, "fire"), S * 0.075, dur) }, // 불기둥
-    frost: { tail: [0.55, 0.35, 0.6], lit: 0.75, hit: () => spawnSlash(false) }, // its 발도 (its own length, about 0.75 s, its way kept off the walls)
+    // (11-24 재설계, 4-5 설귀: each act a chain of its own beats, nothing laid on acts one and two; after 百步 his cut out of footprints
+    // already there, where you are going, twice)
+    frost: { tail: [0.2, 0.2, 0.35], lit: 0.75, mid: [], hit: (dur) => sgSteps(0, dur, { step: 0, trk: handTrack(dur + 1), tag: "fp4" }) },
+    // (11-24 재설계, 2-5 탁랑: the same; after 覆舟 his cut where you are going, twice)
+    lotus: { tail: [0.2, 0.2, 0.35], lit: 0.75, mid: [], hit: (dur) => bladeCut(0, dur, { ...TL_CUT(), trk: handTrack(dur + 1), tag: "fp2" }) },
     void: { tail: [0.3, 0.52, 0.6], lit: 0.95, mid: [0.3, 0.65], mid2: [0.5], hit: (dur) => { const R = S * 0.11; blackMoon(clamp(P.x, R * 0.6, W - R * 0.6), clamp(P.y, H * 0.16, H - R * 0.6), R, dur, 0.5); } }, // a moon where you stand
     charge: { tail: [0.85, 0.1, 0.46], lit: 0.8, mid: [0.3, 0.65], mid2: [0.45], hit: (dur) => band(rnd(0, Math.PI), S * 0.06, dur, "199,120,42") }, // a claw across you
     veil: { tail: [0.55, 0.1, 0.6], lit: 0.8, mid2: [0.5], hit: () => oneClone() }, // a shadow out of the air round you
@@ -10062,60 +10106,23 @@ sdk.initializeAsync()
         },
         draw() {} });
     },
-    lotus(b, u) { // 돌아오지 못하는 꽃잎 (fallA B-연화): her petals fly out in a ring as in 蓮華歸 and stop; they glint as if to
-      // turn home — and do not. One by one they sink and settle on the water, a ring spreading where each lands, and fade
-      // while her last words run. By the wall clock (the shared halves' own), so it lands while she is still speaking.
-      const B = b, n = 11, cx = b.x, cy = b.y + u * 0.5, R = S * 0.25, t0 = performance.now() / 1000;
-      const L = u * 0.52, Wd = u * 0.24, notes = [783.99, 880, 1046.5, 1174.66];
-      let chimed = false;
-      for (let i = 0; i < n; i++) {
-        const a = t0 * 1.1 + (i / n) * Math.PI * 2, ks = 0.88 + frnd(0, 0.22), dur = frnd(0.3, 0.42), drop = S * frnd(0.05, 0.12), ph = frnd(0, 6.3);
-        let landed = 0;
-        G.parts.push({ kind: "lotusX", x: cx, y: cy, vx: 0, vy: 0, t: 0, life: 60, keep: true, rot: a, sq: 1, al: 1, g: -1,
+    lotus(b, u) { // 탁랑 (11-24 재설계; was 연화's petals settling on the water): the river takes him back. A splash about his feet, and
+      // straws off his cape thrown out over the water, settling and drifting off downstream while his last words run (wall clock)
+      const B = b, cx = b.x, cy = b.y + u * 1.9;
+      if (!reduced) { fxWave(cx, cy, S * 0.5, TL_SPRAY, 0.6, S * 0.03); for (let i = 0; i < 14; i++) fxMote("drop", cx + frnd(-u, u), cy - u * frnd(0, 1.5), TL_SPRAY, true); }
+      for (let i = 0; i < 9; i++) {
+        const a = frnd(-Math.PI, 0), d = u * frnd(1.2, 2.6), x1 = cx + Math.cos(a) * d * 1.3, y1 = cy + Math.abs(Math.sin(a)) * d * 0.4 + frnd(-u * 0.3, u * 0.3), rot = frnd(0, Math.PI), drift = S * frnd(0.02, 0.05);
+        G.parts.push({ kind: "tlStraw", x: cx, y: cy - u, vx: 0, vy: 0, t: 0, life: 60, keep: true, al: 1,
           step(p) {
             if (G.boss !== B) { p.t = p.life; return; }
-            const k = B.downT;
-            if (i === 0 && !chimed && k >= 0.82) { // the glint, as if they would turn home now
-              chimed = true; const au = audio();
-              if (au && !muted) { const t = au.currentTime; pluck(t, 2093, 0.03, sfxBus, 0.7); pluck(t + 0.05, 2349.3, 0.022, sfxBus, 0.7); }
-            }
-            const e = 1 - Math.pow(1 - clamp(k / 0.55, 0, 1), 3), rx = u * 2.3 + (R - u * 2.3) * e, ry = u * 1.1 + (R * 0.86 - u * 1.1) * e, sw = a + 0.5 * e;
-            const hx = cx + Math.cos(sw) * rx, hy = cy + Math.sin(sw) * ry + (k > 0.55 ? Math.sin(k * 5 + ph) * u * 0.05 : 0);
-            const tau = clamp((k - ks) / dur, 0, 1), s = k - ks;
-            p.x = hx + (s > 0 ? Math.sin(s * 8 + ph) * u * 0.3 * (1 - tau) : 0);
-            p.y = hy + drop * (1 - Math.cos(Math.PI * tau)) / 2;
-            p.rot = sw + 2.2 * e + (k > 0.55 ? (k - 0.55) * 0.6 : 0) + (s > 0 ? Math.sin(s * 6 + ph) * 0.6 * (1 - tau) : 0);
-            p.sq = s > 0 && tau < 1 ? 0.35 + 0.65 * Math.abs(Math.sin(s * 7 + ph)) : tau >= 1 ? 0.55 : 1; // (turning as it drifts down; lying flat on the water)
-            p.g = k >= 0.82 && k < 1.08 ? (k - 0.82) / 0.26 : -1;
-            if (tau >= 1 && !landed) { // it touches the water
-              landed = k; const au = audio();
-              if (au && !muted && spaced("lotusdrop", 55)) pluck(au.currentTime, notes[i % 4], 0.05, sfxBus, 0.9);
-            }
-            p.land = landed ? k - landed : -1;
-            p.al = 1 - clamp((k - 1.75) / 0.4, 0, 1);
-            if (k > 2.3) p.t = p.life;
+            const k = B.downT, e = 1 - (1 - clamp(k / 0.5, 0, 1)) ** 3;
+            p.x = cx + (x1 - cx) * e + Math.max(0, k - 0.5) * drift; p.y = cy - u + (y1 - cy + u) * e - Math.sin(Math.PI * e) * u * 0.8;
+            p.al = 1 - clamp((k - 1.75) / 0.4, 0, 1); if (k > 2.3) p.t = p.life;
           },
           draw(p) {
-            if (p.al <= 0) return;
-            ctx.globalAlpha = p.al;
-            if (p.land >= 0 && p.land < 0.9) { // a ring on the water where it landed, and a fainter one after it
-              for (const d of [0, 0.14]) {
-                const q = clamp((p.land - d) / 0.75, 0, 1); if (q <= 0 || q >= 1) continue;
-                const r = u * 0.35 + S * 0.11 * (1 - (1 - q) * (1 - q));
-                ctx.strokeStyle = hexA("#3d6a8a", (d ? 0.38 : 0.62) * (1 - q)); ctx.lineWidth = 1 + 1.6 * (1 - q);
-                ctx.beginPath(); ctx.ellipse(p.x, p.y + u * 0.08, r, r * 0.32, 0, 0, Math.PI * 2); ctx.stroke();
-              }
-            }
-            if (p.g >= 0) { // the glint (as the fight's petals glint before they turn)
-              const r = u * 0.34 * (1.7 + p.g * 1.5);
-              ctx.save(); ctx.globalAlpha = p.al * (1 - p.g); ctx.fillStyle = "rgba(255,255,255,0.55)"; ctx.beginPath(); ctx.arc(p.x, p.y, r, 0, Math.PI * 2); ctx.fill();
-              ctx.strokeStyle = "rgba(61,106,138,0.55)"; ctx.lineWidth = 3; ctx.stroke(); ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 1.5; ctx.stroke(); ctx.restore();
-            }
-            ctx.translate(p.x, p.y); ctx.rotate(p.rot); ctx.scale(1, p.sq);
-            ctx.beginPath(); ctx.moveTo(-L, 0); ctx.quadraticCurveTo(-L * 0.1, -Wd * 1.7, L, 0); ctx.quadraticCurveTo(-L * 0.1, Wd * 1.7, -L, 0); ctx.closePath();
-            const g = ctx.createLinearGradient(-L, 0, L, 0); g.addColorStop(0, "#d8b4bc"); g.addColorStop(0.55, "#ecd2d4"); g.addColorStop(1, "#fff7f0"); // (her petals' pink, kept pale: never a red)
-            ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = "rgba(29,26,23,0.5)"; ctx.lineWidth = 1; ctx.stroke();
-            ctx.strokeStyle = "rgba(170,120,130,0.5)"; ctx.lineWidth = 0.8; ctx.beginPath(); ctx.moveTo(-L * 0.7, 0); ctx.lineTo(L * 0.6, 0); ctx.stroke(); // its vein
+            if (!(p.al > 0)) return;
+            ctx.globalAlpha = p.al; ctx.strokeStyle = "#b39a62"; ctx.lineWidth = Math.max(1, u * 0.05); ctx.lineCap = "round";
+            ctx.beginPath(); ctx.moveTo(p.x - Math.cos(rot) * u * 0.25, p.y - Math.sin(rot) * u * 0.08); ctx.lineTo(p.x + Math.cos(rot) * u * 0.25, p.y + Math.sin(rot) * u * 0.08); ctx.stroke();
           } });
       }
     },
@@ -11996,6 +12003,36 @@ sdk.initializeAsync()
   function eyesAt(hy, hr, color) { ctx.fillStyle = color; ctx.beginPath(); ctx.ellipse(-hr * 0.38, hy, hr * 0.26, hr * 0.09, 0.15, 0, Math.PI * 2); ctx.ellipse(hr * 0.38, hy, hr * 0.26, hr * 0.09, -0.15, 0, Math.PI * 2); ctx.fill(); }
   function line(color, w, x0, y0, x1, y1) { ctx.strokeStyle = color; ctx.lineWidth = w; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x1, y1); ctx.stroke(); }
   const LOOKS = {
+    lotus(u, t, o, def, ink) { // 탁랑 (11-24 재설계 §4 안 A; look key "lotus" kept, was 연화 and her petals, drawn below by bossFigure's own
+      // branches, now unused): a river pirate wet through — a rough short coat open at the chest, a straw cape over his shoulders with
+      // water running off its fringe, a black head-cloth knotted behind, a scar; a 언월도, a broad curved blade on a long haft, slanting
+      robe(u, 0.9, 1.2, ink, hexA(def.accent, 0.75), t, "torn", 1.9);
+      ctx.fillStyle = "#7a5a3c"; ctx.beginPath(); ctx.moveTo(-u * 0.32, -u * 0.45); ctx.lineTo(u * 0.32, -u * 0.45); ctx.lineTo(u * 0.16, u * 0.35); ctx.lineTo(-u * 0.16, u * 0.35); ctx.closePath(); ctx.fill(); // (his chest, bare under the coat)
+      sash(u, 0.9, "#3a2a1a", 0.18);
+      ctx.fillStyle = "#b39a62"; ctx.strokeStyle = "#6b5634"; ctx.lineWidth = Math.max(1, u * 0.04); // the straw cape, its fringe ragged
+      ctx.beginPath(); ctx.moveTo(-u * 0.55, -u * 0.62); ctx.quadraticCurveTo(0, -u * 0.86, u * 0.55, -u * 0.62); ctx.lineTo(u * 1.05, u * 0.35);
+      for (let i = 0; i <= 10; i++) ctx.lineTo(u * (1.05 - i * 0.21), u * (0.35 + (i % 2 ? 0.16 : 0) + 0.04 * Math.sin(t * 3 + i)));
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); for (let i = -4; i <= 4; i++) { ctx.moveTo(i * u * 0.1, -u * 0.62); ctx.lineTo(i * u * 0.23, u * 0.3); } ctx.stroke(); // (its straws)
+      ctx.fillStyle = "rgba(159,196,207,0.85)"; for (let i = 0; i < 4; i++) { const k = (t * 1.3 + i * 0.27) % 1; ctx.beginPath(); ctx.arc(u * (-0.85 + i * 0.55), u * (0.45 + k * 1.1), u * 0.045 * (1 - k * 0.5), 0, Math.PI * 2); ctx.fill(); } // (water dripping off it)
+      const hy = -u * 0.98, hr = u * 0.42;
+      headAt(hy, hr, ink); eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#e8dcc0");
+      ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(0, hy - hr * 0.12, hr * 1.04, Math.PI * 1.02, Math.PI * 1.98); ctx.closePath(); ctx.fill(); // his black head-cloth
+      ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = u * 0.09; ctx.beginPath(); ctx.moveTo(-hr * 0.8, hy - hr * 0.4); ctx.quadraticCurveTo(-hr * 1.6, hy - hr * 0.2 + Math.sin(t * 4) * hr * 0.15, -hr * 1.9, hy + hr * 0.35); ctx.stroke(); // (its knot's tails)
+      ctx.strokeStyle = "rgba(232,220,192,0.7)"; ctx.lineWidth = Math.max(1, u * 0.04); ctx.beginPath(); ctx.moveTo(hr * 0.15, hy + hr * 0.15); ctx.lineTo(hr * 0.55, hy + hr * 0.62); ctx.stroke(); // (a scar)
+      const hx = u * 0.8, hy2 = u * 0.4, ex = -u * 0.9, ey = u * 1.55, bx = u * 1.45, by = -u * 1.8; // the 언월도, slanting across him
+      const turn = armTurn(hx, hy2, o, 0.6);
+      line(ink, u * 0.24, u * 0.45, -u * 0.3, hx, hy2); // (his arm)
+      line("#1d1a17", u * 0.15 + 2, ex, ey, bx, by); line("#5b3a2a", u * 0.15, ex, ey, bx, by); // its haft
+      const ang = Math.atan2(by - ey, bx - ex);
+      ctx.save(); ctx.translate(bx, by); ctx.rotate(ang);
+      ctx.fillStyle = "#9aa3a8"; ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = Math.max(1.2, u * 0.05);
+      ctx.beginPath(); ctx.moveTo(-u * 0.25, 0); ctx.quadraticCurveTo(u * 0.3, -u * 0.8, u * 1.1, -u * 0.2); ctx.quadraticCurveTo(u * 0.5, -u * 0.05, u * 0.2, u * 0.14); ctx.closePath(); ctx.fill(); ctx.stroke(); // its broad curved blade
+      ctx.strokeStyle = "rgba(247,240,222,0.75)"; ctx.beginPath(); ctx.moveTo(-u * 0.05, -u * 0.28); ctx.quadraticCurveTo(u * 0.4, -u * 0.66, u * 1.02, -u * 0.22); ctx.stroke(); // (its edge, wet)
+      ctx.restore();
+      ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(hx, hy2, u * 0.13, 0, Math.PI * 2); ctx.fill();
+      ctx.restore(); return turn([bx + Math.cos(ang) * u, by + Math.sin(ang) * u - u * 0.2]);
+    },
     tiger(u, t, o, def, ink) { // 맹호: (11-08: a tiger, not a bear — pointed ears, 王 on the brow, white ruff and whiskers, hunched into great shoulders, three claws raised high)
       ctx.fillStyle = "rgba(29,26,23,0.35)"; // three claw marks torn in the air behind him, tapering ink strokes (felled, they come away from him and fall as leaves: FALL.charge)
       if (!o.down || reduced) for (let i = 0; i < 3; i++) { const dx = i * u * 0.45; ctx.beginPath(); ctx.moveTo(-u * 2.9 + dx, -u * 1.9); ctx.quadraticCurveTo(-u * 2.0 + dx + u * 0.1, -u * 0.4, -u * 2.1 + dx, u * 1.3); ctx.quadraticCurveTo(-u * 2.0 + dx - u * 0.1, -u * 0.4, -u * 2.9 + dx, -u * 1.9); ctx.fill(); }
@@ -12479,13 +12516,16 @@ sdk.initializeAsync()
       ctx.beginPath(); ctx.moveTo(x - u * 1.05, -u * 1.15); ctx.quadraticCurveTo(x, -u * 1.5, x + u * 1.05, -u * 1.15); ctx.lineTo(x + u * 1.8, u * 2.1); ctx.lineTo(x - u * 1.8, u * 2.1); ctx.closePath(); ctx.fill();
       ctx.globalAlpha = A * k; ctx.fillStyle = "#f7f0de"; for (const s of [-1, 1]) { ctx.beginPath(); ctx.ellipse(x + s * u * 0.26, -u * 1.75, u * 0.2, u * 0.05, -s * 0.2, 0, Math.PI * 2); ctx.fill(); }
     } },
-    lotus: { back(u, t, k, o, def) { // "연못 바닥까지": a great lotus opens under her feet, the water closing round her in a ring
-      ctx.save(); ctx.translate(0, u * 1.95); ctx.scale(1, 0.42); const r = u * 1.7 * (0.35 + 0.65 * k);
-      for (let i = 0; i < 10; i++) { const q = (i / 10) * Math.PI * 2 + 0.3; ctx.save(); ctx.rotate(q); ctx.fillStyle = `rgba(242,201,208,${0.85 * k})`; ctx.beginPath(); ctx.ellipse(r * 0.55, 0, r * 0.5, r * 0.2, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = hexA(def.accent, 0.7 * k); ctx.lineWidth = Math.max(1, u * 0.04); ctx.stroke(); ctx.restore(); }
-      ctx.fillStyle = `rgba(232,190,90,${0.9 * k})`; ctx.beginPath(); ctx.arc(0, 0, r * 0.22, 0, Math.PI * 2); ctx.fill();
+    lotus: { back(u, t, k) { // (11-24, 탁랑) "닻줄은 끊었다": his ship's black sail stands up behind him, its mast leaning, the river slopping round his feet
+      ctx.save(); ctx.globalAlpha *= k; ctx.lineJoin = "round"; ctx.lineCap = "round";
+      const sw = Math.sin(t * 1.6) * u * 0.12;
+      ctx.strokeStyle = TL_WOOD; ctx.lineWidth = u * 0.16; ctx.beginPath(); ctx.moveTo(u * 0.3, u * 1.9); ctx.lineTo(u * 0.75 + sw, -u * 3.4); ctx.stroke(); // its mast
+      ctx.fillStyle = TL_SAIL; ctx.beginPath(); ctx.moveTo(u * 0.7 + sw, -u * 3.2); ctx.quadraticCurveTo(-u * 1.2 + sw, -u * 2.2, -u * 2.3 + sw * 1.5, -u * 2.9);
+      ctx.lineTo(-u * 2.0 + sw * 1.2, u * 0.4); ctx.quadraticCurveTo(-u * 0.8 + sw, u * 0.1, u * 0.45, u * 0.6); ctx.closePath(); ctx.fill(); // the black sail
+      ctx.strokeStyle = "rgba(242,239,232,0.25)"; ctx.lineWidth = Math.max(1, u * 0.05); ctx.beginPath(); for (const f of [0.3, 0.55, 0.8]) { ctx.moveTo(u * 0.7 - u * 2.9 * f + sw, -u * 3.1 + u * 0.6 * f); ctx.lineTo(u * 0.5 - u * 2.5 * f + sw, u * 0.55 - u * 0.2 * f); } ctx.stroke(); // (its battens)
+      ctx.strokeStyle = `rgba(159,196,207,${(0.7 * k).toFixed(3)})`; ctx.lineWidth = u * 0.1; ctx.setLineDash([u * 0.5, u * 0.3]); ctx.lineDashOffset = -t * u * 1.5;
+      ctx.beginPath(); ctx.ellipse(0, u * 2.0, u * 2.3, u * 0.5, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]); // (the river about his feet)
       ctx.restore();
-      ctx.strokeStyle = hexA(def.accent, 0.6 * k); ctx.lineWidth = u * 0.12; ctx.setLineDash([u * 0.6, u * 0.25]); ctx.lineDashOffset = -t * u * 2;
-      ctx.beginPath(); ctx.ellipse(0, u * 0.6, u * 2.5, u * 0.8, 0, 0, Math.PI * 2); ctx.stroke(); ctx.setLineDash([]);
     } },
     fire: { back(u, t, k) { // "법당째 태워 주지": a ring of flame stands behind his head (the 화염광배)
       for (let i = 0; i < 12; i++) { const q = (i / 12) * Math.PI * 2; ctx.save(); ctx.translate(0, -u * 0.92); ctx.rotate(q); tongue(0, -u * 1.0, u * 0.28, u * (0.7 + 0.25 * Math.sin(t * 8 + i)) * k, t, i, ...FIRE); ctx.restore(); }
@@ -14342,7 +14382,7 @@ sdk.initializeAsync()
     // 11-06 "보스 잡을 때마다 보스 컨셉과 어울리는 코스튬": each boss's own clothes, won the first time it falls (in
     // 스테이지 모드, or in 보스전), never sold. `boss` is its place in BOSS_SET. Still no red, even for the red bosses.
     b_ssang: { name: "쌍영의 옷", boss: 0, tier: "보스", earn: "1-5 격파", hat: "#1d1a17", hatLine: "#d9d4c8", robe: "#141210", band: "#e8e2d4", eye: "#ffffff", ghost: "20,18,16", ghostLife: 0.55, mote: "ink", sheath: "#141210", guard: "#d9d4c8" },
-    b_yeon: { name: "연화의 옷", boss: 1, tier: "보스", earn: "2-5 격파", hat: "#d8c9a8", hatLine: "#3d6a8a", robe: "#2f5e7e", band: "#f0b7c8", eye: "#eaf6ff", ghost: "61,106,138", ghostLife: 0.32, mote: "petal", aura: "120,170,210", auraK: 0.25 },
+    b_yeon: { name: "탁랑의 옷", boss: 1, tier: "보스", earn: "2-5 격파", hat: "#d8c9a8", hatLine: "#3d6a8a", robe: "#2f5e7e", band: "#8a6a44", eye: "#eaf6ff", ghost: "61,106,138", ghostLife: 0.32, mote: "drop", aura: "120,170,210", auraK: 0.25 }, // (11-24: was 연화의 옷, her pink band and petals)
     b_jeok: { name: "적염의 옷", boss: 2, tier: "보스", earn: "3-5 격파", hat: "#3a2a1c", hatLine: "#ffb347", robe: "#c2621c", band: "#ffd27a", eye: "#fff0c8", eyeGlow: "255,170,60", ghost: "230,120,40", ghostLife: 0.3, mote: "ember", moteColor: "255,170,60", aura: "255,140,40", auraK: 0.3 },
     b_seolgwi: { name: "설귀의 옷", boss: 3, tier: "보스", earn: "4-5 격파", hat: "#eef3f7", hatLine: "#5f8fb4", robe: "#dfe8f0", band: "#5f8fb4", eye: "#bfe6ff", eyeGlow: "160,210,255", ghost: "190,212,235", ghostLife: 0.4, mote: "snow", aura: "200,225,255", auraK: 0.3, sheath: "#dfe8f0" },
     b_heukwol: { name: "흑월교주의 옷", boss: 4, tier: "보스", earn: "5-5 격파", hat: "#0d0c10", hatLine: "#c9c2d6", robe: "#0a090c", band: "#c9c2d6", eye: "#f0ecff", eyeGlow: "200,190,230", ghost: "10,9,12", ghostLife: 0.55, mote: "glow", moteColor: "210,200,240", aura: "40,30,60", auraK: 0.45, sheath: "#0a090c", guard: "#c9c2d6" },
