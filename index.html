@@ -297,7 +297,7 @@
         <button class="mode mode--mon" id="goMon" hidden><b>요괴전</b></button>
       </div>
       <button class="link" id="storyNew" hidden>스토리모드 처음부터</button>
-      <div class="lvl" id="stageLvl" role="group" aria-label="스테이지 난이도">
+      <div class="lvl" id="stageLvl" style="display:none" role="group" aria-label="스테이지 난이도">
         <span>스테이지 난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
       <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
@@ -348,7 +348,7 @@
     <section class="slip" data-seal="試">
       <h2 class="shop-title" id="devTitle">보스 비기</h2>
       <p class="shop-note" id="devNote">20장까지의 보스와 비기. 위 보기 줄에서 고른 대로 보여 준다. 처음부터는 비기와 섞는 공격을 번갈아 쓰다가 20초 뒤 종전에 들고, 종전에는 더 센 비기에 종전 고유기와 섞는 공격이 겹친다. 그것까지 버티면 벤다. 비기1만, 비기2만, 종전 고유기만은 대사 없이 그것 하나만 계속 되풀이하고, 체력은 줄지 않는다. 종전부터는 체력을 비운 채 바로 종전에 들어가 마무리 발악 세 막까지 간다. 보스만 쭉을 켜면 누른 보스부터 20-5까지 고른 보기대로 차례로 이어 보여 준다. 되풀이하는 보기는 세 번(종전 고유기는 네 번) 보고 다음 보스로 넘어간다.</p>
-      <div class="lvl" id="devLvl" role="group" aria-label="보스 난이도">
+      <div class="lvl" id="devLvl" style="display:none" role="group" aria-label="보스 난이도">
         <span>난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
       <div class="lvl dev-view" id="devView" role="group" aria-label="보기 방식">
@@ -384,7 +384,7 @@
     <section class="slip" data-seal="戰">
       <h2 class="shop-title">보스전</h2>
       <p class="shop-note" id="bossNote">스테이지에서 만난 보스와 다시 겨룬다. 베면 엽전을 받는다.</p>
-      <div class="lvl" id="bossLvl" role="group" aria-label="보스전 난이도">
+      <div class="lvl" id="bossLvl" style="display:none" role="group" aria-label="보스전 난이도">
         <span>난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
       <ol class="boss-list" id="bossList"></ol>
@@ -2555,7 +2555,15 @@ sdk.initializeAsync()
     if (LEVELS.includes(v)) return v;
     store.set(key, "normal"); return "normal";
   }
-  let stageLevel = storedLevel("stageLv");
+  // (11-24 제작자: "난이도가3개라 너무 혼자 개발하기 어렵다, 어려움으로 우선 통일해서 스테이지모드 난이도는 고르는거 없이")
+  // one difficulty for 스테이지 모드, 보스전 and 개발자 모드 alike: 어려움. The other two rows stay in the table but can't be
+  // picked; how far a player got at 쉬움 or 보통 carries over to 어려움's record, so a run picks up where it was
+  const ONE_LEVEL = "master";
+  {
+    const top = STAGE_LEVELS[ONE_LEVEL].top, far = Math.max(...LEVELS.map((l) => Number(store.get(STAGE_LEVELS[l].top, "0")) || 0));
+    if (far > (Number(store.get(top, "0")) || 0)) store.set(top, far);
+  }
+  let stageLevel = ONE_LEVEL;
   // the level in play: the stage's, or the one picked in 개발자 모드
   const SL = () => STAGE_LEVELS[G.dev ? G.dev.lvl : stageLevel];
   const stageTop = () => Number(store.get(STAGE_LEVELS[stageLevel].top, "0")) || 0;
@@ -2661,7 +2669,7 @@ sdk.initializeAsync()
   function enterStage() { // its card, a breath with nothing in the air
     const sd = stageDef(G.sg);
     G.phase = "title"; G.pt = 0; G.seedN = {}; G.boss = null; G.titleLen = 1.7; G.next = null;
-    $("stage").textContent = `${sd.label} · ${sd.world.name}${stageLevel !== "normal" ? " · " + STAGE_LEVELS[stageLevel].name : ""}`;
+    $("stage").textContent = `${sd.label} · ${sd.world.name}`;
     if (sd.boss) { enterStageFight(); return enterBoss(); } // the boss straight away, its own card for the stage's (11-06: "처음에 바로")
     G.card = { ch: { num: sd.label, name: sd.world.name, sub: sd.sub }, at: performance.now(), life: 1.7 };
     sfx.stage();
@@ -6172,7 +6180,7 @@ sdk.initializeAsync()
   }
   // ---- 개발자 모드: pick a boss, watch its 비기 three times, hear its three lines
   const DEV = /[?&]dev\b/.test(location.search);
-  let devLevel = LEVELS.includes(store.get("devLv", "normal")) ? store.get("devLv", "normal") : "normal"; // any of 스테이지 모드's three
+  let devLevel = ONE_LEVEL; // (11-24: 어려움 only, as 스테이지 모드 — ONE_LEVEL; it was any of its three)
   // (11-23 제작자: "일단 비기 dev에서 다 확인해보게 다양하게 보스만 해서 다 정리해서 넣어줘") the list's 보기 row: what every boss's
   // 보기 button shows. all: the fight as ever. sig / alt: its first or its second 비기 alone, over and over — no lines, nothing
   // mixed in or laid on it, no backdrop, its life never going down, DEV_REST between one's 破 and the next one's wind-up — at
@@ -14868,7 +14876,7 @@ sdk.initializeAsync()
   $("stagePick").addEventListener("change", () => stageLabels());
   function stageLabels() { // the stage button says the difficulty and which stage a run starts from; the chosen difficulty is lit
     const from = devPick() ?? stageTop();
-    $("stageSub").textContent = from > 0 ? `${STAGE_LEVELS[stageLevel].name} ${stageDef(from).label}부터` : STAGE_LEVELS[stageLevel].name;
+    $("stageSub").textContent = from > 0 ? `${stageDef(from).label}부터` : "1-1부터"; // (11-24: one difficulty, so it isn't named)
     $("stageSub").hidden = false;
     $("stageNew").hidden = from === 0;
     lvlButtons("stageLvl", stageLevel);
@@ -14897,7 +14905,7 @@ sdk.initializeAsync()
   // ---- 보스전 (11-06: "지난 보스 잡기 느낌으로"): every boss already met in 스테이지 모드, at any of its difficulties,
   // fought again one at a time at the difficulty picked here. A win pays 엽전 (more at 어려움); which were beaten at which
   // difficulty is kept. Only the next boss not yet met shows, locked; the rest stay a surprise.
-  let bossLevel = storedLevel("bossLv");
+  let bossLevel = ONE_LEVEL; // (11-24: 어려움 only, ONE_LEVEL)
   const BOSS_PAY = { easy: 0.5, normal: 1, master: 1.5 }, BOSS_NOTE = $("bossNote").textContent;
   const bossWins = (() => { try { return JSON.parse(store.get("bossWins", "{}")) || {}; } catch { return {}; } })();
   const furthest = () => Math.max(0, ...Object.values(STAGE_LEVELS).map((l) => Number(store.get(l.top, "0")) || 0));
