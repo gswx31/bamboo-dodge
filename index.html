@@ -2986,9 +2986,10 @@ sdk.initializeAsync()
     ["c_rain3", "이화 다섯 갈래", HEAVY, () => pearFan(), true], // (梨花: five ways out of the top of the pass, the middle through you; NO_MORE)
   ]);
   kit("swords", [ // 검총주: the swords of the tomb
-    // (11-15, measured after the first pass: still never hit in 11장) two swords from two walls, the second a breath behind;
-    // the 발도 crossed
-    ["c_swords1", "비검", LIGHT, () => { for (let i = 0; i < 2; i++) kitLater(i * 0.28, () => (G.phase === "fight" || G.phase === "boss") && edgeAim((x, y, a) => { sfx.shing(); shoot("sword", x, y, a, S * 1.45, { len: S * 0.12, r: S * 0.008 }); }), "sw1"); }],
+    // (11-25 작은 탄 정리, 제작자 "작은 탄이 아직 남은 11-5 비검 … 수정해줘": was 비검, two small swords off two walls at you)
+    // its 발도 from where it stands, through you (in its stages it waits in the tomb: only the cut); 어려움, in its stages,
+    // a second across it through where you are going
+    ["c_swords1", "발도", LIGHT, () => { const D = G.phase === "boss" ? 0.75 : 0.85, ch = {}; bladeCut(0, D, { ch, still: true, tint: CUT_STEEL, spray: "steel", tag: "sw1" }); if (moreS(1) > 1) bladeCut(0.55, 0.8, { ch, still: true, trk: handTrack(1.5), tint: CUT_STEEL, spray: "steel", tag: "sw1b" }); }],
     // (11-15, measured again: 11장 still never hit — every one of its attacks a line through you, one step aside from it)
     // the tomb's blades bursting up out of the ground where you stand, once in its stages and three times in its fight,
     // following you (the old 검총주 raised its swords about you too; the 발도 is in its 칼 무덤 already)
@@ -3012,10 +3013,12 @@ sdk.initializeAsync()
     ["c_noejeong2", "쌍뢰", MID, () => { rjGone(1.3); raiCross(0, G.phase === "boss" ? 0.75 : 0.85); }],
     ["c_noejeong3", "낙뢰참", HEAVY, () => SUBS.thunder.run(), true],
   ]);
-  kit("shadow", [ // 추혼: goblin fire and the shadows of the dead
-    ["c_shadow1", "도깨비불", LIGHT, () => { const [x, y] = edgePoint(); G.warns.push({ kind: "spot", edge: true, x: clamp(x, 8, W - 8), y: clamp(y, 8, H - 8), t: 0, dur: 0.7, delay: 0, fire: () => { shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * 0.55, { r: S * 0.012, skin: "wisp" }); sfx.whoosh(); } }); sfx.warn(); }],
+  kit("shadow", [ // 추혼: a line through your name and the shadows of the dead
+    // (11-25 작은 탄 정리, 제작자 "14-5 도깨비불 … 수정해줘": was 도깨비불, one goblin fire off an edge at you) he is beside you
+    // and draws a line through you as through a name in his register (in its stages he waits down the road: only the line)
+    ["c_shadow1", "명부 한 줄", LIGHT, () => { const D = G.phase === "boss" ? 0.75 : 0.85; bladeCut(0, D, { tint: CUT_SOUL, spray: "wisp", tag: "sh1" }); kitLater(D + 0.25, cutHome, "sh1h"); }],
     ["c_shadow2", "저승 그림자", MID, () => oneClone()],
-    ["c_shadow3", "도깨비불 셋", HEAVY, () => SUBS.shadow.run(), true],
+    ["c_shadow3", "이름 지우기", HEAVY, () => SUBS.shadow.run(), true],
   ]);
   // 호접's moths (11-23 제작자: "보라색이 좀 흩뿌리는게 너무 어정쩡해보여 그걸 빼고 나비로 공격하는 느낌처럼", "작은게 많아서
   // 어려워 적당한 선으로"): no burst of violet scales, no small wing thrown off the edge. A few great moths come in off the
@@ -5361,6 +5364,7 @@ sdk.initializeAsync()
   // next from somewhere else, at another angle. A band (landCut), its warning short and thin; the master's body is where it
   // was drawn. In a stage (no master) the line comes in off the edge. What flies off the cut is drawn only (leaves, snow)
   const CUT_W = () => S * 0.086, CUT_GREEN = "111,138,74", CUT_SNOW = "143,163,179"; // (the cuts' colours: 노근's bamboo green, 설붕's cold blue-grey — never red)
+  const CUT_STEEL = "150,156,163", CUT_SOUL = "143,208,200"; // (11-25: 검총주's grave steel, 추혼's ghost fire)
   function dashTo(x, y, n = 6) { // a blink, its afterimages along the way (drawn only); never onto you (bossBlink)
     const b = G.boss; if (!b) return;
     const x0 = b.x, y0 = b.y; bossBlink(x, y);
@@ -5371,8 +5375,8 @@ sdk.initializeAsync()
   function cutSpray(w, kind) { // off the line where it bit: bamboo leaves and chips (노근) or a spray of snow (설붕), drawn only
     if (reduced) return;
     const ux = Math.cos(w.ang), uy = Math.sin(w.ang);
-    const wet = kind === "water"; // (11-24 탁랑: the river off his 언월도's line)
-    for (let i = 0; i < 9; i++) { const d = frnd(-S * 0.45, S * 0.45), x = w.x + ux * d, y = w.y + uy * d; if (x < 0 || x > W || y < 0 || y > H) continue; fxMote(kind === "snow" ? "dust" : wet ? "drop" : "leaf", x, y, kind === "snow" ? "#f4f2ec" : wet ? TL_SPRAY : BAMBOO, true); }
+    const wet = kind === "water", soul = kind === "wisp", steel = kind === "steel"; // (11-24 탁랑: the river off his 언월도's line; 11-25 추혼's ghost fire, 검총주's sparks)
+    for (let i = 0; i < 9; i++) { const d = frnd(-S * 0.45, S * 0.45), x = w.x + ux * d, y = w.y + uy * d; if (x < 0 || x > W || y < 0 || y > H) continue; fxMote(kind === "snow" ? "dust" : wet ? "drop" : soul ? "wisp" : steel ? "ember" : "leaf", x, y, kind === "snow" ? "#f4f2ec" : wet ? TL_SPRAY : soul ? "#8fd0c8" : steel ? "#e3e6e8" : BAMBOO, true); }
     if (kind === "snow" || wet) fxStreaks(w.x, w.y, 6, wet ? "#d8eaef" : "#f4f2ec", S * 0.7, S * 0.05, 0.3, 0.5, w.ang + Math.PI / 2);
   }
   // one cut, `at` fight s on: through you (or, o.trk, through where you are going), at o.ang if given, else `turn` off the last
@@ -7639,20 +7643,43 @@ sdk.initializeAsync()
       mrCut(0, D, { h, pane: h.panes[i], tag: "mrs" }); mrCut(0.5, D, { h, pane: h.panes[1 - i], trk, tag: "mrs2" });
     } },
     rain: { name: "그림자 창", run() { const side = Math.random() < 0.35 ? (P.x < W / 2 ? 1 : -1) : 0; shadowThrust({ side, dur: 0.78 }); } }, // (11-20 관창) his spear's shadow out of the top or the far side wall, through you (was 빠른 청우검)
-    swords: { name: "비검", run() { // three swords off the boss's shoulders, straight at you, one after another
-      for (let k = 0; k < 3; k++) G.warns.push({ kind: "line", x: 0, y: 0, ang: 0, t: 0, dur: 0.65, delay: k * 0.3, // (11-08: never under 0.65 s)
-        place(w) { const [bx, by] = bossAt(); w.x = clamp(bx + (k - 1) * S * 0.3, S * 0.05, W - S * 0.05); w.y = by; w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
-        fire(w) { shoot("sword", w.x, w.y, w.ang, S * 1.4, { len: S * 0.12, r: S * 0.008 }); sfx.shing(); } });
+    // (11-25 작은 탄 정리, 제작자 "작은 탄이 아직 남은 11-5 비검 … 수정해줘": was 비검, three small swords off its shoulders
+    // straight at you) 拔劍斬: it throws its great sword to stick where you stand (lit 0.75 s; the tomb's blades burst up round
+    // it as it is driven in), and as it lands it is at it, pulls it free and cuts from there through where you went (lit
+    // 0.75 s): off the spot, then off the line. Then it is back where it stood
+    swords: { name: "발검참", run() {
+      const b = G.boss, hx = b ? b.x : W / 2, hy = b ? b.y : H * 0.24, D = G.phase === "boss" ? 0.75 : 0.85, R = S * 0.07, top = barTop() + R;
+      G.warns.push({ kind: "spike", x: 0, y: 0, r: R, seed: rnd(0, 6), t: 0, dur: D, delay: 0,
+        place(w) { w.x = clamp(P.x, R, W - R); w.y = clamp(P.y, top, H - R); throwing(); sfx.warn(); },
+        fire(w) {
+          const sw = plantSword(w.x, w.y, D + 0.4); spikeErupt(w.x, w.y, w.r, "blade");
+          G.warns.push({ kind: "band", x: 0, y: 0, ang: 0, w: S * 0.085, t: 0, dur: D, delay: 0, tint: CUT_STEEL,
+            place(v) { // (from the sword through you; still on its spot, you are under the blades already)
+              v.x = P.x; v.y = P.y; v.ang = Math.hypot(P.x - w.x, P.y - w.y) > S * 0.03 ? Math.atan2(P.y - w.y, P.x - w.x) : Math.PI / 2;
+              const bb = G.boss; if (bb) fixed("sbj", () => bossBlink(w.x, w.y - bossUnit(bb.def) * 1.6)); // (never onto you: bossBlink)
+              sfx.warn();
+            },
+            fire(v) {
+              landCut(v); cutSpray(v, "steel"); sw.t = Math.max(sw.t, sw.dur - 0.25); // (pulled free as it cuts)
+              const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.6; bb.swing = { t: 0, ang: v.ang }; }
+              later(0.18, () => sfx.sheath());
+            } });
+        } });
+      kitLater(D * 2 + 0.35, () => G.boss && bossBlink(hx, hy), "sbjh");
+      return D * 2 + 0.7;
     } },
     time: { name: "변효", run() { cgChange(0, 0.8, 0.72); } }, // (11-23 재설계; was 되감기, a ring of stars out and back) a broken 爻 through you that changes on you as it lands
     thunder: { name: "낙뢰참", run() { raiDrop(0, 0.8); } }, // (11-23 재설계; was 연쇄 낙뢰, lightning marching at you) he lands on you as a bolt and cuts out of it where you went
-    shadow: { name: "도깨비불", run() { // three goblin fires from the edges, straight at where you are (they bent after you, till 11-10)
-      const at = [0, 1, 2].map(() => edgePoint()); // (11-15 review: cast as it is thrown)
-      for (let k = 0; k < 3; k++) later(k * 0.3, () => {
-        const [x, y] = at[k];
-        G.warns.push({ kind: "spot", edge: true, x: clamp(x, 8, W - 8), y: clamp(y, 8, H - 8), t: 0, dur: 0.65, delay: 0, fire: () => { shoot("kunai", x, y, Math.atan2(P.y - y, P.x - x), S * 0.5, { r: S * 0.012, skin: "wisp" }); sfx.whoosh(); } });// (0.65: the least any warning gets)
-        sfx.warn();
-      });
+    // (11-25 작은 탄 정리, 제작자 "14-5 도깨비불 … 수정해줘": was 도깨비불, three goblin fires off the edges straight at you)
+    // 이름 지우기: he is beside you and draws a line through you as through a name in his register, then one across it
+    // through where you are going, lit as the one before is about to land (×); 어려움 once more. In its stages (it is
+    // their foreshadow too) only the lines
+    shadow: { name: "이름 지우기", run() {
+      const boss = G.phase === "boss", D = boss ? 0.75 : 0.85, n = boss ? moreN(2) : 2, gap = D - 0.2, ch = {}, trk = handTrack(n * D + 1); // (in its stages two: it comes there as its foreshadow and as c_shadow3 both)
+      for (let i = 0; i < n; i++) bladeCut(i * gap, D, { ch, trk: i ? trk : null, tint: CUT_SOUL, spray: "wisp", tag: "shx" });
+      const end = (n - 1) * gap + D;
+      kitLater(end + 0.25, cutHome, "shh");
+      return end + 0.4;
     } },
     // (11-23 제작자: "보라색이 흩뿌리는게 … 빼고 나비로 공격하는 느낌": was 독 날개, two bursts of twelve violet wings) three of
     // her great moths from three sides of you, one after another, each line drawn where you are by then (mothRaid)
@@ -7809,14 +7836,14 @@ sdk.initializeAsync()
     },
     swords: { // 11-5 검총주
       sig: ["이 칼 주인은 너보다 셌다.", "이놈 주인은 왼손잡이였지."], alt: ["뽑는 소리, 들었나.", "네 발밑에도 한 자루 묻혀 있다."],
-      half: "나머지 한 자루는 봉우리에 있다.", sub: "주인을 찾아가라.",
+      half: "나머지 한 자루는 봉우리에 있다.", sub: "꽂았다. 이제 뽑는다.",
       act: { 2: "무덤이 비어 간다!", 3: "네 칼도 여기 묻는다!" },
       hard: { intro: "네 사부가 이 골짜기를 다시 지날 때, 칼이 울더군. 뽑히지 못한 칼은 그렇게 운다.", act: { 3: "청죽문의 칼, 자리는 비워 뒀다!" } },
     },
     time: { // 12-5 천기
-      sig: ["초효부터 읽어 올라가네.", "여섯 줄에 한 평생이 다 있네."], alt: ["삼재가 끼었구먼.", "하늘, 땅, 사람. 세 줄이면 족하지."],
+      sig: ["초효부터 읽어 올라가네.", "음효일세. 틈은 자네가 찾게."], alt: ["삼재가 끼었구먼.", "어느 줄이 비었는지는 말 안 하네."],
       half: "앞서 간 자는 괘가 아예 서질 않았네. 이름을 버려서.", sub: "효 하나가 움직였네!",
-      act: { 2: "불은 붙어서 타는 법일세!", 3: "이위화. 자네 사부의 괘일세!" },
+      act: { 2: "불이 한 겹 더 붙었네. 뜨겁지?", 3: "이위화. 자네 사부의 괘일세!" },
       hard: { intro: "내려오던 그 친구는 괘가 바뀌었느냐고 묻지 않았네. 다들 그것부터 묻는데 말일세.", act: { 3: "그 친구는 웃으며 받았네. 자네는 어떤가!" } },
     },
     thunder: { // 13-5 뇌정
@@ -7827,7 +7854,7 @@ sdk.initializeAsync()
     },
     shadow: { // 14-5 추혼
       sig: ["네 그림자가 일어선다.", "네 발자국이 너를 데리러 온다."], alt: ["이름 석 자면 족하다.", "걸린 혼은 놓지 않는다."],
-      half: "이름을 버린 자는 나도 못 거둔다.", sub: "불빛을 따라오너라.",
+      half: "이름을 버린 자는 나도 못 거둔다.", sub: "네 이름 위에 줄을 긋는다.",
       act: { 2: "혼이 먼저 간다.", 3: "넋까지 거둔다!" },
       hard: { intro: "스무 해 전 네 사부가 이 길을 내려갔다. 명부에 없는 이름을 하나 더 지고.", act: { 3: "네 이름은, 내 손으로 거둔다!" } },
     },
@@ -7838,16 +7865,16 @@ sdk.initializeAsync()
       hard: { intro: "내려오는 길엔 나비가 어깨에 앉아도 모르더라. 꿈에서 다 깬 사람 같았어.", act: { 3: "깨지 마… 나 혼자 두지 마!" } },
     },
     wheel: { // 16-5 지륜
-      sig: ["한 바퀴로 끝날 리 없지.", "멈출 틈은 없다."], alt: ["가슴부터 꿰뚫는다.", "돌아서는 칼이 더 빠르다."],
-      half: "앞서 간 놈은 밤새 쫓아도 소매 하나 안 베이더군.", sub: "이 칼은 제가 설 데를 모른다.",
+      sig: ["안으로 들어오든가, 멀리 가든가.", "왼손 간다. …오른손도."], alt: ["가슴부터 꿰뚫는다.", "옆으로 비켰지? 거기다."],
+      half: "앞서 간 놈은 밤새 쫓아도 소매 하나 안 베이더군.", sub: "등 돌렸다고 끝난 줄 알았냐.",
       act: { 2: "해가 아직 떠 있다.", 3: "해를 떨어뜨린다. 그래야 멈춘다!" },
       hard: { intro: "내려오는 길엔 칼을 받아 주지 않았다. 아직도 도는 내 쌍륜을 한 번 보고는 그냥 지나갔지.", act: { 3: "그날처럼 해가 진다. 이번엔 네가 받아 봐라!" } },
     },
     pendulum: { // 17-5 명장
-      sig: ["쇠는 달았을 때 친다.", "백 번 쳐야 칼이 된다."], alt: ["집었으면 놓지 않는다.", "넌 이제 모루 위다."],
+      sig: ["탕, 탕. 다음은 쾅이다.", "가만있어라. 펴 주마."], alt: ["집게 피했으면, 메다.", "너무 붙지 마라. 쇳물 튄다."],
       half: "그놈은 지우러 왔지. 넌 뭘 새기러 왔느냐.", sub: "식기 전에 한 번 더.",
-      act: { 2: "모루가 운다!", 3: "하늘도 한 번 두드려 보자!" },
-      hard: { intro: "뒤에 온 놈은 쇳가루 한 줌을 쥐고 올라가더니, 쥔 채로 내려가더군.", act: { 3: "쇳가루 한 줌의 무게로 친다!" } },
+      act: { 2: "아직이냐! 아직도 안 펴졌냐!", 3: "하늘도 한 번 두드려 보자!" },
+      hard: { intro: "뒤에 온 놈은 쇳가루 한 줌을 쥐고 올라가더니, 쥔 채로 내려가더군.", act: { 3: "그놈이 갈아 낸 이름까지 얹어서 친다!" } },
     },
     crumble: { // 18-5 노근
       sig: ["넘어간다!", "결대로 간다!"], alt: ["낫도 있다!", "밑동부터 친다!"],
@@ -7904,7 +7931,7 @@ sdk.initializeAsync()
     swords: "주인 얼굴은 하나도 안 잊었다. 다 같이 간다.", time: "스무 해 전에 뽑은 괘를 다시 펴네. 이번엔 자네 몫일세.",
     thunder: "위를 봐라. 이번엔 내가 떨어진다.", shadow: "{me}. 오늘은 빈손으로 안 간다.",
     swarm: "한바탕 꿈이야. 깨지 말고 자.", wheel: "해 질 녘이다. 남은 바퀴를 전부 돌린다.",
-    pendulum: "천 번 쳐서 안 펴지면, 만 번 친다.", crumble: "쉰 해 동안 안 벤 대다. 네 쪽으로 넘긴다.",
+    pendulum: "이렇게 안 펴지는 쇠는 처음이다. 풀무 더 올려라!", crumble: "쉰 해 동안 안 벤 대다. 네 쪽으로 넘긴다.",
     glare: "이걸 넘으면 봉우리다. 마지막으로 재 보마.", final: "사제는 여기서 돌아섰다. 너는 어디까지 오나 보자.", // (glare 11-21: was "…편하시라고", no 하오체 ending)
   };
   // its life is gone: the field falls quiet for its last words (not on a retry: they were heard), then it gathers itself
@@ -9477,14 +9504,15 @@ sdk.initializeAsync()
       G.hazards.push(ctl);
       if (!reduced) { G.dark = Math.max(G.dark, 0.85); fxWave(b.x, b.y + u * 0.6, S * 0.9, WISP, 0.6, S * 0.03); }
       b.castT = b.castDur = 0.6; sfx.whoosh();
-      // 冥燈: the goblin fires, each straight down its lit line at where you were as it lit
+      // 冥燈: the goblin fires, each through where you were as it lit — the whole of its lit lane at once, a streak of ghost
+      // fire the length of the field (11-25 작은 탄 정리, 제작자 "14-5 도깨비불 … 수정해줘": was a small fire flown down it)
       spots.forEach(([x, y], k) => {
         const lamp = { x, y, x0: b.x + (k % 2 ? 1 : -1) * u * 1.6, y0: b.y + u * 0.4, t0: 0.04 * k, ph: frnd(0, 6), gone: false, w: null };
         ctl.lamps.push(lamp);
-        G.warns.push(lamp.w = { kind: "line", x, y, ang: 0, t: 0, dur: 0.8, delay: 0.25 + (0.22 - 0.03 * q2) * k,
+        G.warns.push(lamp.w = { kind: "band", x, y, ang: 0, w: S * 0.06, t: 0, dur: 0.8, delay: 0.25 + (0.22 - 0.03 * q2) * k, tint: CUT_SOUL,
           place(w) { w.ang = Math.atan2(P.y - y, P.x - x); sfx.warn(); },
           fire(w) {
-            lamp.gone = true; shoot("kunai", x, y, w.ang, S * (1.6 + 0.3 * q2), { r: S * 0.014, skin: "wisp" }); sfx.whoosh();
+            lamp.gone = true; landCut(w); cutSpray(w, "wisp"); sfx.whoosh();
             if (!reduced) { fxFlare(x, y, S * 0.04, WISP, 0.25); fxStreaks(x, y, 7, WISP, S * 0.7, S * 0.04, 0.3, 1.0, w.ang + Math.PI); }
           } });
       });
