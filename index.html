@@ -1977,7 +1977,7 @@ sdk.initializeAsync()
   // own clock (gatherLast; nothing in the air, startLast cleared it): no pause, no count, no grey. Reduced motion: the same
   // page held still, fading in and out (nothing slides, shakes or writes itself).
   const CUTIN = 0.95;
-  const CUT_MOTIF = { twin: "ink", lotus: "ripple", fire: "flame", frost: "snow", void: "moon", charge: "claw", veil: "ink", drum: "ring",
+  const CUT_MOTIF = { twin: "ink", lotus: "ripple", fire: "flame", frost: "snow", void: "moon", charge: "claw", veil: "ink", drum: "bell", // (drum 11-24 사물: was "ring")
     mirror: "shard", rain: "spear", swords: "blades", time: "gwae", thunder: "bolt", shadow: "wisp", swarm: "wing", wheel: "flame",
     pendulum: "forge", crumble: "bamboo", glare: "slab", final: "enso" }; // (11-23 재설계: 17-5 명장 "forge" (철추 was "chain"), 노근 "crack", 설붕 "hands")
   const HEAD_Y = { tiger: 0.82, snow: 1.12, twins: 0.92, lotus: 0.92, monk: 0.92, lord: 0.92, totem: 0.72 }; // (its eyes, in its u above its middle)
@@ -2030,6 +2030,15 @@ sdk.initializeAsync()
       ctx.globalAlpha = a * (kind === "ink" ? 0.55 : 0.8);
       if (kind === "ink") { ctx.beginPath(); ctx.arc(x, y, r * 1.6, 0, Math.PI * 2); ctx.fill(); }
       else { ctx.beginPath(); ctx.moveTo(x, y - r * 2.2 - Math.sin(T * 8 + i) * r * 0.5); ctx.quadraticCurveTo(x + r, y - r * 0.4, x, y + r * 0.6); ctx.quadraticCurveTo(x - r, y - r * 0.4, x, y - r * 2.2); ctx.fill(); }
+    } else if (kind === "bell") { // (11-24, 뇌음 사물) the great bell hanging in the dark, the striking beam swung into it, and its sound
+      // shaking the bell (no rings rolling out: they read as the 사자후 that left the game)
+      const bx = W * 0.24, R = h * 0.36, k = still ? 0.6 : (T * 0.8) % 1, hitK = k < 0.12 ? 1 - k / 0.12 : 0, sh = hitK * h * 0.012 * Math.sin(T * 90), top = -H2 + h * 0.08;
+      ctx.save(); ctx.translate(bx + sh, top); ctx.fillRect(-R * 0.06, 0, R * 0.12, R * 0.28);
+      ctx.beginPath(); ctx.moveTo(-R * 0.5, R * 0.3); ctx.quadraticCurveTo(0, R * 0.12, R * 0.5, R * 0.3); ctx.quadraticCurveTo(R * 0.58, R * 1.0, R * 0.78, R * 1.5); ctx.quadraticCurveTo(0, R * 1.7, -R * 0.78, R * 1.5); ctx.quadraticCurveTo(-R * 0.58, R * 1.0, -R * 0.5, R * 0.3); ctx.fill();
+      ctx.restore();
+      const swing = still ? 0 : k < 0.12 ? 0 : Math.sin(((k - 0.12) / 0.88) * Math.PI) * h * 0.5, x0 = bx + R * 0.95 + swing, y0 = top + R * 1.0;
+      ctx.lineWidth = h * 0.11; ctx.beginPath(); ctx.moveTo(x0, y0); ctx.lineTo(x0 + h * 1.1, y0); ctx.stroke(); // (the beam)
+      ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(x0 + h * 0.2, y0); ctx.lineTo(x0 + h * 0.2 - swing * 0.3, -H2); ctx.moveTo(x0 + h * 0.9, y0); ctx.lineTo(x0 + h * 0.9 - swing * 0.3, -H2); ctx.stroke(); // (its ropes)
     } else if (kind === "ring") for (let i = 0; i < 5; i++) { // the drum's beat rolling out
       const k = (T * 1.4 + i / 5) % 1; ctx.lineWidth = h * 0.05 * (1 - k); ctx.globalAlpha = a * (1 - k); ctx.beginPath(); ctx.arc(W * 0.28, 0, h * 0.2 + W * 0.7 * k, 0, Math.PI * 2); ctx.stroke();
     } else if (kind === "blades") { const k = still ? 1 : clamp(T / 0.3, 0, 1); for (let i = 0; i < 18; i++) { // a field of swords standing up out of the ground
@@ -2433,7 +2442,7 @@ sdk.initializeAsync()
     ["“원수를 베는 날, 네 칼이 무엇이 될지 생각해라”", "교주는 칼을 두 번 휘두른 적이 없다고 한다", "청죽문이 불탄 밤에도 교주가 앞장서 있었다", "사부의 원수가 저 봉우리 위에 있다", "검은 달이 떴다"],
     ["“힘센 자는 많다. 오래 사는 자는 드물다”", "타다 남은 대숲이 한 줄로 길게 쓰러져 있다", "범을 맨손으로 때려잡았다는 사내가 있다고 한다", "맹호, 대숲을 몸으로 뚫고 다니는 자", "바람에 짐승 냄새가 실려 온다"],
     ["“그림자 없는 자는 돌아갈 곳도 없다”", "안개가 걷히지 않는 계곡이 생겼다", "베인 자들은 칼을 보지 못했다고 한다", "무영, 그림자도 소리도 없는 자객", "안개 속에서 칼끝이 반짝였다"],
-    ["“버려진 것을 지키는 자가 가장 질기다”", "버려진 절에서 밤마다 북소리가 난다", "북소리를 들은 나그네는 다시 깨어나지 못했다고 한다", "뇌음, 새벽마다 북으로 산을 깨우던 승려", "목탁 소리가 멎고 북소리가 시작됐다"],
+    ["“버려진 것을 지키는 자가 가장 질기다”", "중들은 다 떠났는데 새벽마다 사물 소리가 난다", "북소리를 들은 나그네는 다시 깨어나지 못했다고 한다", "뇌음, 새벽마다 북으로 산을 깨우던 승려", "목탁 소리가 멎고 북소리가 시작됐다"], // (11-24 사물: X-2 was "버려진 절에서 밤마다 북소리가 난다")
     ["“남을 비추는 자는 제 얼굴을 잊는다”","고개 위의 눈이 한여름에도 녹지 않는다", "얼음 거울에 비친 칼이 진짜 칼보다 빠르다고 한다", "빙경, 받은 칼을 그대로 돌려보내는 여인", "얼음 벽마다 네 얼굴이 비친다"],
     ["“문을 닫는 사람이 먼저 갇힌다”", "그 고개엔 비가 그친 날이 없다고 한다", "스무 해 전 비 오던 밤, 관문지기 하나가 그 고개에서 죽었다고 한다", "관창, 그 밤 문을 연 검객을 스무 해째 기다리는 사내", "빗소리 너머로 빗장 걸리는 소리가 났다"], // (11-20: 관창; 11-22 X-4 '사부의 발자취')
     ["“주인 잃은 칼도 울 줄 안다”", "주인을 잃은 칼들이 묻힌 골짜기가 있다", "밤이면 칼무덤에서 쇠 우는 소리가 난다", "검총주, 만 자루 칼을 거느린 자", "하늘에 칼이 걸렸다"],
@@ -2820,11 +2829,12 @@ sdk.initializeAsync()
     { stage: "7-5", name: "무영", title: "無影 · 그림자 없는 자", look: "veil", accent: "#55525c", theme: "gorge", sig: "veil", sigName: ["無影劍", "무영검"],
       what: "무영이 사라졌다가 가장자리 곳곳에서 나타나며 나를 가로질러 벤다. 나타날 자리와 벨 길은 먹물 잔상으로 먼저 보인다. 마지막엔 잔상 넷이 한꺼번에 엇갈려 벤다.",
       intro: ["얼굴도 그림자도 버렸다. 남은 건 칼뿐이다.", "…그 검은 안다. 버리지 못하는 자의 검이다."], sigLine: "내 칼을 본 자는 없다. 너도 못 본다.", down: ["다 버리면 앞서 간 자처럼 될 줄 알았다. 네 사부는… 돌아갈 곳만 없어진다 했지.", "아프군… 버리지 못한 게… 아직 남아 있었나."] },
-    { stage: "8-5", name: "뇌음", title: "雷音 · 북 치는 승려", look: "drum", accent: "#a33b26", theme: "temple", sig: "drum", sigName: ["雷音", "뇌음"],
-      what: "북이 울릴 때마다 발밑에 붉은 띠가 깔렸다가 칼이 떨어진다. 넷째 박에는 엇갈린 띠가 두 개.",
+    // (11-24 재설계 §5 (가)-2 「사물」: the same monk, now striking all four of the temple's instruments himself — nmBlow, nmBell)
+    { stage: "8-5", name: "뇌음", title: "雷音 · 북 치는 승려", look: "drum", accent: "#a33b26", theme: "temple", sig: "drum", sigName: ["法鼓", "법고"],
+      what: "다들 떠난 절에서 절의 네 소리, 사물을 혼자 친다. 한달음에 내 곁으로 와서 치고, 친 악기가 제 모양 그대로 내 자리에 내려앉는다. 법고는 북채가 나를 지나 둥근 채 머리까지 길게 내리꽂히고, 두 채면 내 자리에서 엇갈린다. 둘째 비기 목어는 길쭉한 나무 물고기가 배를 깔고 떨어진 뒤 꼬리를 한 번 더 치고, 마지막엔 두 마리가 엇갈려 떨어진다. 종전에는 구름 모양 운판 석 장이 한 줄로 차례차례 울리는데 판 사이는 비어 있다. 마지막 발악 끝에는 범종이 하늘에서 내 자리로 내려온다.",
       intro: ["새벽마다 산을 깨우던 북이다. 오늘은 너를 재워 주마.", "발소리가 장단을 타는구나. 스무 해 전에도 하나가 내 북에 칼춤을 췄지."], sigLine: "장단은 내가 친다. 너는 춤이나 춰라!", down: ["버려진 걸 지키는 놈이 제일 질기다며 그 젊은이가 웃었지. 네가 그 웃음을 닮았다.", "마지막 한 박은… 네 것이었구나. 좋은 장단이었다."] },
     { stage: "9-5", name: "빙경", title: "氷鏡 · 얼음 거울", look: "mirror", accent: "#7fb6d4", theme: "snow", sig: "mirror", sigName: ["氷鏡", "빙경"],
-      what: "얼음 거울 넉 장이 땅에 선다. 보스가 거울에 고드름을 던지면 거울에서 꺾여 나에게 날아온다. 꺾이는 길이 먼저 빛줄기로 보인다. 갈수록 두 장이 한꺼번에 나를 겨눈다.",
+      what: "얼음 거울 넉 장이 땅에 선다. 거울 한 장에 빙경의 모습이 비치고, 거울이 나를 향해 돌아서면 비친 그녀가 거울에서 나를 지나는 선으로 칼을 뽑는다. 첫 칼 다음부터는 다른 거울에서 내가 가는 쪽을 벤다. 갈수록 두 장이 한꺼번에 비쳐 두 칼이 내 자리에서 엇갈린다. 둘째 비기 삼면경은 세 장이 한꺼번에 비쳐 세 칼이 내 자리에서 만난다.", // (11-24, 작은 탄 정리: was her icicles thrown at a pane and bent off it at me)
       intro: ["얼음 거울, 빙경. 받은 칼은 그대로 돌려주지.", "그 칼이네. 내가 끝내 못 돌려준 칼."], sigLine: "거울 앞에선 누구나, 제 칼에 베여.", down: ["네 사부는 칼을 안 뽑고 묻기만 했어. 네 얼굴은 어디 있느냐고.", "깨지니까 보이네… 이게, 내 얼굴이었구나."] },
     // (11-20 제작자: "그 우산쓴애 가 너무 마음에 안들어" → 1120-청우-천안-전체리메이크안 10-5 안 A, "추천대로 해줘": a new man, 관창.
     // The keys stay "rain" — his music, motes, colours, kit names and the tools' tables all hang on them)
@@ -2873,8 +2883,8 @@ sdk.initializeAsync()
   // what drifts across each boss's fight behind its 비기, unannounced, read as it comes: the boss's own element
   // (the grove's bamboo only where the grove is; nothing at all where the 비기 should stand alone)
   const BOSS_BG = {
-    twin: "bamboo", lotus: null, fire: "fire", frost: null, void: null, charge: "bamboo", veil: null, drum: null, // (11-24: 2장's water blades and 4장's icicles out, nothing small: 탁랑, 설귀)
-    mirror: "ice", rain: null, swords: null, time: null, thunder: "bolt", shadow: "wisp", swarm: null, wheel: null,
+    twin: "bamboo", lotus: null, fire: null, frost: null, void: null, charge: "bamboo", veil: null, drum: null, // (11-24: 2장's water blades and 4장's icicles out, nothing small: 탁랑, 설귀; then 3장's sparks)
+    mirror: null, rain: null, swords: null, time: null, thunder: "bolt", shadow: "wisp", swarm: null, wheel: null, // (mirror, 11-24: 9장's icicles out, 빙경)
     pendulum: null, crumble: null, glare: null, final: null,
   };
   // between one 비기 and the next, each boss throws a couple of the ordinary attacks that suit it (11-06: "단일 패턴만
@@ -2948,7 +2958,7 @@ sdk.initializeAsync()
   ]);
   kit("fire", [ // 적염 대사: the burning monk (no blade)
     ["c_fire1", "불기둥", LIGHT, () => underYou((w) => spikeErupt(w.x, w.y, w.r, "fire"))],
-    ["c_fire2", "불덩이", MID, () => edgeAim((x, y, a) => shoot("kunai", x, y, a, S * 1.15, { r: S * 0.016, skin: "fire" }))],
+    ["c_fire2", "석장 불길", MID, () => jyCrack(G.phase === "boss" ? 0.8 : 0.85)], // (11-24, 작은 탄 정리: was 불덩이, a fireball off an edge)
     ["c_fire3", "불길 행진", HEAVY, () => SUBS.fire.run(), true],
   ]);
   kit("frost", [ // 설귀: the white-haired sword ghost, with the snow (11-24: was 고드름 투척 and 고드름 비)
@@ -2974,16 +2984,16 @@ sdk.initializeAsync()
     ["c_veil2", "발도", MID, () => bandsAt([rnd(0, Math.PI)], S * 0.08, 0.75)],
     ["c_veil3", "그림자 셋", HEAVY, () => SUBS.veil.run(), true],
   ]);
-  kit("drum", [ // 뇌음: the drum (no blade: its paths fall on the beat)
-    ["c_drum1", "북 장단", LIGHT, () => { G.warns.push({ kind: "band", x: P.x, y: P.y, ang: rnd(0, Math.PI), w: S * 0.08, t: 0, dur: drumBeat() * 1.5, delay: 0, beat: true, fire(v) { landCut(v); } }); sfx.taiko();
-      if (moreS(1) > 1) { const g = rnd(0, Math.PI); G.warns.push({ kind: "band", x: 0, y: 0, ang: g, w: S * 0.08, t: 0, dur: drumBeat() * 1.5, delay: drumBeat() * 0.6, beat: true, place(v) { v.x = P.x; v.y = P.y; sfx.taiko(); }, fire(v) { landCut(v); } }); } }], // (11-19 more: 어려움 a second on the next half-beat, where you are by then)
-    ["c_drum2", "북 울림", MID, () => underYou((w) => { spikeErupt(w.x, w.y, w.r, "fire"); sfx.taiko(); G.shake = Math.max(G.shake, 6); }, S * 0.085, drumBeat() * 1.5)],
-    ["c_drum3", "장단 셋", HEAVY, () => FORESHADOW.drum(), true],
+  // (11-24 재설계 사물: was c_drum1 북 장단, c_drum2 북 울림, c_drum3 장단 셋 — bands on the beat and a burst under you)
+  kit("drum", [ // 뇌음: the temple's instruments, each struck by his own hand (nmBlow) — his stick, his wooden fish, his cloud plates
+    ["c_drum1", "북채", LIGHT, () => { const w = nmBlow(0, G.phase === "boss" ? 0.76 : 0.86, { kind: "duk" }); if (moreS(1) > 1) nmBlow(0.56, 0.8, { kind: "duk", after: w, trk: handTrack(1.6), ahead: true }); }], // (어려움, in its stages: again where you are going)
+    ["c_drum2", "목어", MID, () => nmBlow(0, G.phase === "boss" ? 0.8 : 0.88, { kind: "fish" })],
+    ["c_drum3", "운판", HEAVY, () => SUBS.drum.run(), true],
   ]);
-  kit("mirror", [ // 빙경: icicles and ice
-    ["c_mirror1", "고드름 투척", LIGHT, () => edgeAim((x, y, a) => shoot("sword", x, y, a, S * 1.3, { len: S * 0.1, r: S * 0.007, ice: true }))],
+  kit("mirror", [ // 빙경: her panes of ice and her image in them (11-24, 작은 탄 정리: was 고드름 투척 and 쌍 고드름)
+    ["c_mirror1", "거울 베기", LIGHT, () => mrLone(G.phase === "boss" ? 0.75 : 0.85)],
     ["c_mirror2", "얼음 가시", MID, () => underYou((w) => spikeErupt(w.x, w.y, w.r, "ice"))],
-    ["c_mirror3", "쌍 고드름", HEAVY, () => { for (let i = 0; i < 2; i++) kitLater(i * 0.25, () => edgeAim((x, y, a) => shoot("sword", x, y, a, S * 1.3, { len: S * 0.1, r: S * 0.007, ice: true })), "mi3"); }, true],
+    ["c_mirror3", "반조", HEAVY, () => SUBS.mirror.run(), true],
   ]);
   kit("rain", [ // 관창 (11-20, 전체리메이크안 10-5 안 A 一夫當關): his spear's shadow (槍影) out of the pass's edge — never the
     // bottom — through where you stand (was 빗금, 수검, 세 칼길: 청우's nets)
@@ -3163,7 +3173,7 @@ sdk.initializeAsync()
     sfx.warn();
   }
   // 뇌음's beat: its 비기 and its music keep the same time (11-08 "패턴들이 너무 쉬워 … 빠르게 빠르게": quicker, 0.67 s at
-  // 어려움 then, 0.585 now; a path is shown 1.4 beats, so never under 0.77 s)
+  // 어려움 then, 0.585 now; 11-24 사물: his sticks come down on it, each lit 1.36 beats and never under 0.76 s — 法鼓)
   const drumBeat = () => Math.max(0.55, 0.66 - lvl() * 0.009);
   // how far into the game this boss is (0 for 1-5 … 14 for 15-5, more on the endless road): its 비기 grow with it
   // and within one fight, each time it comes again it comes a little harder
@@ -3651,29 +3661,46 @@ sdk.initializeAsync()
       }, "vl"));
       return t + 0.3 + ran.reduce((a, b) => a + b, 0) + 0.6;
     },
-    drum() { // a blade's path laid at your feet on the beat, and bar by bar the bars fill in: one, one, two crossed and
-      // a beat's rest; then the rest filled; then the crossed pair twice; and the last bar a roll, a path on every half
-      // beat, each at a new angle (never along the last), so you keep stepping. (11-06 "8-5 너무 어렵다, 피할 수가 없는
-      // 거 아니냐": the crossed pair landed on top of the next with never a rest, so the first bar still breathes;
-      // 11-08 "패턴들이 너무 쉬워 … 빠르게 빠르게": 12 beats struck in 16 then, 19 now, on a quicker beat)
-      const beat = drumBeat(), hits = [];
-      if (ac) { M.step = 0; M.next = ac.currentTime + 0.03; } // its music's bar starts with its first blade
-      [[1, 1, 2, 0], [1, 1, 2, 1], [1, 2, 1, 2]].forEach((bar, b) => bar.forEach((k, i) => {
-        const turn = b * Math.PI / 8; // each bar the paths come round at a new angle
-        if (k) hits.push([b * 4 + i, k === 2 ? [turn + Math.PI / 4, turn - Math.PI / 4] : [turn + (i % 2) * Math.PI / 2]]);
-      }));
-      for (let k = 0; k < 8; k++) hits.push([12 + k / 2, [Math.PI * 3 / 8 * (k + 1)]]); // the roll
-      for (const [at, angs] of hits) angs.forEach((ang, j) => G.warns.push({ kind: "band", x: 0, y: 0, ang, w: S * 0.075, t: 0, dur: beat * 1.4, delay: at * beat, beat: true,
-        place(w) { w.x = P.x; w.y = P.y; if (j === 0) sfx.taiko(); }, fire(w) { landCut(w); } }));
-      return (15.5 + 1.4) * beat + 0.4;
+    drum() { // 法鼓 (11-24 재설계 §5 (가)-2 「사물」; was 雷音, a blade's band laid at your feet on the beat, 19 beats and a roll of 8 —
+      // 제작자 "8-5도 뭔가 패턴이 멋있지가않네"): bars on the drum's own beat, of his sticks (nmBlow): 1 덕, one stick down through you;
+      // 2 덩, both crossing on you; 0 a beat held. Each lit 1.36 beats (never under 0.76 s), so the next shows as the last is about to
+      // land, and he strides to a new place for each; his 덕 by turns where you are and where you are going, his 덩 where you are. Three
+      // bars of four (자진모리, 엇모리), never the same twice running (쉬움 two), and a last with no beat held; in his 종전 that last is a
+      // roll (덕 덕 덕 덩), and as it lands his cloud plates are rung down (雲板, his 종전's own move: its shout the first time)
+      if (!G.boss) return 1;
+      const f = G.fight || {}, last = !!f.last, lo = (SL().lv || 0) < 9;
+      const B = drumBeat(), D = Math.max(0.76, B * 1.36), trk = handTrack(16), t0 = 0.2 + D;
+      const BARS = [[1, 1, 2, 0], [2, 0, 1, 1], [1, 0, 1, 2], [1, 2, 0, 1]], bars = [];
+      for (let i = 0; i < (lo ? 2 : 3); i++) { let k = Math.floor(rnd(0, BARS.length)); if (bars.length && BARS[k] === bars[bars.length - 1]) k = (k + 1) % BARS.length; bars.push(BARS[k]); }
+      bars.push(last ? [1, 1, 1, 2] : [1, 2, 1, 2]);
+      let i = 0, w = null, nd = 0, end = 0;
+      for (const bar of bars) for (const k of bar) {
+        if (k) { const land = t0 + i * B; w = nmBlow(land - D, D, { kind: k === 2 ? "deong" : "duk", after: w, trk, ahead: k === 1 && nd++ % 2 === 1 }); end = land; }
+        i++;
+      }
+      if (ac) { M.step = 0; M.next = ac.currentTime + 0.03 + (t0 % B) / (G.bossK || 1); } // (its music's beat falls with his sticks)
+      if (last) {
+        const at = end - 0.2;
+        later(at, () => { const ff = G.fight; if (ff && ff.last && !ff.subSaid) { ff.subSaid = true; bark((PATTERN_LINES.drum || {}).sub); } });
+        nmBlow(at, 0.85, { kind: "plates", after: w }); end = at + 0.85 + NM.plate.roll * 2;
+      }
+      nmGone(end + 0.25);
+      return end + 0.35;
     },
-    mirror() { // 氷鏡: panes of ice stand about the field; it throws an icicle at one, and off it the icicle comes at you, its
-      // bent way lit first. One after another, two panes at once late on. (11-06: fans of stars glancing off the walls were
-      // "너무 멋없다": the mirrors are its own now, standing where you can see them turn toward you)
-      const n = 6 + Math.floor(lvl() / 3), gap = Math.max(0.6, 0.78 - lvl() * 0.01), h = icePanes(n * gap + 2.4);
-      // (11-17 review: which pane each icicle glances off, on a seed of its own, kitLater: 9-5 differed every try)
-      for (let k = 0; k < n; k++) kitLater(k * gap, () => { mirrorShot(h, 0.75); if (lvl() >= 7 && k % 2) mirrorShot(h, 0.75); }, "mr");
-      return n * gap + 2.2;
+    mirror() { // 氷鏡 (11-06: fans of stars glancing off the walls were "너무 멋없다": the mirrors are its own, standing where you
+      // can see them turn toward you; 11-24, 작은 탄 정리: was her icicles thrown at a pane and glancing off it at you). Four panes of
+      // ice stand about the field. Her image shows in one and she draws out of it through where you stand (mrCut); then out of
+      // another, through where you are going, each lit before the last lands (보통 five, 0.75 s every 0.5 s). Then two panes at
+      // once, their cuts crossed through you, twice (어려움 three times, 쉬움 once, slower); its 종전 a little quicker
+      if (!G.boss) return 1;
+      const f = G.fight || {}, last = !!f.last, sl = SL().lv || 0, lo = sl < 9, hi = sl >= 11;
+      const n = lo ? 4 : 5, m = lo ? 1 : hi ? 3 : 2, D = lo ? 0.8 : hi ? 0.72 : 0.75, gap = (lo ? 0.6 : 0.5) * (last ? 0.92 : 1), trk = handTrack(14);
+      const h = icePanes(9); // (they rise first; each cut keeps them up till it is in)
+      let t = 0.35;
+      for (let i = 0; i < n; i++) { mrCut(t, D, { h, trk: i ? trk : null }); t += gap; }
+      for (let j = 0; j < m; j++) { for (let k = 0; k < 2; k++) mrCut(t, D, { h, tag: "mr2" }); t += j < m - 1 ? D - 0.15 : 0; } // (each pair shown as the last is about to land)
+      h.dur = Math.min(h.dur, t + D + 0.35);
+      return t + D + 0.45;
     },
     rain() { // 梨花槍 (11-20 제작자 "추천대로 해줘": 전체리메이크안 10-5 안 A 관창; was 聽雨劍, 청우's nets): from his body to where
       // you stand his spear thrusts, ray after ray out to the screen's edge, each laid where you are by then while the last is
@@ -3906,32 +3933,73 @@ sdk.initializeAsync()
       return t + 1.6;
     },
   };
-  // 빙경's mirrors: four panes of ice standing about the lower field (for `life` seconds), harmless themselves. A pane
-  // turns to throw the boss's icicle at you: its face set halfway between the boss and you, as a mirror would.
+  // ---- 9-5 빙경 (11-24, 작은 탄 정리: 제작자 11-23 "표창을 좀 줄이고 고유한 패턴으로만 피하게 … 발도를 여러번 피하거나 큰 기술을
+  // 피하는 느낌으로"; was her icicles, thrown at a pane and glancing off it at you: mirrorShot, twinShot). Her panes of ice stand about
+  // the field, harmless themselves, and she is in every one of them: her image shows in a pane, the pane turns to face the way she will
+  // cut, as a mirror would, and out of it she draws through where you stand, or where you are going (mrCut) — a band lit first in the
+  // cold blue of her ice, the pane flashing white as it lands. Her own body stays on her ground, lifting her bronze mirror as each
+  // image shows. "거울 앞에선 누구나, 제 칼에 베여." Nothing small, nothing flies, nothing stays
+  const MR_CUT = "88,146,184", MR_W = () => S * 0.085;
+  const mrDef = () => (G.boss && G.boss.def.sig === "mirror" ? G.boss.def : BOSS_SET.find((d) => d.sig === "mirror"));
+  function paneTurn(dt) { // (a panes hazard's step: each pane turning to the face it was set, p.face; a slab looks the same turned half round)
+    for (const p of this.panes) { if (p.face == null) continue; let d = p.face - p.ang; d -= Math.round(d / Math.PI) * Math.PI; p.ang += clamp(d, -14 * dt, 14 * dt); }
+  }
+  function paneRise(h) { // (drawing only) each pane breaking up out of the ground as it stands: a cold light, frost thrown up
+    if (reduced) return;
+    for (const p of h.panes) { fxPillar(p.x, p.y, S * 0.04, S * 0.3, "#cfe6f3", 0.4); fxStreaks(p.x, p.y, 4, "#eef7fc", S * 0.5, S * 0.035, 0.25, Math.PI * 0.7, -Math.PI / 2); frostPop(p.x, p.y, S * 0.035, 0.3); }
+  }
+  // 빙경's mirrors: four panes of ice standing about the lower field (for `life` seconds; a cut out of one keeps them up till it is in)
   function icePanes(life) {
     const spots = [[0.16, 0.48], [0.84, 0.48], [0.24, 0.8], [0.76, 0.8]];
     const panes = spots.map(([fx, fy]) => ({ x: W * fx + rnd(-S * 0.05, S * 0.05), y: H * fy + rnd(-S * 0.05, S * 0.05), ang: rnd(0, Math.PI), used: 0 }));
-    const h = { kind: "panes", panes, t: 0, dur: life, best: Infinity, near: true, dist: () => Infinity, draw: drawPanes };
-    G.hazards.push(h); sfx.shing();
+    const h = { kind: "panes", panes, t: 0, dur: life, best: Infinity, near: true, dist: () => Infinity, draw: drawPanes, step: paneTurn };
+    G.hazards.push(h); sfx.shing(); paneRise(h);
     return h;
   }
-  function mirrorShot(h, warn, v = 1.1) { // one icicle, off the pane that has waited longest and is not right by you (v: its speed, S a second)
-    if (!G.boss || !h || h.t >= h.dur) return;
+  const mrPick = (h) => { // the pane that has waited longest and is not right by you (else any)
     const ok = h.panes.filter((p) => Math.hypot(p.x - P.x, p.y - P.y) > S * 0.25);
-    const pane = (ok.length ? ok : h.panes).reduce((a, b) => (a.used <= b.used ? a : b)); pane.used = h.t + rnd(0, 0.1);
-    G.warns.push({ kind: "bent", pts: [[0, 0], [0, 0], [0, 0]], t: 0, dur: warn, delay: 0,
-      place(w) {
-        const [bx, by] = bossAt(), d1 = Math.atan2(pane.y - by, pane.x - bx), d2 = Math.atan2(P.y - pane.y, P.x - pane.x);
-        pane.ang = Math.atan2(Math.sin(d1) + Math.sin(d2), Math.cos(d1) + Math.cos(d2)); // its face lies along in + out, as a mirror's does
-        const far = Math.hypot(W, H);
-        w.pts = [[bx, by], [pane.x, pane.y], [pane.x + Math.cos(d2) * far, pane.y + Math.sin(d2) * far]]; w.d1 = d1; w.d2 = d2;
-        sfx.warn();
-      },
-      fire(w) {
-        const [[bx, by], [mx, my]] = w.pts, sp = S * v;
-        shoot("sword", bx, by, w.d1, sp, { len: S * 0.1, r: S * 0.009, ice: true, turns: [{ d: Math.hypot(mx - bx, my - by), ang: w.d2, x: mx, y: my }] });
-        sfx.whoosh();
-      } });
+    return (ok.length ? ok : h.panes).reduce((a, c) => (a.used <= c.used ? a : c));
+  };
+  function mrImage(p, t, dur, ang, time) { // her image in pane p while its cut is lit, gone as it lands (drawn only)
+    const k = clamp(t / 0.15, 0, 1) * (1 - clamp((t - dur) / 0.3, 0, 1)); if (k <= 0) return;
+    const def = mrDef(), U = bossUnit(def) * 0.62;
+    ctx.save(); ctx.globalAlpha *= 0.55 * k;
+    bossFigure(def, p.x, p.y - U * 1.1, U, time, { ghost: true, mid: true, cast: t > dur * 0.6, side: Math.cos(ang) < 0 ? -1 : 1 });
+    ctx.restore();
+  }
+  // her image in one of her panes (o.h; o.pane that one, else mrPick's) and her cut out of it, `at` s on: through where you stand
+  // (o.trk: where you are going), lit dur
+  function mrCut(at, dur, o = {}) {
+    kitLater(at, () => {
+      if (!(G.phase === "fight" || G.phase === "boss")) return;
+      const h = o.h; if (!h || h.t >= h.dur) return;
+      const p = o.pane || mrPick(h);
+      let tx = P.x, ty = P.y;
+      if (o.trk) { const { ux, uy, d } = handAhead(o.trk, dur); tx = clamp(P.x + ux * d * 0.7, S * 0.05, W - S * 0.05); ty = clamp(P.y + uy * d * 0.7, barTop() + S * 0.02, H - S * 0.05); }
+      const ang = Math.hypot(tx - p.x, ty - p.y) > S * 0.04 ? Math.atan2(ty - p.y, tx - p.x) : rnd(0, Math.PI * 2);
+      p.face = ang + Math.PI / 2; p.used = h.t + rnd(0, 0.1);
+      h.dur = Math.max(h.dur, h.t + dur + 0.35); // (it stands till its cut is in)
+      G.hazards.push({ kind: "ctl", x: p.x, y: p.y, t: 0, dur: dur + 0.3, best: Infinity, near: true, dist: () => Infinity, spent: () => true,
+        draw(hh, time) { mrImage(p, hh.t, dur, ang, time); } });
+      G.warns.push({ kind: "band", x: tx, y: ty, ang, w: MR_W(), t: 0, dur, delay: 0, tint: MR_CUT,
+        fire(v) { landCut(v); cutSpray(v, "snow"); frostPop(p.x, p.y, S * 0.04, p.ang); later(0.18, () => sfx.sheath()); } });
+      const b = G.boss; if (b && G.phase === "boss" && b.def.sig === "mirror") { b.castT = b.castDur = 0.3; b.raise = { t: 0, dur: Math.min(0.3, dur * 0.4) }; }
+      sfx.warn(); if (!reduced) fxFlare(p.x, p.y, S * 0.04, "#eef7fc", 0.3);
+    }, o.tag || "mr");
+  }
+  // 거울 베기 (her lesser cut, c_mirror1): one pane out of the ground 0.38 S off you (on the field, off her), and out of it her cut
+  // through you
+  function mrLone(dur) {
+    const b = G.boss, u = b ? bossUnit(b.def) : 0, m = S * 0.07, top = barTop() + S * 0.06, a0 = rnd(0, Math.PI * 2), R = S * 0.38;
+    let at = null;
+    for (let i = 0; i < 8 && !at; i++) {
+      const a = a0 + i * (Math.PI / 4), x = P.x + Math.cos(a) * R, y = P.y + Math.sin(a) * R;
+      if (x >= m && x <= W - m && y >= top && y <= H - m && !(b && Math.hypot(x - b.x, y - (b.y + u * 0.8)) < u * 2.4)) at = [x, y];
+    }
+    if (!at) at = [clamp(P.x + Math.cos(a0) * R, m, W - m), clamp(P.y + Math.sin(a0) * R, top, H - m)];
+    const h = { kind: "panes", panes: [{ x: at[0], y: at[1], ang: a0, used: 0 }], t: 0, dur: 0.2 + dur + 0.4, best: Infinity, near: true, dist: () => Infinity, draw: drawPanes, step: paneTurn };
+    G.hazards.push(h); sfx.shing(); paneRise(h);
+    mrCut(0.2, dur, { h, pane: h.panes[0], tag: "mr1" }); // (the pane up first, then her image in it)
   }
   function drawPanes(h, time) { // standing slabs of ice, a cold glint running along each
     const a = Math.min(1, h.t / 0.3, Math.max(0, (h.dur - h.t) / 0.4)), L = S * 0.15, T = S * 0.022;
@@ -3945,8 +4013,8 @@ sdk.initializeAsync()
     }
   }
   // 返照 (11-08 제작자 19:45: the wall of swords with one gap, "얼음거울과 어울리는 패턴으로"): two panes of ice stand either
-  // side of you (0.3 S off, a little up toward the thrower; one above and one below where side by side won't fit), standing
-  // only while their icicles glance off them. Each turns to catch the icicle due at it next, as 氷鏡's panes turn on you
+  // side of you (0.3 S off, a little up; one above and one below where side by side won't fit), standing only while her cuts
+  // come out of them (11-24: was while her icicles glanced off them). Each turns to the way its cut goes, as 氷鏡's panes do
   function twinPanes() {
     const D = S * 0.3, o = S * 0.12, m = S * 0.07, top = barTop() + S * 0.06;
     const cx = clamp(P.x, m + D, W - m - D), cy = clamp(P.y, top + D, H - m - D);
@@ -3961,42 +4029,10 @@ sdk.initializeAsync()
       const sp = [-1, 1].map((k) => { const vx = ax[0] * k + nv[0], vy = ax[1] * k + nv[1]; return [clamp(c0[0] + c * vx - s * vy, m, W - m), clamp(c0[1] + s * vx + c * vy, top, H - m)]; });
       const cl = clear(sp); if (cl > best) { best = cl; spots = sp; } if (cl >= S * 0.14) break;
     }
-    const panes = spots.map(([x, y]) => ({ x, y, ang: flat ? Math.PI / 2 : 0, faces: [] }));
-    const h = { kind: "panes", panes, t: 0, dur: 1.6, best: Infinity, near: true, dist: () => Infinity, draw: drawPanes,
-      step(dt) {
-        for (const p of panes) {
-          p.faces = p.faces.filter((f) => f.at > h.t - 0.6); // (an icicle broken up on its way never comes)
-          const f = p.faces.reduce((a, b) => (!a || b.at < a.at ? b : a), null); if (!f) continue;
-          let d = f.ang - p.ang; d -= Math.round(d / Math.PI) * Math.PI; // (a slab looks the same turned half round)
-          p.ang += clamp(d, -14 * dt, 14 * dt);
-        }
-      } };
-    G.hazards.push(h); sfx.shing();
+    const panes = spots.map(([x, y]) => ({ x, y, ang: flat ? Math.PI / 2 : 0, used: 0 }));
+    const h = { kind: "panes", panes, t: 0, dur: 1.6, best: Infinity, near: true, dist: () => Infinity, draw: drawPanes, step: paneTurn };
+    G.hazards.push(h); sfx.shing(); paneRise(h);
     return h;
-  }
-  const faceOf = (a, b) => Math.atan2(Math.sin(a) + Math.sin(b), Math.cos(a) + Math.cos(b)); // a mirror's face lies along in + out
-  function twinShot(h, first) { // one icicle: at pane `first`, off it to the other, off that at you, the whole way lit first
-    const p1 = h.panes[first], p2 = h.panes[1 - first], sp = S * 1.6;
-    G.warns.push({ kind: "bent", pts: [[0, 0], [0, 0], [0, 0], [0, 0]], x: 0, y: 0, ang: 0, t: 0, dur: 0.7, delay: 0,
-      place(w) {
-        // from the boss; on the way up the mountain, from just over the top edge, with its red sign as an aim line has
-        const [ex, ey] = G.boss ? bossAt() : [fixed("tws", () => rnd(W * 0.2, W * 0.8)), -S * 0.06]; // (11-17 review: its spot on a seed, as it shows)
-        const d1 = Math.atan2(p1.y - ey, p1.x - ex), d2 = Math.atan2(p2.y - p1.y, p2.x - p1.x), d3 = Math.atan2(P.y - p2.y, P.x - p2.x), far = Math.hypot(W, H);
-        const L1 = Math.hypot(p1.x - ex, p1.y - ey), L2 = Math.hypot(p2.x - p1.x, p2.y - p1.y), at = h.t + w.dur;
-        w.pts = [[ex, ey], [p1.x, p1.y], [p2.x, p2.y], [p2.x + Math.cos(d3) * far, p2.y + Math.sin(d3) * far]]; w.angs = [d1, d2, d3]; w.L = [L1, L2];
-        w.edge = !G.boss; w.x = ex; w.y = ey; w.ang = d1;
-        w.f1 = { at: at + L1 / sp, ang: faceOf(d1, d2) }; w.f2 = { at: at + (L1 + L2) / sp, ang: faceOf(d2, d3) };
-        p1.faces.push(w.f1); p2.faces.push(w.f2);
-        h.dur = Math.max(h.dur, w.f2.at + 0.45); // (the panes stand till the last icicle is off them)
-        sfx.warn();
-      },
-      fire(w) {
-        const [[ex, ey], [x1, y1], [x2, y2]] = w.pts, [d1, d2, d3] = w.angs, [L1, L2] = w.L;
-        const done = (p, f) => () => { p.faces = p.faces.filter((g) => g !== f); };
-        shoot("sword", ex, ey, d1, sp, { len: S * 0.1, r: S * 0.009, ice: true, turns: [
-          { d: L1, ang: d2, x: x1, y: y1, on: done(p1, w.f1) }, { d: L1 + L2, ang: d3, x: x2, y: y2, on: done(p2, w.f2) }] });
-        sfx.whoosh();
-      } });
   }
   // 업화진's knobs (SIGS.fire): every FIRE_BIG_EVERY-th beat of its own 업화진 (not its 종전) is the great blaze over the
   // 3 × 3 cells round you, its warning FIRE_BIG_WARN game-s longer than that beat's would be (and longer where keyboard
@@ -4078,6 +4114,49 @@ sdk.initializeAsync()
       ctx.beginPath(); ctx.moveTo(x - w / 12, h.y1); ctx.quadraticCurveTo(x, h.y1 - tall * 1.2, x + w / 12, h.y1); ctx.fill();
     }
     ctx.restore();
+  }
+  // 錫杖 불길 (11-24, 작은 탄 정리: 제작자 11-23 "표창을 좀 줄이고 고유한 패턴으로만 피하게 … 큰 기술을 피하는 느낌으로"; was 불덩이,
+  // a small fireball thrown in off an edge at you, and 3장's sparks drifting in unannounced). 적염 lifts his ring staff and brings it
+  // down where he stands, and the ground splits along a straight line through where you stand, the crack glowing as it opens; then
+  // fire bursts out of it all along: a band with ends, 0.62 S long (laid where it leaves two ways out of it and of whatever else is
+  // lit, dropLay), cutting for 0.28 s (finBlow) and gone. In a stage, with no master, the crack opens the same. Nothing small flies
+  function jyCrack(dur) {
+    const L = S * 0.31, hw = S * 0.05, a0 = rnd(0, Math.PI), fu = rnd(-0.35, 0.35);
+    return dropBlow(0, dur, { after: 0.01,
+      lay(w) {
+        const cands = [];
+        for (const t of [0, Math.PI / 4, -Math.PI / 4, Math.PI / 2]) for (const f of [fu, 0, 0.4, -0.4]) {
+          const a = a0 + t, c = Math.cos(a), s = Math.sin(a), x = P.x - c * f * L, y = P.y - s * f * L;
+          cands.push(Object.assign([{ s: [x - c * L, y - s * L, x + c * L, y + s * L, hw] }], { at: [x, y, a] }));
+        }
+        const parts = dropLay(cands, w); w.parts = parts; [w.x, w.y, w.ang] = parts.at; w.r = hw;
+        const b = G.boss; if (b && G.phase === "boss" && b.def.sig === "fire") { b.castT = b.castDur = dur; b.raise = { t: 0, dur: dur * 0.8 }; }
+      },
+      art(w, k, time) { // the crack opening along its middle, dark and then glowing (drawn faint, under every warning)
+        if (k > 1) return;
+        const c = Math.cos(w.ang), s = Math.sin(w.ang), nx = -s, ny = c, n = 9;
+        ctx.lineCap = "round"; ctx.lineJoin = "round"; ctx.beginPath();
+        for (let i = 0; i <= n; i++) { const f = (i / n - 0.5) * 2 * L * Math.min(1, 0.3 + k), j = i % n ? (fireHash(i, w.x + w.y) - 0.5) * hw * 0.9 : 0; const x = w.x + c * f + nx * j, y = w.y + s * f + ny * j; i ? ctx.lineTo(x, y) : ctx.moveTo(x, y); }
+        ctx.globalAlpha = 0.35 + 0.4 * k; ctx.strokeStyle = "rgba(29,26,23,0.85)"; ctx.lineWidth = Math.max(2, S * (0.006 + 0.008 * k)); ctx.stroke();
+        if (k > 0.45) { ctx.globalAlpha = (k - 0.45) * 1.6 * (0.75 + 0.25 * Math.sin(time * 24)); ctx.strokeStyle = "#ffb04a"; ctx.lineWidth = Math.max(1.2, S * 0.005 * k); ctx.stroke(); }
+      },
+      land(w) {
+        const bb = G.boss;
+        if (bb && bb.def.sig === "fire") { bb.raise = null; bb.castT = bb.castDur = 0.4; bb.swing = { t: 0, ang: Math.PI / 2 }; if (!reduced) fxWave(bb.x, bb.y + bossUnit(bb.def) * 2.2, S * 0.4, fightTint(bb.def), 0.4, S * 0.02); } // (his staff on the ground)
+        sfx.thud(); sfx.burst(); buzz(25); G.shake = Math.max(G.shake, reduced ? 0 : 8); flash("255,214,150", 0.16);
+        if (reduced) return;
+        const c = Math.cos(w.ang), s = Math.sin(w.ang);
+        for (let i = 0; i < 5; i++) { const f = ((i + 0.5) / 5 - 0.5) * 2 * L; fxPillar(w.x + c * f, w.y + s * f + hw, hw * 0.9, S * 0.3, "#e8862a", 0.5); }
+        for (let i = 0; i < 14; i++) { const f = frnd(-L, L); fxMote("ember", w.x + c * f, w.y + s * f, "#ffb04a", true); }
+      },
+      blow(w, e, time) { // fire out of the crack all along it, sinking
+        finPath(w.parts); ctx.globalAlpha = 0.85 * (1 - e) ** 2; ctx.fillStyle = "rgba(224,69,30,0.8)"; ctx.fill();
+        const c = Math.cos(w.ang), s = Math.sin(w.ang); ctx.fillStyle = "rgba(255,210,122,0.85)";
+        for (let i = 0; i < 7; i++) {
+          const f = (i / 6 - 0.5) * 2 * L * 0.9, bx = w.x + c * f, by = w.y + s * f, tall = hw * (1.6 + 0.6 * Math.sin(time * 18 + i * 1.7)) * (1 - e);
+          ctx.beginPath(); ctx.moveTo(bx - hw * 0.5, by); ctx.quadraticCurveTo(bx, by - tall * 1.6, bx + hw * 0.5, by); ctx.fill();
+        }
+      } });
   }
   // 법당 무너짐 (11-18 제작자: "잔불과 법당이 무너짐 둘다 어떻게안될까"; A2-가, five columns to three): in its 종전 the hall comes
   // down round you. As its 업화진 opens the hall's two pillars stand at the field's sides, cracking; FIRE_CRACK beats before
@@ -5860,6 +5939,373 @@ sdk.initializeAsync()
       },
       blow(w, e) { ctx.globalAlpha = 0.9 * (1 - e) ** 2; ctx.fillStyle = "#f3e3b8"; for (const q of w.parts) { const [x0, y, x1] = q.s; ctx.fillRect(x0, y - hb, x1 - x0, hb * 2); } } });
   }
+  // ---- 8-5 뇌음 雷音 (11-24 재설계, docs/설계/1123-보스-재설계-8명.md §5 (가)-2 「사물(四物)」 under 11-23's rules — 제작자 "8-5도
+  // 뭔가 패턴이 멋있지가않네", and of 13-5 "훨씬 좋다 이렇게 해주고"; was a blade's band laid at your feet on the beat: 雷音, 雷鼓's three
+  // side by side, 북소리, 雷鼓裂天's 덩·덕·쿵 and its torn drum). The monk the others left behind in the red temple, who still strikes
+  // all four of its instruments (四物) at dawn — the four that four monks should strike. Every blow is his own: he is beside you in
+  // one stride (his afterimages along it, a little roll on the drum on his back, the dust where he plants himself) and strikes, and
+  // what he strikes comes down on where you stand in its own shape, its print red (it aims), the instrument faint in it:
+  //   法鼓 the drum's two sticks: 덕, one stick down out of his hand through you to its round head past you; 덩, both at once,
+  //     crossing on you (out to either side). Bars on the drum's own beat (drumBeat, its music keeping it), a beat held in each
+  //   木魚 the wooden fish: it leaps out of his hand and comes down flat along you, a long oval, and a breath later (NM.fish.tailAt)
+  //     its tail lashes, a short fan off its tail end, lit with it; to end two at once, crossing on you (雙魚)
+  //   雲板 the cloud plate: three plates in a row rung down one after another, 딩, 딩, 딩, you on one, the gaps between them clear
+  //   梵鐘 the great bell: 四物一聲's act three, the one thing in his fight from beyond the screen, down out of the sky over you
+  // Only one of him is drawn at a time (nmNow): any other blow lit shows only the dust where he will stand. Each blow cuts a blink
+  // as it lands (finBlow) and is gone; nothing stays, rolls, swings or flies small; and never two of his blows land in one beat
+  // (nmBeat). Its dice: as each blow shows, under a seed of its own (nmP)
+  const NM_GOLD = "#d9a23a", NM_HOT = "#ffd27a", NM_WOOD = "#5b3a2a", NM_FISH = "#6b4128", NM_BRONZE = "#a7843f", NM_VERD = "#6f9a8c", NM_PALE = "#fff1d0", NM_DUST = "#8b5a3a";
+  const NM = { duk: { d: 0.34, root: 0.1, past: 0.13, hb: 0.05, knob: 0.072 }, deong: { d: 0.34, root: 0.08, spread: 0.13, past: 0.13, hb: 0.046, knob: 0.066 },
+    fish: { a: 0.25, b: 0.085, tail: 0.21, half: 0.62, tailAt: 0.25 }, plate: { hw: 0.11, hh: 0.08, gap: 0.3, roll: 0.13 } }; // (S; tailAt and roll: game s after the first lands)
+  let nmAt = null, nmNow = null, nmGrp = 0; // (where his last blow left him; the blow he is at, drawn whole; a blow's pieces share a grp)
+  const nmDef = () => (G.boss && G.boss.def.sig === "drum" ? G.boss.def : BOSS_SET.find((d) => d.sig === "drum"));
+  const nmStand = (x, y) => [clamp(x, S * 0.05, W - S * 0.05), clamp(y, barTop() + S * 0.02, H - S * 0.08)]; // (where he is drawn standing: on the field)
+  const nmRoll = () => { const au = audio(); if (au && !muted && spaced("nmRoll", 50)) { const t = au.currentTime; drum(t, 0.14, sfxBus, 200, 130, 0.07); drum(t + 0.055, 0.18, sfxBus, 185, 115, 0.09); } }; // (a little roll on the drum on his back as he goes)
+  function nmGone(t) { // he leaves his ground in a stride, out of reach, for t game s (his blows carry him about you)
+    const b = G.boss; if (!b || b.def.sig !== "drum") return;
+    const was = b.vanish > 0;
+    b.vanish = b.home = Math.max(b.home || 0, t / (G.bossK || 1)); b.next = null;
+    if (was) return;
+    nmAt = [b.x, b.y]; b.castT = b.castDur = 0.25; sfx.whoosh(); nmRoll();
+    if (reduced) return;
+    const u = bossUnit(b.def);
+    fxWave(b.x, b.y + u * 2.1, u * 2.4, "#c08a52", 0.3, S * 0.01);
+    for (let i = 0; i < 8; i++) fxMote("dust", b.x + frnd(-1.2, 1.2) * u, b.y + u * 2.1, NM_DUST, true);
+  }
+  // a blow's parts (finDist). The sticks: (cx, cy) where he stands, ang the way to where they cross (NM[kind].d on); the fish: (cx, cy)
+  // its middle, its head the way ang (its tail's fan in .tail); the plates: (cx, cy) the middle one, the row the way ang (.plates)
+  function nmShape(kind, cx, cy, ang, z = 1) {
+    const ux = Math.cos(ang), uy = Math.sin(ang), nx = -uy, ny = ux, parts = [];
+    if (kind === "duk" || kind === "deong") {
+      const q = NM[kind], tx = cx + ux * S * q.d * z, ty = cy + uy * S * q.d * z;
+      parts.sticks = [];
+      for (const s of kind === "deong" ? [-1, 1] : [0]) {
+        const rx = cx + ux * S * q.root * z + nx * S * (q.spread || 0) * z * s, ry = cy + uy * S * q.root * z + ny * S * (q.spread || 0) * z * s;
+        const L = Math.hypot(tx - rx, ty - ry) || 1, ex = tx + ((tx - rx) / L) * S * q.past * z, ey = ty + ((ty - ry) / L) * S * q.past * z;
+        parts.push({ s: [rx, ry, ex, ey, S * q.hb * z] }, { c: [ex, ey, S * q.knob * z] });
+        parts.sticks.push([rx, ry, ex, ey]);
+      }
+      parts.tx = tx; parts.ty = ty;
+    } else if (kind === "fish") {
+      const q = NM.fish, a = S * q.a * z, b = S * q.b * z, p = [];
+      for (let i = 0; i < 20; i++) { const g = (i / 20) * Math.PI * 2, c = Math.cos(g), s = Math.sin(g); p.push([cx + ux * a * c + nx * b * s, cy + uy * a * c + ny * b * s]); }
+      parts.push({ p });
+      const fx = cx - ux * a * 0.9, fy = cy - uy * a * 0.9, R = S * q.tail * z, fan = [[fx, fy]];
+      for (let j = 0; j <= 6; j++) { const g = ang + Math.PI - q.half + (2 * q.half * j) / 6; fan.push([fx + Math.cos(g) * R, fy + Math.sin(g) * R]); }
+      parts.tail = [{ p: fan }]; parts.tail.at = [fx, fy];
+    } else {
+      const q = NM.plate, hw = S * q.hw * z, hh = S * q.hh * z;
+      parts.plates = [];
+      for (const k of [-1, 0, 1]) {
+        const px = cx + ux * S * q.gap * z * k, py = cy + uy * S * q.gap * z * k, p = [];
+        for (let i = 0; i < 16; i++) { const g = (i / 16) * Math.PI * 2, c = Math.cos(g), s = Math.sin(g), r = 1 / Math.cbrt(Math.abs(c) ** 3 + Math.abs(s) ** 3); p.push([px + ux * hw * c * r + nx * hh * s * r, py + uy * hw * c * r + ny * hh * s * r]); }
+        parts.push({ p }); parts.plates.push([px, py]);
+      }
+    }
+    parts.nm = [cx, cy, ang, z];
+    return parts;
+  }
+  // where he stands for a blow and how it lies, as it shows (its dice under a seed of its own, nmP): on where you are (o.ahead: where you
+  // are going), turned from a die — the sticks a quarter round off the way he came — twelve or sixteen ways round; of those that leave
+  // him on the field, the first that leaves two ways out of it and of whatever else is lit (dropLay). The fish's tail, a second fish and
+  // the whole row of plates count with it
+  function nmPlace(w, o) {
+    const kind = w.nm, z = o.z || 1, m = S * 0.06, top = Math.max(edge(), barTop()) + S * 0.03, inF = (x, y) => x >= m && x <= W - m && y >= top && y <= H - m;
+    let tx = P.x, ty = P.y;
+    if (o.ahead) { [tx, ty] = rjAim(o.trk, o.lead || 0.4, o.far || S * 0.24); tx = clamp(tx, m * 0.5, W - m * 0.5); ty = clamp(ty, top, H - m * 0.5); }
+    const wait = o.after && o.after.placed && G.warns.includes(o.after) ? o.after : G.warns.find((v) => v !== w && v.nm && v.lead && v.placed) || null; // (he is still at that one: this one waits for it to land)
+    const b = G.boss, from = wait ? [wait.sx, wait.sy] : b ? (b.vanish > 0 && nmAt ? nmAt : [b.x, b.y]) : null, cands = []; // (from his own ground if he is back on it)
+    if (kind === "duk" || kind === "deong") {
+      const d = S * NM[kind].d * z, a0 = (from ? Math.atan2(from[1] - ty, from[0] - tx) : rnd(0, Math.PI * 2)) + (Math.random() < 0.5 ? 1 : -1) * (Math.PI / 2);
+      for (const k of [0, 1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6]) {
+        const a = a0 + (k * Math.PI) / 6, cx = tx + Math.cos(a) * d, cy = ty + Math.sin(a) * d, p = nmShape(kind, cx, cy, a + Math.PI, z);
+        p.out = !inF(cx, cy); cands.push(p);
+      }
+    } else if (kind === "fish") {
+      const a0 = rnd(0, Math.PI * 2), A = S * NM.fish.a * z, turn = rnd(1.05, 1.6) * (Math.random() < 0.5 ? 1 : -1);
+      const one = (g, f) => { const cx = tx + Math.cos(g) * A * f, cy = ty + Math.sin(g) * A * f, p = nmShape("fish", cx, cy, g, z); p.out = !inF(cx + Math.cos(g) * (A + S * 0.1), cy + Math.sin(g) * (A + S * 0.1)); return p; }; // (out: where he stands, past its head)
+      for (const k of [0, 4, -4, 8, 2, -2, 6, -6, 1, -1, 3, -3, 5, -5, 7, -7]) for (const f of [0, 0.35, -0.35]) {
+        const g = a0 + (k * Math.PI) / 8, f1 = one(g, f), all = [...f1, ...f1.tail];
+        all.fish = [f1]; all.out = f1.out;
+        if (o.pair) { const f2 = one(g + turn, 0); all.push(...f2, ...f2.tail); all.fish.push(f2); }
+        cands.push(all);
+      }
+    } else { // the plates: a row through you, you on its middle one, or on an end one
+      const a0 = rnd(0, Math.PI), G0 = S * NM.plate.gap * z;
+      for (const k of [0, 4, 2, -2, 1, -1, 3, -3]) for (const f of [0, 1, -1]) { const a = a0 + (k * Math.PI) / 8; cands.push(nmShape("plates", tx - Math.cos(a) * G0 * f, ty - Math.sin(a) * G0 * f, a, z)); }
+    }
+    const pick = dropLay([...cands.filter((c) => !c.out), ...cands.filter((c) => c.out)], w, !o.ahead);
+    w.from = from; w.wait = wait;
+    if (kind === "fish") {
+      w.fish = pick.fish; w.parts = pick.fish[0].slice(); w.fnm = pick.fish[0].nm; // (its body; its tail and a second fish are warnings of their own: nmKid)
+      const [cx, cy, a] = w.fnm, A = S * NM.fish.a * z;
+      w.x = cx; w.y = cy; w.ang = a; [w.sx, w.sy] = nmStand(cx + Math.cos(a) * (A + S * 0.1), cy + Math.sin(a) * (A + S * 0.1));
+    } else if (kind === "plates") {
+      w.plates = pick; w.parts = [pick[0]]; [w.x, w.y] = pick.plates[0]; w.ang = pick.nm[2]; // (the first rung; the other two: nmKid)
+      const [cx, cy, a] = pick.nm, nx = -Math.sin(a), ny = Math.cos(a), d = S * 0.27, s = inF(cx + nx * d, cy + ny * d) && (!inF(cx - nx * d, cy - ny * d) || Math.random() < 0.5) ? 1 : -1;
+      [w.sx, w.sy] = nmStand(cx + nx * d * s, cy + ny * d * s); w.mid = [cx, cy];
+    } else { w.parts = pick; [w.sx, w.sy, w.ang] = pick.nm; w.x = pick.tx; w.y = pick.ty; }
+    const fx = kind === "plates" ? w.mid[0] : w.x;
+    w.flip = fx < w.sx ? -1 : 1; // (he faces his blow)
+    if (G.boss) { nmGone(w.dur + 0.8); if (!wait) nmSolid(w); }
+    nmBeat(w);
+    sfx.warn();
+  }
+  // never two of his blows land in one beat: if any other of his still lit lands within 0.22 s of this one (or of its tail, or a plate
+  // after its first), this one waits till 0.25 s after it — lit the longer, never shorter
+  function nmBeat(w) {
+    for (let pass = 0; pass < 3; pass++) {
+      let moved = false;
+      for (const v of G.warns) {
+        if (v === w || !v.nm || !v.placed || v.grp === w.grp || v.delay > 0) continue;
+        const lv = v.dur - v.t;
+        for (const off of w.offs) { const lw = w.dur - w.t + off; if (Math.abs(lv - lw) < 0.22) { w.dur = w.t + lv - off + 0.25; moved = true; } }
+      }
+      if (!moved) break;
+    }
+  }
+  function nmSolid(w) { // he is at this one now: one stride from where he was (nmWarn draws it), and he plants himself
+    w.solid = true; w.solidAt = performance.now(); nmNow = w;
+    if (!w.from) return;
+    nmRoll();
+    G.hazards.push({ kind: "ctl", x: w.sx, y: w.sy, t: 0, dur: 0.2, best: Infinity, near: true, dist: () => Infinity, spent: () => true, draw() {},
+      step() {
+        if (this.done || this.t < 0.13) return;
+        this.done = true; sfx.thud(); buzz(10);
+        if (reduced) return;
+        const u = bossUnit(nmDef());
+        fxWave(w.sx, w.sy + u * 1.2, u * 2.2, "#c08a52", 0.28, S * 0.01);
+        for (let i = 0; i < 6; i++) fxMote("dust", w.sx + frnd(-1, 1) * u, w.sy + u * 1.2, NM_DUST, true);
+      } });
+  }
+  // one blow of his (returns its warning: o.after for the next, else it waits on any of his still lit). o.kind "duk", "deong", "fish" or
+  // "plates"; o.ahead with o.trk: on where you are going; o.pair: two fish at once, crossing. A fish's tail, a second fish and the plates
+  // after the first are warnings of their own, lit with it, landing a beat of their own after it (nmKid)
+  function nmBlow(delay, dur, o = {}) {
+    const kind = o.kind || "duk";
+    const w = { kind: "shape", nm: kind, lead: true, grp: ++nmGrp, parts: [], x: 0, y: 0, t: 0, dur, delay, drawW: nmWarn,
+      offs: kind === "fish" ? [0, NM.fish.tailAt] : kind === "plates" ? [0, NM.plate.roll, NM.plate.roll * 2] : [0],
+      place(v) { fixed("nmP", () => nmPlace(v, o)); }, fire(v) { nmFire(v); } };
+    G.warns.push(w);
+    if (kind === "fish") { nmKid(w, "tail", 0, NM.fish.tailAt); if (o.pair) { nmKid(w, "fish", 1, 0); nmKid(w, "tail", 1, NM.fish.tailAt); } }
+    if (kind === "plates") { nmKid(w, "plate", 1, NM.plate.roll); nmKid(w, "plate", 2, NM.plate.roll * 2); }
+    return w;
+  }
+  function nmKid(lead, kind, i, off) { // a piece of the lead's blow: placed the same frame, just after it, from its parts; it lands `off` after it
+    G.warns.push({ kind: "shape", nm: kind, kid: i, grp: lead.grp, parts: [], x: 0, y: 0, t: 0, dur: lead.dur + off, delay: lead.delay, drawW: nmWarn,
+      place(v) {
+        if (!lead.placed || !(lead.fish || lead.plates)) return;
+        v.dur = lead.dur - lead.t + off + v.t;
+        if (kind === "plate") { v.parts = [lead.plates[i]]; [v.x, v.y] = lead.plates.plates[i]; v.ang = lead.ang; return; }
+        const f = lead.fish[i]; if (!f) return;
+        v.fnm = f.nm;
+        if (kind === "fish") { v.parts = f.slice(); [v.x, v.y, v.ang] = f.nm; } else { v.parts = f.tail; [v.x, v.y] = f.tail.at; v.ang = f.nm[2]; }
+      }, fire(v) { nmFire(v); } });
+  }
+  function nmFire(w) { // it lands: a blink of its print (finBlow), the instrument's own voice; if the next of his is lit he is on to it
+    finBlow(w.parts, w.x, w.y, (h, e, time) => nmStrike(w, e, time));
+    const k = w.nm, au = audio(), lit = G.warns.some((v) => v !== w && v.placed && !(v.delay > 0) && v.kind !== "none");
+    let next = null;
+    if (w.lead) { nmAt = [w.sx, w.sy]; for (const v of G.warns) if (v.nm && v.lead && v.wait === w && v.placed && !v.solid && G.boss) { nmSolid(v); next = v; } }
+    if (k === "duk") { if (au && !muted) drum(au.currentTime, 0.34, sfxBus, 175, 95, 0.16); sfx.thud(); buzz(18); } // 덕: one skin, high
+    else if (k === "deong") { sfx.taiko(); if (au && !muted) drum(au.currentTime + 0.012, 0.44, sfxBus, 125, 52, 0.4); buzz([24, 16, 30]); } // 덩: both, deep
+    else if (k === "fish") { if (au && !muted) { woodblock(au.currentTime, 0.13, sfxBus, 420); woodblock(au.currentTime + 0.012, 0.06, sfxBus, 840); } sfx.thud(); buzz(22); } // 木魚: the hollow knock
+    else if (k === "tail") { noise(0.22, 2400, 500, 0.14, "bandpass"); buzz(12); } // (its tail through the water)
+    else if (au && !muted) gong(au.currentTime, 0.05, sfxBus, 980 + (w.kid || 0) * 150, 1.1); // 雲板: bright bronze, a step up each plate
+    const heavy = k === "deong" || k === "fish";
+    G.shake = Math.max(G.shake, reduced ? 0 : (heavy ? 8 : k === "tail" || k === "plate" || k === "plates" ? 4 : 6) * (lit ? 0.6 : 1));
+    flash("255,236,200", heavy ? 0.15 : 0.07);
+    if (!reduced) {
+      if (k === "fish") G.stopT = Math.max(G.stopT, 0.03); // (not on the sticks: they keep the drum's beat)
+      if (k === "duk" || k === "deong") for (const [, , ex, ey] of w.parts.sticks || []) { fxWave(ex, ey, S * 0.28, NM_HOT, 0.3, S * 0.015); for (let i = 0; i < 5; i++) fxMote("dust", ex + frnd(-1, 1) * S * 0.06, ey + frnd(-1, 1) * S * 0.05, NM_DUST, true); }
+      else if (k === "fish" || k === "tail") for (let i = 0; i < (k === "fish" ? 14 : 8); i++) { const d = frnd(-1, 1); fxMote("drop", w.x + Math.cos(w.ang) * S * 0.2 * d + frnd(-1, 1) * S * 0.05, w.y + Math.sin(w.ang) * S * 0.2 * d + frnd(-1, 1) * S * 0.05, "#cfe0dc", true); }
+      else { fxFlare(w.x, w.y, S * 0.07, NM_PALE, 0.25); for (let i = 0; i < 4; i++) fxStreaks(w.x, w.y, 1, i % 2 ? "#ffffff" : NM_GOLD, S * 0.35, S * 0.02, 0.22, 0.2, (i * Math.PI) / 2 + w.ang); }
+    }
+    if (!w.lead || (next && next.sx === w.sx && next.sy === w.sy)) return;
+    const whole = !G.boss ? 0.3 : !next && nmNow === w ? 1 : 0.25, plates = k === "plates", inst = k === "fish" ? "fish" : plates ? "plate" : null, roll = NM.plate.roll;
+    G.hazards.push({ kind: "ctl", x: w.sx, y: w.sy, t: 0, dur: plates ? 0.6 : 0.42, best: Infinity, near: true, dist: () => Infinity, spent: () => true, // him, finishing the blow where he stands (under you and the warnings)
+      draw(h, time) { const arm = plates ? (h.t < roll * 2.5 ? (h.t % roll < 0.06 ? -0.6 : 0.45) : -0.3) : -0.6 * (1 - h.t / h.dur); nmFigure(w.sx, w.sy, 0.9, whole * Math.min(1, 2.2 * (1 - h.t / h.dur)), time, { ghost: !G.boss, flip: w.flip, arm, inst, cast: true }); } });
+  }
+  // him, drawn about (x, y) at s times his size (a: its alpha): o.flip his facing; o.lean, o.sx, o.sy (his stride); o.arm his sticks'
+  // lift (1 up, -1 brought down); o.inst what his left hand holds — the wooden fish, the cloud plate or, with both, the bell's beam
+  function nmFigure(x, y, s, a, time, o = {}) {
+    const def = nmDef(); if (!def || a <= 0.01) return;
+    const u = bossUnit(def) * s * 0.88, fy = y + u * 1.4; // (a little under his own size: he stands close to you and the field must read past him)
+    ctx.save(); ctx.globalAlpha *= Math.min(1, a);
+    if (!o.ghost) ctx.drawImage(glowOf(NM_HOT), x - u * 2.4, y - u * 2.2, u * 4.8, u * 4.8);
+    ctx.translate(x, fy); if (o.lean) ctx.rotate(o.lean); ctx.scale((o.sx || 1) * (o.flip || 1), o.sy || 1); ctx.translate(-x, -fy);
+    bossFigure(def, x, y - u * 0.8, u, time, { ghost: true, cast: !!o.cast, pose: { arm: o.arm || 0, slump: 0, inst: o.inst || null } });
+    ctx.restore();
+  }
+  function nmStick(x0, y0, x1, y1, th, kn, hot = 0) { // a drumstick from (x0, y0) to its round head at (x1, y1): th thick, its head kn across
+    line("#1d1a17", th + 2, x0, y0, x1, y1); line(NM_WOOD, th, x0, y0, x1, y1);
+    ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(x1, y1, kn + 1, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = hot > 0 ? NM_HOT : NM_GOLD; ctx.beginPath(); ctx.arc(x1, y1, kn, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = "rgba(29,26,23,0.55)"; ctx.lineWidth = Math.max(1, kn * 0.16); ctx.beginPath(); ctx.arc(x1, y1, kn * 0.62, 0, Math.PI * 2); ctx.stroke();
+  }
+  function nmFishDraw(cx, cy, ang, a, b, ink) { // the wooden fish (木魚) from above, its head the way ang: a long body of dark wood, a mouth cut deep
+    // in its head (where it is struck from inside), an eye each side, scales carved down its back, a fanned tail (ink: in ink, faint)
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(ang);
+    ctx.fillStyle = ink ? "rgba(29,26,23,0.85)" : NM_FISH;
+    ctx.beginPath(); ctx.moveTo(-a * 0.8, 0); ctx.quadraticCurveTo(-a * 1.02, -b * 0.4, -a * 1.26, -b * 1.15); ctx.quadraticCurveTo(-a * 1.1, 0, -a * 1.26, b * 1.15); ctx.quadraticCurveTo(-a * 1.02, b * 0.4, -a * 0.8, 0); ctx.fill();
+    ctx.beginPath(); ctx.ellipse(0, 0, a, b, 0, 0, Math.PI * 2); ctx.fill();
+    if (!ink) { ctx.fillStyle = "rgba(255,214,150,0.22)"; ctx.beginPath(); ctx.ellipse(a * 0.05, -b * 0.15, a * 0.72, b * 0.42, 0, 0, Math.PI * 2); ctx.fill(); }
+    ctx.strokeStyle = ink ? "rgba(247,240,222,0.55)" : "rgba(29,26,23,0.5)"; ctx.lineWidth = Math.max(1, b * 0.08);
+    for (let i = 0; i < 5; i++) { ctx.beginPath(); ctx.arc(a * (0.32 - i * 0.22), 0, b * 0.55, -1.1, 1.1); ctx.stroke(); }
+    ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.ellipse(a * 0.84, 0, a * 0.13, b * 0.17, 0, 0, Math.PI * 2); ctx.fill();
+    for (const s of [-1, 1]) { ctx.fillStyle = ink ? "rgba(247,240,222,0.75)" : NM_GOLD; ctx.beginPath(); ctx.arc(a * 0.6, s * b * 0.55, b * 0.2, 0, Math.PI * 2); ctx.fill(); ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(a * 0.62, s * b * 0.55, b * 0.1, 0, Math.PI * 2); ctx.fill(); }
+    ctx.restore();
+  }
+  function nmPlateDraw(px, py, ang, hw, hh, ink, hot = 0) { // a cloud plate (雲板): flat bronze cut in a cloud's lobes, a boss in its middle and a whorl round it
+    ctx.save(); ctx.translate(px, py); ctx.rotate(ang); ctx.scale(0.86, 0.86);
+    ctx.beginPath();
+    for (const [x, y, r] of [[-0.66, -0.5, 0.45], [-0.18, -0.66, 0.46], [0.32, -0.6, 0.45], [0.7, -0.38, 0.4], [0.78, 0.14, 0.4], [0.42, 0.56, 0.44], [-0.06, 0.64, 0.45], [-0.52, 0.56, 0.42], [-0.8, 0.06, 0.4]]) { ctx.moveTo(x * hw + r * hh, y * hh); ctx.arc(x * hw, y * hh, r * hh, 0, Math.PI * 2); }
+    ctx.moveTo(hw * 0.8, 0); ctx.ellipse(0, 0, hw * 0.8, hh * 0.7, 0, 0, Math.PI * 2);
+    if (ink) { ctx.fillStyle = "rgba(29,26,23,0.8)"; ctx.fill(); }
+    else { const g = ctx.createLinearGradient(-hw, -hh, hw, hh); g.addColorStop(0, "#c9a85a"); g.addColorStop(0.5, NM_BRONZE); g.addColorStop(1, "#5c5434"); ctx.fillStyle = g; ctx.fill(); ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = 1.5; ctx.stroke(); }
+    if (hot > 0) { const ga = ctx.globalAlpha; ctx.globalAlpha = ga * Math.min(1, hot); ctx.fillStyle = NM_PALE; ctx.fill(); ctx.globalAlpha = ga; } // (ringing white)
+    ctx.strokeStyle = ink ? "rgba(247,240,222,0.6)" : "rgba(29,26,23,0.6)"; ctx.lineWidth = Math.max(1, hh * 0.08);
+    ctx.beginPath(); for (let i = 0; i <= 18; i++) { const g = (i / 18) * Math.PI * 3, r = hh * (0.12 + 0.12 * (i / 18)); if (i) ctx.lineTo(Math.cos(g) * r * 1.5, Math.sin(g) * r); else ctx.moveTo(Math.cos(g) * r * 1.5, Math.sin(g) * r); } ctx.stroke();
+    ctx.fillStyle = ink ? "rgba(247,240,222,0.7)" : NM_GOLD; ctx.beginPath(); ctx.arc(0, 0, hh * 0.1, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  function nmBellDraw(x, y, R, sc) { // the great bell (梵鐘) side on, its lip round (x, y), R × sc to either side: bronze gone green, its bands,
+    // the lotus of its striking seat (당좌), on its crown the dragon hook (용뉴) and the sound pipe (음통)
+    const r = R * sc, h = r * 1.5, top = y - h;
+    ctx.save(); ctx.lineJoin = "round";
+    const g = ctx.createLinearGradient(x - r, 0, x + r, 0); g.addColorStop(0, "#2f3128"); g.addColorStop(0.32, NM_BRONZE); g.addColorStop(0.55, "#7d7247"); g.addColorStop(0.8, NM_VERD); g.addColorStop(1, "#262820");
+    ctx.fillStyle = g; ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = Math.max(1.5, r * 0.025);
+    ctx.beginPath(); ctx.moveTo(x - r * 0.62, top + r * 0.14); ctx.quadraticCurveTo(x, top - r * 0.12, x + r * 0.62, top + r * 0.14);
+    ctx.quadraticCurveTo(x + r * 0.7, y - h * 0.45, x + r * 0.9, y - r * 0.08); ctx.quadraticCurveTo(x + r * 1.0, y, x + r * 0.98, y + r * 0.04);
+    ctx.ellipse(x, y + r * 0.04, r * 0.98, r * 0.34, 0, 0, Math.PI, false);
+    ctx.quadraticCurveTo(x - r * 1.0, y, x - r * 0.9, y - r * 0.08); ctx.quadraticCurveTo(x - r * 0.7, y - h * 0.45, x - r * 0.62, top + r * 0.14); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "rgba(29,26,23,0.6)";
+    for (const f of [0.2, 0.78]) { const yy = top + h * f, wd = r * (0.64 + 0.3 * f * f); ctx.beginPath(); ctx.ellipse(x, yy, wd, r * 0.12, 0, 0, Math.PI); ctx.stroke(); }
+    ctx.fillStyle = "rgba(240,214,150,0.55)"; ctx.beginPath(); ctx.arc(x + r * 0.32, y - h * 0.4, r * 0.13, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+    ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ctx.moveTo(x + r * 0.32, y - h * 0.4); ctx.lineTo(x + r * 0.32 + Math.cos(a) * r * 0.12, y - h * 0.4 + Math.sin(a) * r * 0.12); } ctx.stroke();
+    ctx.fillStyle = "#3a3a2e"; ctx.fillRect(x + r * 0.16, top - r * 0.26, r * 0.12, r * 0.3); ctx.strokeRect(x + r * 0.16, top - r * 0.26, r * 0.12, r * 0.3); // (its sound pipe)
+    ctx.strokeStyle = "#3a3a2e"; ctx.lineWidth = r * 0.09; ctx.lineCap = "round"; ctx.beginPath(); ctx.moveTo(x - r * 0.3, top + r * 0.02); ctx.bezierCurveTo(x - r * 0.42, top - r * 0.34, x + r * 0.02, top - r * 0.4, x - r * 0.06, top - r * 0.06); ctx.stroke(); // (its dragon hook)
+    ctx.restore();
+  }
+  // (drawWarn) a blow of his as it is lit: its print red (laid on you), the instrument in it faint — the sticks' way reaching out from his
+  // hand, the fish's outline, the tail's lash, the plates settling — and him where he stands, striding in and lifting his sticks (only the
+  // dust where he will stand, while he is still at another; his afterimage only, in a stage: he waits up at the temple)
+  function nmWarn(w, k, pulse, time) {
+    const set = k >= 0.85, kind = w.nm;
+    if (!w.parts.length) return;
+    finPath(w.parts); ctx.lineJoin = "round";
+    if (w.snap) { ctx.fillStyle = "rgba(255,248,226,0.9)"; ctx.fill(); return; }
+    ctx.fillStyle = `rgba(200,50,31,${(0.08 + k * 0.24).toFixed(3)})`; ctx.fill();
+    ctx.strokeStyle = `rgba(200,50,31,${set ? 0.95 : 0.4 + pulse * 0.45})`; ctx.lineWidth = set ? 2.5 : 1.8; ctx.stroke();
+    ctx.save(); ctx.globalAlpha *= 0.2 + 0.35 * k; ctx.lineCap = "round";
+    if (kind === "duk" || kind === "deong") { // the stick's way out of his hand, reaching its head as it is lit
+      const reach = Math.min(1, k * 2.2), q = NM[kind];
+      for (const [rx, ry, ex, ey] of w.parts.sticks) {
+        ctx.strokeStyle = "rgba(29,26,23,0.9)"; ctx.lineWidth = Math.max(1.5, S * 0.012); ctx.beginPath(); ctx.moveTo(rx, ry); ctx.lineTo(rx + (ex - rx) * reach, ry + (ey - ry) * reach); ctx.stroke();
+        if (reach >= 1) { ctx.beginPath(); ctx.arc(ex, ey, S * q.knob * 0.62, 0, Math.PI * 2); ctx.stroke(); }
+      }
+    } else if (kind === "fish" && w.fnm) { const [cx, cy, a, z] = w.fnm; nmFishDraw(cx, cy, a, S * NM.fish.a * z * 0.9, S * NM.fish.b * z * 0.82, true); }
+    else if (kind === "tail" && w.fnm) { // the lash: its sweep, faint
+      const [fx, fy] = [w.x, w.y], R = S * NM.fish.tail * w.fnm[3], a = w.ang + Math.PI, hf = NM.fish.half;
+      ctx.strokeStyle = "rgba(29,26,23,0.85)"; ctx.lineWidth = Math.max(1.5, S * 0.008);
+      for (const f of [0.45, 0.75]) { ctx.beginPath(); ctx.arc(fx, fy, R * f, a - hf * 0.85, a + hf * 0.85); ctx.stroke(); }
+    } else if (kind === "plates" || kind === "plate") nmPlateDraw(w.x, w.y - (1 - k) * S * 0.05, w.ang, S * NM.plate.hw, S * NM.plate.hh, true); // (settling onto its print as it rings)
+    ctx.restore();
+    if (!w.lead) return;
+    const def = nmDef(); if (!def) return;
+    const u = bossUnit(def) * 0.9, inst = kind === "fish" ? "fish" : kind === "plates" ? "plate" : null;
+    if (kind === "fish" && w.fnm && (w.solid || !G.boss) && !reduced) { // the fish leaping out of his hand onto its print (faint, small, turning over)
+      for (const f of w.fish || []) {
+        const [cx, cy, a, z] = f.nm, hx = w.sx, hy = w.sy - u * 0.4, e = clamp(k, 0, 1), x = hx + (cx - hx) * e, y = hy + (cy - hy) * e * e - Math.sin(Math.PI * e) * S * 0.22;
+        ctx.save(); ctx.globalAlpha *= comeA(k); nmFishDraw(x, y, a + (1 - e) * Math.PI * 1.5, S * NM.fish.a * z * (0.35 + 0.55 * e), S * NM.fish.b * z * (0.35 + 0.55 * e), false); ctx.restore();
+      }
+    }
+    if (!G.boss) { nmFigure(w.sx, w.sy, 0.85, 0.2 + 0.15 * k, time, { ghost: true, flip: w.flip, arm: k, inst }); return; }
+    if (!(w.solid && nmNow === w)) { ctx.fillStyle = `rgba(29,26,23,${(0.1 + 0.12 * k).toFixed(3)})`; ctx.beginPath(); ctx.ellipse(w.sx, w.sy + u * 1.3, u * 1.1, u * 0.3, 0, 0, Math.PI * 2); ctx.fill(); return; } // (where he will stand)
+    const since = w.solidAt ? (performance.now() - w.solidAt) / 1000 : 9, GO = 0.14;
+    if (w.from && since < GO && !reduced) { // his stride: low and quick from where he was, his afterimages along it
+      const q = since / GO, ln = 0.3 * Math.sign(w.sx - w.from[0] || 1);
+      for (let i = 2; i >= 0; i--) { const qq = Math.max(0, q - i * 0.2), x = w.from[0] + (w.sx - w.from[0]) * qq, y = w.from[1] + (w.sy - w.from[1]) * qq - Math.sin(Math.PI * qq) * S * 0.04; nmFigure(x, y, 0.9, i ? 0.2 : 0.9, time, { ghost: !!i, flip: w.flip, lean: ln, arm: 0.2, inst }); }
+      return;
+    }
+    ctx.fillStyle = "rgba(29,26,23,0.26)"; ctx.beginPath(); ctx.ellipse(w.sx, w.sy + u * 1.3, u * 1.15, u * 0.3, 0, 0, Math.PI * 2); ctx.fill();
+    nmFigure(w.sx, w.sy, 0.9, 0.7 + 0.3 * k, time, { flip: w.flip, arm: 0.2 + 0.8 * k, inst, cast: k > 0.6 });
+  }
+  // the blow itself, a breath (finBlow's drawing, e 0 → 1): its print lit gold, the instrument struck down on it — the sticks with the
+  // ground cracking round their heads, the fish flat on it, its tail swept through, the plate ringing white
+  function nmStrike(w, e, time) {
+    const a = (1 - e) ** 1.6, k = w.nm;
+    if (!w.parts.length) return;
+    ctx.globalAlpha = 0.45 * a; finPath(w.parts); ctx.fillStyle = NM_HOT; ctx.fill();
+    ctx.globalAlpha = a; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    if (k === "duk" || k === "deong") {
+      const q = NM[k], z = w.parts.nm[3];
+      for (const [rx, ry, ex, ey] of w.parts.sticks) {
+        nmStick(rx, ry, ex, ey, S * q.hb * z * 0.7, S * q.knob * z * 0.75, 1 - e);
+        ctx.strokeStyle = "rgba(29,26,23,0.85)"; ctx.lineWidth = 2; ctx.beginPath();
+        for (let i = 0; i < 6; i++) { const g = (i / 6) * Math.PI * 2 + 0.4, r0 = S * q.knob * z * 0.8, r1 = r0 + S * 0.07 * Math.min(1, e * 5); ctx.moveTo(ex + Math.cos(g) * r0, ey + Math.sin(g) * r0); ctx.lineTo(ex + Math.cos(g + 0.2) * r1, ey + Math.sin(g + 0.2) * r1); }
+        ctx.stroke();
+      }
+    } else if (k === "fish" && w.fnm) { const [cx, cy, an, z] = w.fnm; nmFishDraw(cx, cy, an, S * NM.fish.a * z * 0.95, S * NM.fish.b * z * 0.9, false); }
+    else if (k === "tail" && w.fnm) { // its tail swept from one side of the fan to the other
+      const R = S * NM.fish.tail * w.fnm[3], hf = NM.fish.half, g = w.ang + Math.PI - hf + 2 * hf * Math.min(1, e * 3);
+      ctx.strokeStyle = "rgba(255,248,226,0.9)"; ctx.lineWidth = Math.max(2, S * 0.012); ctx.beginPath(); ctx.arc(w.x, w.y, R * 0.8, w.ang + Math.PI - hf, g); ctx.stroke();
+      ctx.save(); ctx.translate(w.x, w.y); ctx.rotate(g); ctx.fillStyle = NM_FISH; ctx.beginPath(); ctx.moveTo(0, 0); ctx.quadraticCurveTo(R * 0.5, -R * 0.12, R * 0.92, -R * 0.3); ctx.quadraticCurveTo(R * 0.7, 0, R * 0.92, R * 0.3); ctx.quadraticCurveTo(R * 0.5, R * 0.12, 0, 0); ctx.fill(); ctx.restore();
+    } else { const q = NM.plate; nmPlateDraw(w.x, w.y, w.ang, S * q.hw, S * q.hh, false, 1 - e); }
+  }
+  // 梵鐘 (四物一聲's act three, the one blow of his from beyond the screen: 1123 설계 '들어오는 방향', 8-5 "3막 범종만 위에서"): the temple's great
+  // bell comes down out of the sky over where you stand, its mouth a disc R across, lit dur; drawn faint under every warning as it comes,
+  // greater than the field and quicker and quicker (k²), its shadow gathering in the print. As it lands he is at its side and rams the
+  // striking beam (당목) into it: 둥 — a hit-stop and a shockwave, the bell shuddering; a breath later it goes back up into the sky (two
+  // beats). By a wall it may land a step off you, or hang off the edge (finPick): two ways out
+  function nmBell(delay, dur, o = {}) {
+    const R = o.R || S * 0.26, top = barTop() + S * 0.06, disc = (x, y) => [{ c: [x, y, R] }], AFTER = 0.55;
+    return dropBlow(delay, dur, { after: AFTER,
+      mark(w, k) { // its lip a ring darkening in the print, the lotus of its striking seat in the middle
+        ctx.strokeStyle = `rgba(29,26,23,${(0.15 + 0.35 * k).toFixed(3)})`; ctx.lineWidth = Math.max(1.5, S * 0.006);
+        ctx.beginPath(); ctx.arc(w.x, w.y, R * 0.8, 0, Math.PI * 2); ctx.stroke();
+        ctx.beginPath(); for (let i = 0; i < 8; i++) { const a = (i / 8) * Math.PI * 2; ctx.moveTo(w.x, w.y); ctx.quadraticCurveTo(w.x + Math.cos(a - 0.35) * R * 0.34, w.y + Math.sin(a - 0.35) * R * 0.34, w.x + Math.cos(a) * R * 0.3, w.y + Math.sin(a) * R * 0.3); } ctx.stroke();
+      },
+      lay(w) {
+        const [x, y, parts] = finPick(clamp(P.x, R * 0.2, W - R * 0.2), clamp(P.y, Math.min(top, P.y), H - R * 0.2), disc); w.parts = parts; w.x = x; w.y = y;
+        w.side = x < W / 2 ? 1 : -1; [w.mx, w.my] = nmStand(x + w.side * (R + S * 0.12), y - S * 0.02); // (where he strikes it from: its side away from the nearer wall)
+        const b = G.boss; w.from = b ? (b.vanish > 0 && nmAt ? nmAt : [b.x, b.y]) : null;
+      },
+      shown(w) {
+        nmGone(w.dur + AFTER + 1.2); G.dark = Math.max(G.dark, 0.9); flash("255,240,210", 0.1); sfx.gather();
+        const au = audio(); if (au && !muted) gong(au.currentTime + 0.05, 0.05, sfxBus, 140, 2.2); // (its rope let go: a low hum coming down)
+      },
+      art(w, k, time) {
+        if (k > 1) { // the second beat: it shudders where it stands, then goes back up into the sky; he steps back from it
+          const e = ((k - 1) * w.dur) / AFTER; if (e >= 1) return;
+          const up = e < 0.45 ? 0 : ((e - 0.45) / 0.55) ** 2, sh = e < 0.45 && !reduced ? Math.sin(e * 120) * S * 0.004 * (1 - e / 0.45) : 0;
+          ctx.globalAlpha = 0.75 * (1 - up); nmBellDraw(w.x + sh, w.y - up * (w.y + R * 3.5), R, 1);
+          if (e < 0.6) { ctx.globalAlpha = 1; nmFigure(w.mx, w.my, 0.95, 1 - e / 0.6, time, { flip: -w.side, arm: -0.4, inst: "beam" }); }
+          return;
+        }
+        const e = clamp(k, 0, 1) ** 2;
+        ctx.globalAlpha = Math.min(0.32, 0.06 + 0.3 * k); ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.arc(w.x, w.y, R * (0.3 + 0.7 * e), 0, Math.PI * 2); ctx.fill(); // (its shadow, gathering)
+        ctx.globalAlpha = comeA(k); nmBellDraw(w.x, w.y - H * 0.8 * (1 - e), R, 2.5 - 1.5 * e);
+        if (k > 0.62 && w.from) { // he comes in at its side in a stride, the beam drawn back, and rams it as it lands
+          const q = clamp((k - 0.62) / 0.18, 0, 1), x = w.from[0] + (w.mx - w.from[0]) * q, y = w.from[1] + (w.my - w.from[1]) * q - Math.sin(Math.PI * q) * S * 0.05;
+          ctx.globalAlpha = 1; if (q < 1 && !reduced) nmFigure(w.from[0] + (w.mx - w.from[0]) * q * 0.6, w.from[1] + (w.my - w.from[1]) * q * 0.6, 0.95, 0.2, time, { ghost: true, flip: -w.side, inst: "beam" });
+          nmFigure(x, y, 0.95, 0.5 + 0.5 * q, time, { flip: -w.side, arm: q * clamp(k, 0, 1), inst: "beam", cast: k > 0.9 });
+        }
+      },
+      land(w) {
+        nmAt = [w.mx, w.my];
+        sfx.issen(); sfx.burst(); buzz([40, 30, 100]); flash("255,246,220", reduced ? 0.25 : 0.6); G.shake = Math.max(G.shake, reduced ? 0 : 22);
+        const au = audio(); if (au && !muted) { const t = au.currentTime; gong(t + 0.02, 0.14, sfxBus, 78, 4.2); gong(t + 0.03, 0.06, sfxBus, 156, 3.2); drum(t, 0.8, sfxBus, 58, 26, 1.6); } // (둥 —)
+        later(AFTER * 0.45, () => sfx.whoosh()); // (the second beat: back up it goes)
+        if (reduced) return;
+        G.stopT = Math.max(G.stopT, 0.12);
+        fxFlare(w.x, w.y, R * 1.1, NM_HOT, 0.55); fxFlare(w.mx, w.my, S * 0.08, "#ffffff", 0.35);
+        fxWave(w.x, w.y, S * 1.2, NM_GOLD, 0.75, S * 0.045); fxWave(w.x, w.y, R * 1.6, NM_PALE, 0.5, S * 0.025); fxWave(w.x, w.y, S * 1.5, "#c9a25a", 0.9, S * 0.03);
+        for (let i = 0; i < 12; i++) fxStreaks(w.x, w.y, 1, i % 2 ? "#ffffff" : NM_GOLD, S * 1.1, S * 0.06, 0.4, 0.3, (i * Math.PI) / 6);
+        for (let i = 0; i < 16; i++) { const g = frnd(0, Math.PI * 2); fxMote("dust", w.x + Math.cos(g) * R * frnd(0.9, 1.2), w.y + Math.sin(g) * R * frnd(0.9, 1.2), NM_DUST, true); }
+      },
+      blow(w, e) { ctx.globalAlpha = 0.6 * (1 - e) ** 1.5; ctx.strokeStyle = NM_PALE; ctx.lineWidth = Math.max(2, S * 0.012) * (1 - e); ctx.beginPath(); ctx.arc(w.x, w.y, R, 0, Math.PI * 2); ctx.stroke(); } });
+  }
   // ---- 13-5 뇌정 (11-23 재설계 §7 안 A, docs/설계/1123-보스-재설계-8명.md; 제작자 11-23 "발도를 좀 더 생동감있게 해서 넣는게
   // 좋아보이고 큰게 떨어진다고해서 어려운게 아니잖아?"): a lightning swordsman, and every blow of his a 발도 of his own. He is gone
   // in a crack of lightning and out at a rim of the field, crouched, his hand on the hilt; a thin line runs out from him through
@@ -6405,7 +6851,9 @@ sdk.initializeAsync()
     lotus: { mix: [0.1, 0.8, 1.5, 2.2], again: ["c_lotus1", 0.6, 1], alone: true },
     fire: { mix: [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1.0, 1.15], overAlt: 0.3, layer: 0.5, again: ["c_fire1", 0.65, 4] },
     frost: { mix: [0.1, 0.8, 1.5, 2.2], again: ["c_frost1", 0.6, 1], alone: true },
-    mirror: { mix: [0.1, 0.35, 0.6, 0.85, 1.1], over: 0.9, layer: 0.7, again: ["c_mirror2", 0.4, 3] },
+    // (11-24, 빙경 작은 탄 정리: her 氷鏡 a chain of her own cuts out of her panes now, each lit before the last lands, so as 탁랑 and
+    // 설귀; was over 0.9, layer 0.7 and 얼음 가시 again three times)
+    mirror: { mix: [0.1, 0.8, 1.5, 2.2], again: ["c_mirror1", 0.6, 1], alone: true },
     // (11-20, 10-5 관창: 9-5 빙경 ≤ 10-5 ≤ 11-5 검총주, critic 보통 본판 새 위협/초 — 빙경 5.2, 관창 4.6 before this) his 梨花槍
     // a little quicker (lift), his own moves closer between 비기, one laid on his 回馬槍 every 0.8 s (that 비기 is one thrust a
     // stop), and his spear's shadow again where you went, twice. Nothing small, nothing bursting: every one of them a thrust
@@ -6420,7 +6868,9 @@ sdk.initializeAsync()
     glare: { mix: [0.1, 0.75, 1.4, 2.05, 2.7], again: ["c_glare1", 0.6, 1] },
     void: { lift: 4, mix: [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1.0, 1.15], over: 0.6, layer: 0.5, again: ["c_void2", 0.5, 4] },
     charge: { lift: 6, mix: [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0], over: 0.6, layer: 0.4, again: ["c_charge1", 0.45, 5] },
-    drum: { lift: 3, mix: [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1.0, 1.15], overAlt: 0.8, layer: 0.5, again: ["c_drum2", 0.5, 4] },
+    // (11-24 재설계, 8-5 뇌음 사물: as 탁랑 and 설귀, his own blows well apart between 비기 and his stick again where you went; `alone`:
+    // nothing laid on his 비기 nor his 종전 — each a chain of his own beats — and never two of his blows in one beat, nmBeat)
+    drum: { mix: [0.1, 0.8, 1.5, 2.2], again: ["c_drum1", 0.6, 1], alone: true },
     veil: { lift: 3, mix: [0.1, 0.25, 0.4, 0.55, 0.7, 0.85, 1.0, 1.15], over: 0.6, layer: 0.5, again: ["c_veil2", 0.5, 4] },
     // (11-23 재설계, 12-5 천기: no small blade nor stars now, every move a 爻 of his — pushed as 뇌정 is: his 爻 between 비기 one
     // after another, his solid one again where you went, nothing laid over his 비기, his 종전's moves on top every 0.5 s)
@@ -6507,12 +6957,9 @@ sdk.initializeAsync()
     // cut through you where they stop; from 4-2 the snow bursting up under you as it lands; from 4-3 a second set after that
     frost: () => { const s = stageDef(G.sg).s; sgSteps(0, 0.85, { tag: "ff" }); if (s >= 1) sgMound(SG_WALK + 0.85, 0.85); if (s >= 2) sgSteps(1.7, 0.8, { trk: handTrack(4), tag: "ff2" }); }, // (its cut shows as the mound bursts)
     // (11-10: no 사자후 or 천라지망 in the game, so 뇌음 and 화륜 foretell themselves otherwise in their stages)
-    drum: () => { // 뇌음's paths on the beat: three side by side across you (was 북소리, 사자후's rings off the drum)
-      const g = rnd(0, Math.PI), nx = Math.cos(g + Math.PI / 2), ny = Math.sin(g + Math.PI / 2), dur = drumBeat() * 1.5, n = moreN(3); // (11-19 more: 쉬움 two, 어려움 a fourth on the next half-beat)
-      for (const o of [-1, 0, 1].slice(0, n)) G.warns.push({ kind: "band", x: P.x + nx * S * 0.2 * o, y: P.y + ny * S * 0.2 * o, ang: g, w: S * 0.07, t: 0, dur, delay: 0, beat: true, fire(v) { landCut(v); } });
-      if (n > 3) G.warns.push({ kind: "band", x: 0, y: 0, ang: g, w: S * 0.07, t: 0, dur, delay: drumBeat() * 0.6, beat: true, place(v) { v.x = P.x; v.y = P.y; sfx.taiko(); }, fire(v) { landCut(v); } });
-      sfx.warn();
-    },
+    // (11-24 재설계, 뇌음 사물; was three bands side by side on the beat) 8장's stages: a taste of 法鼓 from up the temple where he waits
+    // (only his afterimage beside you) — one stick down through you, and from X-3 both at once crossing where you are going
+    drum: () => { const w = nmBlow(0, 0.88, { kind: "duk" }); if (stageDef(G.sg).s >= 2) nmBlow(0.62, 0.85, { kind: "deong", after: w, trk: handTrack(1.8), ahead: true }); },
     // (11-23 새 인물) 16장's stages: a taste of 連環輪 — one round cut of his through you (he waits out on the plain: only his
     // afterimage), and from X-3 his other ring from there round where you are going
     wheel: () => { const spin = zrSpin(), w = zrArc(0, 0.9, { spin }); if (stageDef(G.sg).s >= 2) zrArc(0.6, 0.85, { after: w, pair: w, trk: handTrack(1.7), ahead: true, spin }); },
@@ -6972,16 +7419,25 @@ sdk.initializeAsync()
       return t;
     } },
     veil: { name: ["暗殺", "암살"], run() { const stab = () => bandsAt([rnd(0, Math.PI)], S * 0.08, 0.65), v = () => SUBS.veil.run(); return steps(0.75, v, stab, stab, v, stab, stab, v, stab); } },
-    drum: { name: ["雷鼓", "뇌고"], run() { // three paths side by side on the beat, five times over
-      const beat = drumBeat(), three = (g) => { const nx = Math.cos(g + Math.PI / 2), ny = Math.sin(g + Math.PI / 2); for (const o of [-1, 0, 1]) G.warns.push({ kind: "band", x: P.x + nx * S * 0.2 * o, y: P.y + ny * S * 0.2 * o, ang: g, w: S * 0.07, t: 0, dur: beat * 1.5, delay: 0, beat: true, fire(v) { landCut(v); } }); sfx.taiko(); };
-      // (11-08 "빠르게 빠르게": three sets two beats apart then; now four, one on each beat, the next shown before the
-      // last has struck; 11-10, with no rings to wait for: five sets from the second beat)
-      const g = rnd(0, Math.PI);
-      [0, Math.PI / 2, Math.PI / 4, Math.PI * 3 / 4, Math.PI / 3].forEach((a, k) => later((2 + k) * beat, () => G.boss && three(g + a)));
-      return (6 + 1.5) * beat + 0.6;
+    // 木魚 (11-24 재설계 §5 (가)-2 「사물」; was 雷鼓, three bands side by side on the beat five times over): his wooden fish, one after
+    // another (nmBlow "fish"): out of his hand it leaps and comes down flat along you, and a breath later its tail lashes off its tail end
+    // (both lit together); each shown as the tail before it is about to lash, by turns where you are and where you are going. 쉬움 two,
+    // 보통 three, 어려움 four (its 종전 one more), and to end 雙魚, two at once crossing on you, out between them
+    drum: { name: ["木魚", "목어"], run() {
+      if (!G.boss) return 1;
+      const sl = SL().lv || 0, lo = sl < 9, hi = sl >= 11, last = !!(G.fight && G.fight.last), n = (lo ? 2 : hi ? 4 : 3) + (last ? 1 : 0);
+      const D = lo ? 0.88 : 0.8, DX = lo ? 0.92 : 0.86, TA = NM.fish.tailAt, trk = handTrack(n * 1.2 + 4);
+      let t = 0.2, w = null;
+      for (let i = 0; i < n; i++) { w = nmBlow(t, D, { kind: "fish", after: w, trk, ahead: i % 2 === 1 }); t += D + TA - 0.3; }
+      w = nmBlow(t, DX, { kind: "fish", pair: true, after: w });
+      const end = t + DX + TA;
+      nmGone(end + 0.25);
+      return end + 0.35;
     } },
-    mirror: { name: ["三面鏡", "삼면경"], run() { // three panes turn on you at once: three icicles off them, meeting where you stand; a wall of ice between
-      const h = icePanes(7.6), three = () => { for (let i = 0; i < 3; i++) mirrorShot(h, 0.85); };
+    // 三面鏡 (11-24, 작은 탄 정리; was three icicles off three panes): three panes turn on you at once, her image in each, and three
+    // cuts meet where you stand (out between them); then 返照; then three, and three again
+    mirror: { name: ["三面鏡", "삼면경"], run() {
+      const h = icePanes(7.6), three = () => { for (let i = 0; i < 3; i++) mrCut(0, 0.85, { h, tag: "mr3" }); };
       return steps(1.7, three, () => SUBS.mirror.run(), three, three);
     } },
     rain: { name: ["回馬槍", "회마창"], run() { // (11-20, 전체리메이크안 10-5 안 A; was 連環快劍) he turns as if to go and comes back
@@ -7191,12 +7647,12 @@ sdk.initializeAsync()
         place(w) { const a = as[k], d = S * 0.4; w.x = clamp(P.x + Math.cos(a) * d, S * 0.04, W - S * 0.04); w.y = clamp(P.y + Math.sin(a) * d, S * 0.04, H - S * 0.04); w.ang = Math.atan2(P.y - w.y, P.x - w.x); sfx.warn(); },
         fire(w) { cloneDash(w.x, w.y, w.ang); } });
     } },
-    drum: { name: "북소리", run() { FORESHADOW.drum(); } }, // three paths on the beat across you (was 사자후's rings off the drum)
-    mirror: { name: "반조", run() { // 返照: two panes beside you, one icicle off the one and the other at you, then one back the
-      // other way; late on two at first, crossing between the panes (was 빙벽, a wall of swords with one gap: 11-08 19:45)
-      const h = twinPanes(), i = Math.random() < 0.5 ? 0 : 1;
-      twinShot(h, i); if (lvl() >= 5) later(0.2, () => twinShot(h, 1 - i));
-      later(0.75, () => twinShot(h, 1 - i));
+    drum: { name: "운판", run() { nmBlow(0, G.phase === "boss" ? 0.82 : 0.88, { kind: "plates" }); } }, // (11-24 사물; was 북소리, three bands on the beat across you) his cloud plates rung down in a row, you on one
+    mirror: { name: "반조", run() { // 返照: two panes beside you (was 빙벽, a wall of swords with one gap: 11-08 19:45); her image in
+      // the one cuts through you toward the other, and as it is about to land the other sends it back through where you are going
+      // (11-24, 작은 탄 정리: was an icicle off the one and the other at you, and one back the other way)
+      const h = twinPanes(), i = Math.random() < 0.5 ? 0 : 1, D = G.phase === "boss" ? 0.75 : 0.85, trk = handTrack(3);
+      mrCut(0, D, { h, pane: h.panes[i], tag: "mrs" }); mrCut(0.5, D, { h, pane: h.panes[1 - i], trk, tag: "mrs2" });
     } },
     rain: { name: "그림자 창", run() { const side = Math.random() < 0.35 ? (P.x < W / 2 ? 1 : -1) : 0; shadowThrust({ side, dur: 0.78 }); } }, // (11-20 관창) his spear's shadow out of the top or the far side wall, through you (was 빠른 청우검)
     swords: { name: "비검", run() { // three swords off the boss's shoulders, straight at you, one after another
@@ -7349,11 +7805,11 @@ sdk.initializeAsync()
       act: { 2: "남은 하나도 버린다.", 3: "천 그림자 가운데 이것이 칼이다!" },
       hard: { intro: "네 사부는 돌아가던 날 그림자가 길었다. 무언가를 지고 있었다.", act: { 3: "이번엔… 나를 보고 죽어라!" } },
     },
-    drum: { // 8-5 뇌음
-      sig: ["자진모리로 넘어간다!", "엇박에 넘어지지 마라!"], alt: ["큰북이 운다!", "산이 깨는 소리다!"],
-      half: "그 젊은이는 날이 새도록 추고도 웃더라!", sub: "덩, 기덕, 쿵!",
-      act: { 2: "휘모리다!", 3: "북이 찢어진다!" },
-      hard: { intro: "내려가던 날 그 젊은이는 북을 쳐도 안 돌아보더라. 장단 없는 걸음이었다.", act: { 3: "이 가락은 그 젊은이 것이다!" } },
+    drum: { // 8-5 뇌음 (11-24 재설계 사물: 法鼓 땅의 짐승, 木魚 물속 것, 雲板 하늘 것, 梵鐘 지옥 — what each of the four wakes)
+      sig: ["짐승들아, 일어나라!", "자진모리로 간다!"], alt: ["물고기는 눈을 감지 않는다.", "물속 것들도 들어라."],
+      half: "그 젊은이는 날이 새도록 추고도 웃더라!", sub: "하늘 것들 차례다.",
+      act: { 2: "휘모리다!", 3: "범종이다. 지옥 끝까지 울려라!" },
+      hard: { intro: "내려가던 날 그 젊은이는 북을 쳐도 안 돌아보더라. 장단 없는 걸음이었다.", act: { 3: "그날 못 친 종, 오늘 친다!" } },
     },
     mirror: { // 9-5 빙경
       sig: ["거울은 거짓말 안 해.", "꺾여도 칼은 칼이야."], alt: ["세 장이 다 너를 봐.", "눈 돌리지 마."],
@@ -7444,7 +7900,7 @@ sdk.initializeAsync()
     twin: "형… 이 녀석, 진짜다. 숨는 건 여기까지다.", lotus: "닻줄은 끊었다. 이제 이 배는 어디서도 안 선다.", // (lotus: 탁랑, 11-24 재설계)
     fire: "업이… 업이 타오른다. 너도 함께 타라!", frost: "백 년… 백 년을 기다렸다. 네 발자국까지 덮어 주마.",
     void: "두 번째 칼을… 뽑게 해? 청죽문 놈들…!", charge: "크하하! 이제야 피가 끓는군. 여기서부턴 사냥이다!",
-    veil: "버릴 게… 하나 남았군. 내 목숨이다.", drum: "한 번도 멈춘 적 없는 북이다. 마지막 장단을 들어라!",
+    veil: "버릴 게… 하나 남았군. 내 목숨이다.", drum: "다들 떠난 절이다. 넷이 치던 사물, 나 혼자 친다.", // (drum: 11-24 사물, his own binding — 스토리 종합 2절)
     mirror: "금이… 가. 깨지기 전에 너부터 깨뜨릴게.", rain: "삿갓은 벗는다. 이제 이 몸이 문이다.",
     swords: "다들 오래 잤다. 만 자루, 일어나라.", time: "산가지가 다 떨어졌네. 마지막 괘는 칼로 뽑지.",
     thunder: "목검이 탄다. 스무 해 맞은 벼락이 칼에 다 붙었다!", shadow: "명부에서 네 이름이 안 지워진다. 그럼 이 손으로 지운다.", // (11-24 스토리 종합 5절: swords, shadow)
@@ -7459,7 +7915,7 @@ sdk.initializeAsync()
     twin: "형, 마지막이다. 같이 뽑자.", lotus: "배 엎는 놈이 누군지 아냐. 사공이다.", // (lotus 탁랑, frost 설귀: 11-24 재설계)
     fire: "삼계가 불타는 집이다. 어디로 달아나려느냐.", frost: "백 년 치 발자국이다. 다 너한테 간다.",
     void: "검은 달이 진다. 네 사부가 쓰러진, 그 시각에.", charge: "비켜라. 범이 지나간다.",
-    veil: "칼집 닫히는 소리가 들리면, 넌 이미 베였다.", drum: "북이 찢어지면, 산도 너도 함께 잠든다.",
+    veil: "칼집 닫히는 소리가 들리면, 넌 이미 베였다.", drum: "넷이 한 소리로 울면, 저승도 깬다.", // (drum: 11-24 四物一聲)
     mirror: "거울 속 꽃이야. 꺾을 수 있으면 꺾어 봐.", rain: "일부당관. 만 명이 와도 못 지나간다.",
     swords: "만 자루가 한 자루로 돌아간다. 받아라.", time: "스무 해 전에 뽑은 괘를 다시 펴네. 이번엔 자네 몫일세.",
     thunder: "하늘로 올라간다. 내려올 땐 내가 벼락이다.", shadow: "네가 밟고 온 자리마다 혼이 서 있다.",
@@ -7474,6 +7930,7 @@ sdk.initializeAsync()
     for (const s of G.shots) if (!s.dead) { s.dead = true; shatter(s); }
     G.warns = []; G.hazards = []; G.timeK = 1; G.freezeT = 0;
     for (const c of G.cuts) c.checked = true; // a slash landing this very moment breaks with the rest: its line comes up over a quiet field (11-08, caught on 14-5)
+    if (d.sig === "drum" && b.home > 0) { b.home = b.vanish = 0; b.pop = reduced ? 0 : 0.16; } // (11-24 뇌음: back on his own ground for his last words, off whatever stride he was in — nmGone)
     if (f.retry || !LAST_LINES[d.sig]) return gatherLast(b, f, wl, d);
     say([{ who: d.name, text: withName(LAST_LINES[d.sig]) }], () => gatherLast(b, f, wl, d));
   }
@@ -8236,129 +8693,42 @@ sdk.initializeAsync()
       });
       return tEnd + durF + 0.55;
     } },
-    // 雷鼓裂天: 뇌음's last (11-16, "북이 찢어질 때까지 치겠다."). He plays one 장단 through to its end, quicker as it
-    // goes, every stroke a blow on you, on its music's beat: 덩 (both sticks: two paths crossed through you), 덕 (one
-    // stick: one path), 쿵 (the drum's belly: the ground bursting under your feet). Then a beat held — nothing new — and
-    // he brings both sticks down on the drum with all he has and it tears: its great head spreads under you, the two
-    // sticks' paths crossed on it, and it goes up in one thunderclap, a bolt out of the sky into it. Each stroke shown a
-    // beat and a half (the last a little longer, alone on the field); its dice all cast here.
-    // (11-20, 세 막: FIN_ACTS) act two, 急長短: the 장단 again with no beat held, straight on into a quicker second run of it
-    // (each stroke round from the last, more 덩 at 어려움); no tear. 쉬움 three strokes. Act three, the execution: the great
-    // drum's head alone, wide, under you, lit a full second, and it tears on the beat: out of it, any way (no hit-stop: on
-    // the music's beat)
-    drum: { name: ["雷鼓裂天", "뇌고열천"], acts: 3, run(o = {}) {
+    // 四物一聲 (11-24 재설계 §5 (가)-2 「사물」; was 雷鼓裂天, his 장단 on you in bands and the great drum's head torn under you): 뇌음's
+    // last, the temple's four instruments as one voice. Three acts, no beat held in any (the rage between them FIN_PRESS_RAGE's), each
+    // blow his own (nmBlow), each shown as the one before is about to land — the sticks a beat apart: act one, 법고 덕 덕 덩, his 목어,
+    // 덕 and his 운판 (쉬움 덕 덩, 목어, 운판); act two, 휘모리, quicker — 덩, 목어, 덕 덕, 목어 and to end 雙魚 (보통 a 덕 fewer, 쉬움
+    // 덩, 목어, 雙魚); act three, 梵鐘 — the great bell down out of the sky over you (nmBell: the one thing from beyond the screen, lit a
+    // full second: out of it any way), rammed as it lands, 둥, and then his stick where you are, and again (FIN_PRESS.drum)
+    drum: { name: ["四物一聲", "사물일성"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
-      const B = drumBeat(), show = B * 1.4, u = bossUnit(b.def), tint = fightTint(b.def), HOT = "#ffd27a", EMBER = "#ff9a3a";
-      const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
-      if (ac) { M.step = 0; M.next = ac.currentTime + 0.03; } // (its music's bar starts with its first stroke)
-      const g0 = rnd(0, Math.PI), turn = Math.random() < 0.5 ? 1 : -1, cracks = [0, 1, 2, 3, 4, 5, 6, 7].map(() => rnd(0, 6)), aF = g0 + turn * rnd(0.6, 1.0);
-      const wD = S * 0.075, wd = S * 0.065, Rk = S * 0.085, RF = S * (act === 3 ? (ez ? 0.22 : 0.26) : 0.15), tF = act === 3 ? Math.max(0.1, 2 * B - 1) : 4.5 * B, durF = act === 3 ? 1.0 : Math.min(1.0, B * 1.8);
-      const seq = act === 3 ? [] : act === 2 ? (ez ? [[0, "덩"], [1, "덕"], [1.5, "덩"]] : hi ? [[0, "덩"], [1, "덕"], [1.5, "덩"], [2, "쿵"], [2.5, "덕"], [3, "덩"], [3.5, "덕"], [4, "덩"], [4.5, "쿵"], [5, "덩"], [5.5, "덩"]]
-        : [[0, "덩"], [1, "덕"], [1.5, "덕"], [2, "쿵"], [2.5, "덕"], [3, "덩"], [3.5, "덕"], [4, "덩"], [4.5, "쿵"], [5, "덕"], [5.5, "덩"]])
-        : [[0, "덩"], [1, "덕"], [1.5, "덕"], [2, "쿵"], [2.5, "덕"], [3, "덩"]]; // [beat, stroke]: quicker from the second beat; then a beat held
-      const stroke = (kind) => { // his sticks come down on the drum: its sound, and light off its head
-        const bb = G.boss; if (!bb) return;
-        bb.castT = bb.castDur = 0.3;
-        const au = audio();
-        if (kind === "덕") { if (au && !muted) drum(au.currentTime, 0.32, sfxBus, 170, 95, 0.16); } else sfx.taiko();
-        if (kind === "덩" && au && !muted) drum(au.currentTime + 0.012, 0.42, sfxBus, 125, 52, 0.4); // (both sticks: a second, deeper skin)
-        if (reduced) return;
-        const dx = bb.x, dy = bb.y - u * 0.45;
-        fxFlare(dx, dy, S * (kind === "덕" ? 0.03 : 0.05), HOT, 0.22);
-        fxStreaks(dx, dy, kind === "덕" ? 4 : 8, tint, S * 0.6, S * 0.04, 0.26, Math.PI * 0.8, -Math.PI / 2);
-      };
-      seq.forEach(([at, kind], k) => {
-        const a = g0 + turn * k * ((3 * Math.PI) / 8); // (each stroke round from the last by 3/8 of a half turn: never along it)
-        if (kind === "쿵") {
-          G.warns.push({ kind: "spike", x: 0, y: 0, r: Rk, seed: cracks[k % 8], t: 0, dur: show, delay: at * B, beat: true,
-            place(w) { w.x = clamp(P.x, w.r, W - w.r); w.y = clamp(P.y, w.r, H - w.r); stroke(kind); sfx.warn(); },
-            fire(w) { spikeErupt(w.x, w.y, w.r, "fire"); sfx.taiko(); G.shake = Math.max(G.shake, reduced ? 0 : 8); } });
-          return;
-        }
-        (kind === "덩" ? [a + Math.PI / 4, a - Math.PI / 4] : [a]).forEach((ang, j) => G.warns.push({ kind: "band", x: 0, y: 0, ang, w: kind === "덩" ? wD : wd, t: 0, dur: show, delay: at * B, beat: true,
-          place(w) { w.x = P.x; w.y = P.y; if (j === 0) stroke(kind); },
-          fire(w) { landCut(w); if (kind === "덩" && j === 0) flash("255,236,190", 0.2); } }));
+      const act = o.act || 1, sl = SL().lv || 0, ez = sl < 9, hi = sl >= 11; // (o.act: FIN_ACTS)
+      if (act === 3) { const D3 = 1.0, at3 = 0.1; nmBell(at3, D3, { R: S * (ez ? 0.22 : hi ? 0.27 : 0.25) }); nmGone(at3 + D3 + 1.8); return at3 + D3 + 0.33; } // (then his stick where you are, twice: FIN_PRESS.drum)
+      const B = drumBeat() * (act === 2 ? 0.88 : 1), DS = ez ? 0.8 : act === 2 ? 0.74 : 0.76, DF = ez ? 0.86 : act === 2 ? 0.77 : 0.8, DP = ez ? 0.88 : 0.82, TA = NM.fish.tailAt, trk = handTrack(14);
+      const seq = act === 1 ? (ez ? ["duk", "deong", "fish", "plates"] : ["duk", "duk", "deong", "fish", "duk", "plates"])
+        : ez ? ["deong", "fish", "pair"] : hi ? ["deong", "fish", "duk", "duk", "fish", "pair"] : ["deong", "fish", "duk", "fish", "pair"];
+      const stick = (k) => k === "duk" || k === "deong";
+      let t = 0.15, w = null, end = 0, nd = 0;
+      seq.forEach((k, i) => {
+        const D = k === "plates" ? DP : k === "fish" ? DF : k === "pair" ? DF + 0.06 : DS;
+        w = nmBlow(t, D, { kind: k === "pair" ? "fish" : k, pair: k === "pair", after: w, trk, ahead: k === "duk" && nd++ % 2 === 1 });
+        end = t + D + (k === "fish" || k === "pair" ? TA : k === "plates" ? NM.plate.roll * 2 : 0);
+        const nx = seq[i + 1];
+        if (nx) t = stick(k) && stick(nx) ? t + B : end - (stick(k) ? 0.2 : 0.25);
       });
-      if (act === 2) return seq[seq.length - 1][0] * B + show + 0.4; // (act two: its strokes only)
-      // 裂天: both sticks down on the drum, and its head tears
-      const fin = {};
-      const placeF = () => {
-        if (fin.set) return;
-        const m3 = act === 3 ? RF * 0.2 : RF; // (act three: by a wall it hangs off the edge, never shuts you in)
-        fin.set = true; fin.x = clamp(P.x, m3, W - m3); fin.y = clamp(P.y, act === 3 ? H * 0.16 : RF, H - m3);
-        const bb = G.boss; if (bb) bb.raise = { t: 0, dur: durF * 0.82 };
-        sfx.warn(); sfx.gather(); sfx.taiko(); G.dark = Math.max(G.dark, 0.8);
-        G.hazards.push({ kind: "drumArt", x: fin.x, y: fin.y, t: 0, dur: durF + 0.02, best: Infinity, near: true, dist: () => Infinity, draw(h, time) {
-          // (drawing only: the great drum's head under you, its gold tacks round it, the 太極 on it, the two sticks crossed over it)
-          const k = clamp(h.t / (durF * 0.6), 0, 1), e = 1 - (1 - k) ** 3, R = RF * (0.4 + 0.6 * e), shiver = Math.sin(time * 60) * S * 0.002 * k;
-          ctx.save(); ctx.translate(h.x + shiver, h.y);
-          ctx.globalAlpha = 0.25 + 0.25 * k; ctx.fillStyle = "#e8d8b0"; ctx.beginPath(); ctx.arc(0, 0, R * 0.86, 0, Math.PI * 2); ctx.fill(); // (inside the red ring: the warning stays red round it)
-          ctx.globalAlpha = 0.55 + 0.35 * k; ctx.rotate(aF + time * 0.6);
-          ctx.fillStyle = "rgba(29,26,23,0.55)"; ctx.beginPath(); ctx.arc(0, 0, R * 0.42, 0, Math.PI); ctx.arc(-R * 0.21, 0, R * 0.21, Math.PI, 0, true); ctx.arc(R * 0.21, 0, R * 0.21, Math.PI, 0); ctx.fill();
-          ctx.strokeStyle = hexA(tint, 0.9); ctx.lineWidth = Math.max(1.5, S * 0.005); ctx.beginPath(); ctx.arc(0, 0, R * 0.42, 0, Math.PI * 2); ctx.stroke();
-          ctx.rotate(-(aF + time * 0.6));
-          ctx.strokeStyle = "rgba(58,36,24,0.8)"; ctx.lineWidth = Math.max(2.5, S * 0.011); ctx.beginPath(); ctx.arc(0, 0, R * 0.88, 0, Math.PI * 2); ctx.stroke(); // (its rim of dark wood)
-          ctx.fillStyle = "#d9a23a"; for (let i = 0; i < 16; i++) { const a = (i / 16) * Math.PI * 2; ctx.beginPath(); ctx.arc(Math.cos(a) * R * 0.88, Math.sin(a) * R * 0.88, S * 0.007, 0, Math.PI * 2); ctx.fill(); }
-          for (const s of [1, -1]) { // its sticks, coming down onto the head along their two paths
-            const a = aF + s * Math.PI / 4, l = RF * (act === 3 ? 0.8 : 1.35), lift = (1 - e) * S * 0.08;
-            ctx.save(); ctx.rotate(a); ctx.translate(0, -lift); ctx.globalAlpha = 0.5 + 0.4 * k; ctx.lineCap = "round";
-            ctx.strokeStyle = "#5b3a2a"; ctx.lineWidth = Math.max(3, S * 0.012); ctx.beginPath(); ctx.moveTo(-l, 0); ctx.lineTo(l * 0.55, 0); ctx.stroke();
-            ctx.fillStyle = "#d9a23a"; ctx.beginPath(); ctx.arc(l * 0.55, 0, S * 0.012, 0, Math.PI * 2); ctx.fill();
-            ctx.restore();
-          }
-          ctx.restore();
-        } });
-      };
-      const tear = () => { // it tears: one thunderclap, a bolt out of the sky into it, its skin split along the sticks
-        const x = fin.x, y = fin.y, bb = G.boss;
-        spikeErupt(x, y, RF, "fire");
-        if (bb) { bb.castT = bb.castDur = 0.6; bb.raise = null; }
-        sfx.issen(); sfx.burst(); buzz([40, 30, 90]); G.shake = Math.max(G.shake, reduced ? 0 : 24); flash("255,240,200", 0.6);
-        const au = audio(); if (au && !muted) { drum(au.currentTime, 0.8, sfxBus, 62, 28, 1.2); noise(0.5, 2600, 400, 0.12, "bandpass"); }
-        if (reduced) return;
-        fxFlare(x, y, S * 0.22, HOT, 0.7); fxFlare(x, y, S * 0.11, "#fffdf4", 0.45);
-        fxWave(x, y, S * 1.1, tint, 0.7, S * 0.045); fxWave(x, y, S * 0.55, HOT, 0.5, S * 0.025);
-        fxPillar(x, y + S * 0.03, S * 0.1, H, HOT, 0.85);
-        for (const s of [1, -1]) for (const o of [0, Math.PI]) { const a = aF + s * Math.PI / 4 + o; fxStreaks(x, y, 7, EMBER, S * 1.4, S * 0.08, 0.45, 0.25, a); fxStreaks(x, y, 3, "#fffdf4", S * 1.1, S * 0.06, 0.4, 0.2, a); }
-        for (let i = 0; i < 20; i++) fxMote("ember", x + frnd(-RF, RF), y + frnd(-RF, RF), moteOf(b.def), true);
-        const pts = [[x + frnd(-S * 0.1, S * 0.1), -S * 0.05]]; // the bolt: from above the sky down into the drum's heart
-        for (let i = 1; i < 9; i++) { const f = i / 9; pts.push([x + (pts[0][0] - x) * (1 - f) + frnd(-S * 0.05, S * 0.05), -S * 0.05 + (y + S * 0.05) * f]); }
-        pts.push([x, y]);
-        const rips = [1, -1].map((s) => { const a = aF + s * Math.PI / 4, r = []; for (let i = -6; i <= 6; i++) r.push([i / 6, frnd(-1, 1)]); return { a, r }; });
-        G.parts.push({ kind: "drumTear", x, y, vx: 0, vy: 0, t: 0, life: 0.6, draw(p, al) {
-          ctx.lineCap = "round"; ctx.lineJoin = "round";
-          if (p.t < 0.22) { // the bolt, a breath
-            const ba = 1 - p.t / 0.22;
-            ctx.beginPath(); pts.forEach(([px, py], i) => (i ? ctx.lineTo(px, py) : ctx.moveTo(px, py)));
-            ctx.strokeStyle = `rgba(255,210,122,${0.5 * ba})`; ctx.lineWidth = S * 0.02; ctx.stroke();
-            ctx.strokeStyle = `rgba(255,253,244,${0.95 * ba})`; ctx.lineWidth = S * 0.006; ctx.stroke();
-          }
-          for (const rp of rips) { // the skin torn open along each stick: a ragged dark rent, paper-white at its lips
-            const ux = Math.cos(rp.a), uy = Math.sin(rp.a), nx = -uy, ny = ux, L = RF * 1.25 * Math.min(1, p.t / 0.08);
-            ctx.beginPath(); rp.r.forEach(([f, j], i) => { const px = x + ux * L * f + nx * j * S * 0.012, py = y + uy * L * f + ny * j * S * 0.012; i ? ctx.lineTo(px, py) : ctx.moveTo(px, py); });
-            ctx.strokeStyle = `rgba(247,240,222,${0.8 * al})`; ctx.lineWidth = S * 0.016; ctx.stroke();
-            ctx.strokeStyle = `rgba(29,26,23,${0.9 * al})`; ctx.lineWidth = S * 0.007; ctx.stroke();
-          }
-        } });
-      };
-      G.warns.push({ kind: "spike", x: 0, y: 0, r: RF, seed: cracks[7], t: 0, dur: durF, delay: tF, beat: true,
-        place(w) { placeF(); w.x = fin.x; w.y = fin.y; }, fire() { tear(); } });
-      if (act !== 3) for (const s of [1, -1]) G.warns.push({ kind: "band", x: 0, y: 0, ang: aF + (s * Math.PI) / 4, w: wD, t: 0, dur: durF, delay: tF, beat: true,
-        place(w) { placeF(); w.x = fin.x; w.y = fin.y; }, fire(w) { landCut(w); } });
-      return tF + durF + (act === 3 ? (ez ? 0.45 : 0.6) : 0.5);
+      nmGone(end + 0.3);
+      return end + 0.25;
     } },
     // 鏡花水月 (11-16): 빙경's last. Five panes of ice rise about the field and frost creeps in from the edges of the screen;
-    // three of her icicles glance off two panes each and come at you (the whole bent way lit first, each pane turning to it);
-    // then she lifts her mirror, its light falls on every pane and they all turn on you at once — five lit ways, one out of
-    // each pane, meeting where you stand like the petals of one flower — and the five icicles meet there in the same instant
-    // and burst into a flower of ice; the panes shatter. Out of the meeting point, between the petals. (Her fight itself is
-    // untouched.)
-    // (11-20, 세 막: FIN_ACTS) act two, 鏡花三疊: new panes rise, and the flower of ice comes again and again — three times
-    // (어려움 four, quicker) the panes farthest from you, not the last flower's if it can, turn on you at once and their
-    // icicles meet where you stand, each flower lit before the last has bloomed. Three icicles a flower (four at 어려움):
-    // never more of them in the air than in act one. 쉬움 one flower. Act three, the execution: her mirror itself, a great
-    // pane of ice, hangs over you a full second and comes down flat: out of it past either long edge (finAng: room on both
-    // sides), or off its ends
+    // her image shows in one pane after another and cuts out of it at you (보통 three, 어려움 four: mrCut); then she lifts her
+    // mirror, its light falls on every pane and they all turn on you at once — her image in each, its cut lit through where you
+    // stand, the cuts meeting there like the petals of one flower (three, 어려움 four) — and as they land a flower of ice bursts
+    // where they meet; the panes shatter. Out between the petals.
+    // (11-20, 세 막: FIN_ACTS) act two, 鏡花三疊: new panes rise, and the flower comes again and again — three times (어려움
+    // four, quicker) the three panes farthest from you, not the last flower's if it can, turn on you at once and her cuts out
+    // of them meet where you stand, each flower lit before the last has bloomed. 쉬움 one flower. Act three, the execution:
+    // her mirror itself, a great pane of ice, hangs over you a full second and comes down flat: out of it past either long
+    // edge (finAng: room on both sides), or off its ends
+    // (11-24, 작은 탄 정리, 제작자 "표창을 좀 줄이고 고유한 패턴으로만 피하게": every icicle of acts one and two is her own cut now)
     mirror: { name: ["鏡花水月", "경화수월"], acts: 3, run(o = {}) {
       const b = G.boss; if (!b) return 1;
       const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
@@ -8420,9 +8790,9 @@ sdk.initializeAsync()
         return at3 + D3 + (ez ? 0.45 : 0.6);
       }
       const L = lvl(), q = clamp((L - 18) / 8, 0, 1), u = bossUnit(b.def), m = S * 0.07, top = barTop() + S * 0.08;
-      const SP = S * (2.3 + 0.3 * q), BENT = 0.8, FLOWER = 1.75 + (q >= 0.5 ? 0.3 : 0), FW = 0.95, meet = { T: 0.42 };
+      const BENT = 0.8, FLOWER = 1.75 + (q >= 0.5 ? 0.3 : 0), FW = 0.95;
       const ice = "#cfe6f3", glow = "#eef7fc", tint = fightTint(b.def);
-      // ---- its dice, all cast now: where the panes stand, the order each throw tries them in
+      // ---- its dice, all cast now: where the panes stand
       const C = [[0.13, 0.42], [0.87, 0.42], [0.5, 0.46], [0.2, 0.62], [0.8, 0.62], [0.13, 0.83], [0.87, 0.83], [0.5, 0.9], [0.36, 0.76], [0.64, 0.76]]
         .map(([fx, fy]) => [clamp(W * fx + rnd(-S * 0.04, S * 0.04), m, W - m), clamp(H * fy + rnd(-S * 0.04, S * 0.04), top, H - m)]);
       for (let i = C.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [C[i], C[j]] = [C[j], C[i]]; }
@@ -8432,21 +8802,13 @@ sdk.initializeAsync()
         if (Math.hypot(c[0] - P.x, c[1] - P.y) < S * pass || Math.hypot(c[0] - b.x, c[1] - b.y - u) < S * 0.26 || spots.some((s) => Math.hypot(s[0] - c[0], s[1] - c[1]) < S * 0.24)) continue;
         spots.push(c);
       }
-      const n = q >= 0.5 ? 4 : 3, orders = [];
-      for (let k = 0; k < n; k++) { const o = spots.map((_, i) => i); for (let i = o.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [o[i], o[j]] = [o[j], o[i]]; } orders.push(o); }
-      const nF = ez ? 1 : hi ? 4 : 3, per = hi ? 4 : 3, FG = hi ? 0.85 : 0.95, FW2 = ez ? 0.95 : 0.9, F0 = 0.35; // (act two's flowers)
+      const n = q >= 0.5 ? 4 : 3;
+      // (act two's flowers; 11-24: three cuts a flower at every level, a band each being far more than an icicle was)
+      const nF = ez ? 1 : hi ? 4 : 3, per = 3, FG = hi ? 0.85 : 0.95, FW2 = ez ? 0.95 : 0.9, F0 = 0.35;
       const END = act === 2 ? F0 + (nF - 1) * FG + FW2 + 0.95 : FLOWER + FW + 0.9;
-      // ---- the panes: hers (drawPanes), each turning to meet the icicle due at it next
-      const panes = spots.map(([x, y], i) => ({ x, y, ang: (i * 1.3) % Math.PI, used: 0, faces: [] }));
-      const ph = { kind: "panes", panes, t: 0, dur: END, best: Infinity, near: true, dist: () => Infinity,
-        step(dt) {
-          for (const p of panes) {
-            p.faces = p.faces.filter((f) => f.at > this.t - 0.4);
-            const f = p.faces.reduce((a, c) => (!a || c.at < a.at ? c : a), null); if (!f) continue;
-            let d = f.ang - p.ang; d -= Math.round(d / Math.PI) * Math.PI;
-            p.ang += clamp(d, -12 * dt, 12 * dt);
-          }
-        },
+      // ---- the panes: hers (drawPanes), each turning to the way the cut out of it goes (paneTurn)
+      const panes = spots.map(([x, y], i) => ({ x, y, ang: (i * 1.3) % Math.PI, used: 0 }));
+      const ph = { kind: "panes", panes, t: 0, dur: END, best: Infinity, near: true, dist: () => Infinity, step: paneTurn,
         draw(h, time) {
           const k = clamp(h.t / 0.35, 0, 1);
           if (k < 1 && !reduced) for (const p of panes) { // rising out of the ground: a cold light under each
@@ -8486,14 +8848,31 @@ sdk.initializeAsync()
       flash("214,234,246", 0.35); sfx.shing(); later(0.12, () => sfx.shing()); if (!reduced) G.shake = Math.max(G.shake, 8);
       if (!reduced) for (const p of panes) { fxPillar(p.x, p.y, S * 0.05, S * 0.45, ice, 0.55); fxStreaks(p.x, p.y, 5, glow, S * 0.6, S * 0.04, 0.3, Math.PI * 0.8, -Math.PI / 2); frostPop(p.x, p.y, S * 0.04, 0.3); }
       const mirrorAt = () => { const bb = G.boss; if (!bb) return [W / 2, H * 0.24]; const uu = bossUnit(bb.def); return [bb.x + uu * 0.25, bb.y + uu * 0.35]; };
-      const far = Math.hypot(W, H), done = (p, f) => () => { p.faces = p.faces.filter((g) => g !== f); };
+      // (11-24, 작은 탄 정리: her image in each pane draws through where you stand, where an icicle once flew out of it. petal: that
+      // cut's band, for flower f — shown as f is laid, skipped by a pane f does not use; the first to land opens the flower of ice)
+      const petal = (pane, f, dur, delay, lay, onLand) => G.warns.push({ kind: "band", x: 0, y: 0, ang: 0, w: MR_W(), t: 0, dur, delay, tint: MR_CUT,
+        place(w) {
+          lay();
+          if (!f.use.has(pane)) { w.kind = "none"; w.dur = 0; w.skip = true; return; }
+          const ang = Math.hypot(f.x - pane.x, f.y - pane.y) > S * 0.04 ? Math.atan2(f.y - pane.y, f.x - pane.x) : 0;
+          w.x = f.x; w.y = f.y; w.ang = ang; pane.face = ang + Math.PI / 2; // (it turns, as a mirror would, to the way she cuts out of it)
+          G.hazards.push({ kind: "ctl", x: pane.x, y: pane.y, t: 0, dur: dur + 0.3, best: Infinity, near: true, dist: () => Infinity, spent: () => true,
+            draw(hh, time) { mrImage(pane, hh.t, dur, ang, time); } });
+        },
+        fire(w) {
+          if (w.skip) return;
+          landCut(w); cutSpray(w, "snow"); later(0.18, () => sfx.sheath());
+          if (!reduced) fxFlare(pane.x, pane.y, S * 0.04, glow, 0.25);
+          if (f.fired) return; f.fired = true;
+          sfx.shing(); onLand();
+        } });
       if (act === 2) { // 鏡花三疊: flower after flower, each out of the panes farthest from you (not the last one's, if it can)
         let prev = new Set();
         const fls = [];
         for (let k = 0; k < nF; k++) {
           const f = { set: false };
           fls.push(f);
-          const lay = () => { // (once, as its first icicle is lit: from where you stand now)
+          const lay = () => { // (once, as its first cut is lit: from where you stand now)
             if (f.set) return; f.set = true;
             f.x = P.x; f.y = P.y; f.at = ph.t; [f.ox, f.oy] = mirrorAt();
             const d = (p) => Math.hypot(p.x - f.x, p.y - f.y), by = panes.slice().sort((a, c) => d(c) - d(a));
@@ -8501,28 +8880,10 @@ sdk.initializeAsync()
             for (const p of by) if (use.length < per && d(p) >= S * 0.25 && !use.includes(p)) use.push(p);
             for (const p of by) if (use.length < 3 && !use.includes(p)) use.push(p); // (never fewer than three)
             f.use = new Set(use); prev = f.use;
-            let Lm = 0; for (const p of f.use) Lm = Math.max(Lm, d(p));
-            f.T = Math.max(0.3, Lm / (S * 2.8)); // (all of them there in the same instant)
             const bb = G.boss; if (bb) { bb.castT = bb.castDur = 0.4; bb.raise = { t: 0, dur: (FW2 * 0.8) / (G.bossK || 1) }; if (!reduced) fxFlare(f.ox, f.oy, S * 0.06, glow, 0.7); }
             flash("232,244,251", 0.18); sfx.shing(); sfx.warn();
           };
-          panes.forEach((pane) => G.warns.push({ kind: "bent", pts: [[0, 0], [0, 0]], t: 0, dur: FW2, delay: F0 + k * FG,
-            place(w) {
-              lay();
-              if (!f.use.has(pane)) { w.kind = "none"; w.dur = 0; w.skip = true; return; }
-              const din = Math.atan2(pane.y - f.oy, pane.x - f.ox), dout = Math.atan2(f.y - pane.y, f.x - pane.x), L2 = Math.hypot(f.x - pane.x, f.y - pane.y);
-              pane.faces.push({ at: ph.t + 0.25, ang: faceOf(din, dout) });
-              w.pts = [[pane.x, pane.y], [f.x + Math.cos(dout) * S * 0.05, f.y + Math.sin(dout) * S * 0.05]];
-              w.go = { dout, L2 };
-            },
-            fire(w) {
-              if (w.skip) return;
-              shoot("sword", pane.x, pane.y, w.go.dout, w.go.L2 / f.T, { len: S * 0.11, r: S * 0.009, ice: true, range: w.go.L2 });
-              if (!reduced) fxFlare(pane.x, pane.y, S * 0.04, glow, 0.25);
-              if (f.fired) return; f.fired = true;
-              sfx.whoosh(); sfx.shing();
-              later(f.T, () => bloom(f.x, f.y, k === nF - 1)); // (the last flower breaks the panes)
-            } }));
+          panes.forEach((pane) => petal(pane, f, FW2, F0 + k * FG, lay, () => bloom(f.x, f.y, k === nF - 1))); // (the last flower breaks the panes)
         }
         G.hazards.push({ kind: "fxmirrorL", t: 0, dur: END, best: Infinity, near: true, dist: () => Infinity, // her mirror's light on the panes, flower by flower
           draw() {
@@ -8540,48 +8901,20 @@ sdk.initializeAsync()
           } });
         return END;
       }
-      // ---- 反照: an icicle off two panes, then at you
-      for (let k = 0; k < n; k++) G.warns.push({ kind: "bent", pts: [[0, 0], [0, 0]], t: 0, dur: BENT, delay: 0.15 + k * (q >= 0.5 ? 0.38 : 0.45),
-        place(w) {
-          const [ox, oy] = mirrorAt(), ok = (p, r) => Math.hypot(p.x - P.x, p.y - P.y) >= S * r, ord = orders[k].map((i) => panes[i]);
-          // (two panes it truly glances off — neither straight on through one nor straight back — and only its last leg
-          // through you: the first two kept clear of where you stand, so the way reads at a glance)
-          const turn = (ax, ay, bx, by, cx, cy) => { const c = Math.cos(Math.atan2(cy - by, cx - bx) - Math.atan2(by - ay, bx - ax)); return c < 0.9 && c > -0.75; };
-          let A = null, B = null;
-          for (const a of ord) {
-            if (A || !ok(a, 0.25) || segDist(P.x, P.y, ox, oy, a.x, a.y) < S * 0.1) continue;
-            for (const c of ord) if (!A && c !== a && ok(c, 0.28) && Math.hypot(c.x - a.x, c.y - a.y) > S * 0.2 && segDist(P.x, P.y, a.x, a.y, c.x, c.y) >= S * 0.1 && turn(ox, oy, a.x, a.y, c.x, c.y) && turn(a.x, a.y, c.x, c.y, P.x, P.y)) { A = a; B = c; }
-          }
-          if (!A) { A = ord.find((p) => ok(p, 0.25)) || ord[0]; B = ord.find((p) => p !== A && ok(p, 0.28) && Math.hypot(p.x - A.x, p.y - A.y) > S * 0.2); }
-          const legs = B ? [A, B] : [A], pts = [[ox, oy], ...legs.map((p) => [p.x, p.y])];
-          const [lx, ly] = pts[pts.length - 1], dOut = Math.atan2(P.y - ly, P.x - lx);
-          pts.push([lx + Math.cos(dOut) * far, ly + Math.sin(dOut) * far]);
-          const turns = []; let run = 0;
-          for (let i = 1; i < pts.length - 1; i++) {
-            const [ax, ay] = pts[i - 1], [cx, cy] = pts[i], [ex, ey] = pts[i + 1], din = Math.atan2(cy - ay, cx - ax), dout = Math.atan2(ey - cy, ex - cx);
-            run += Math.hypot(cx - ax, cy - ay);
-            const pane = legs[i - 1], f = { at: ph.t + w.dur + run / SP, ang: faceOf(din, dout) };
-            pane.faces.push(f); turns.push({ d: run, ang: dout, x: cx, y: cy, on: done(pane, f) });
-          }
-          w.pts = pts; w.turns = turns; w.d0 = Math.atan2(pts[1][1] - oy, pts[1][0] - ox);
-          throwing(); sfx.warn();
-        },
-        fire(w) {
-          const [[ox, oy]] = w.pts;
-          shoot("sword", ox, oy, w.d0, SP, { len: S * 0.1, r: S * 0.009, ice: true, turns: w.turns });
-          sfx.whoosh(); if (!reduced) fxFlare(ox, oy, S * 0.035, glow, 0.25);
-        } });
-      // ---- 鏡花: she lifts her mirror and its light falls on every pane (pale, harmless); each pane, lit, turns on you, and
-      // out of each an icicle comes at where you stand — only that way lit — all five meeting there in the same instant
+      // ---- 反照: her image in one pane after another, each cutting through where you stand, then where you are going
+      // (11-24, 작은 탄 정리: was an icicle off two panes, then at you)
+      const trk = handTrack(END + 1);
+      for (let k = 0; k < n; k++) mrCut(0.15 + k * (q >= 0.5 ? 0.38 : 0.45), BENT, { h: ph, trk: k ? trk : null, tag: "fm1" });
+      // ---- 鏡花: she lifts her mirror and its light falls on every pane (pale, harmless); each pane, lit, turns on you, and her
+      // image in each draws through where you stand, all at once — the petals of one flower, meeting there (11-24: was an icicle out
+      // of each; four at most, a band each being far more than an icicle was)
       const fl = { set: false };
       const flower = () => { // (once, as the first of them shows: from where you stand now)
         if (fl.set) return; fl.set = true;
         fl.x = P.x; fl.y = P.y; fl.at = ph.t; const [ox, oy] = mirrorAt(); fl.ox = ox; fl.oy = oy;
         const d = (p) => Math.hypot(p.x - fl.x, p.y - fl.y), by = panes.slice().sort((a, c) => d(c) - d(a));
-        const use = by.filter((p) => d(p) >= S * 0.25); for (const p of by) if (use.length < 3 && !use.includes(p)) use.push(p);
+        const use = by.filter((p) => d(p) >= S * 0.25).slice(0, hi ? 4 : 3); for (const p of by) if (use.length < 3 && !use.includes(p)) use.push(p);
         fl.use = new Set(use); // (any by you sit it out, but never fewer than three)
-        let Lmax = 0; for (const p of fl.use) Lmax = Math.max(Lmax, d(p));
-        meet.T = Math.max(0.3, Lmax / (S * 2.8)); // (all of them there in the same instant)
         const bb = G.boss; if (bb) { bb.raise = { t: 0, dur: (FW * 0.9) / (G.bossK || 1) }; if (!reduced) { fxPillar(bb.x, bb.y + bossUnit(bb.def) * 2.2, bossUnit(bb.def) * 1.4, H * 0.7, ice, 0.9); fxFlare(ox, oy, S * 0.07, glow, 0.9); fxWave(ox, oy, S * 0.4, tint, 0.6, S * 0.02); } }
         flash("232,244,251", 0.25); sfx.shing(); sfx.gather(); sfx.warn();
       };
@@ -8597,24 +8930,7 @@ sdk.initializeAsync()
           }
           ctx.restore();
         } });
-      panes.forEach((pane) => G.warns.push({ kind: "bent", pts: [[0, 0], [0, 0]], t: 0, dur: FW, delay: FLOWER,
-        place(w) {
-          flower();
-          if (!fl.use.has(pane)) { w.kind = "none"; w.dur = 0; w.skip = true; return; }
-          const din = Math.atan2(pane.y - fl.oy, pane.x - fl.ox), dout = Math.atan2(fl.y - pane.y, fl.x - pane.x), L2 = Math.hypot(fl.x - pane.x, fl.y - pane.y);
-          pane.faces.push({ at: ph.t + 0.25, ang: faceOf(din, dout) }); // (it turns, as a mirror would, to send her light at you)
-          w.pts = [[pane.x, pane.y], [fl.x + Math.cos(dout) * S * 0.05, fl.y + Math.sin(dout) * S * 0.05]];
-          w.go = { dout, L2 };
-        },
-        fire(w) {
-          if (w.skip) return;
-          const g = w.go;
-          shoot("sword", pane.x, pane.y, g.dout, g.L2 / meet.T, { len: S * 0.11, r: S * 0.009, ice: true, range: g.L2 }); // (stopping where they meet)
-          if (!reduced) fxFlare(pane.x, pane.y, S * 0.04, glow, 0.25);
-          if (fl.fired) return; fl.fired = true;
-          sfx.whoosh(); sfx.shing();
-          later(meet.T, bloom);
-        } }));
+      panes.forEach((pane) => petal(pane, fl, FW, FLOWER, flower, () => bloom())); // (as they land, the flower of ice where they meet)
       // ---- the flower of ice where they met, and every pane breaking
       function bloom(x = fl.x, y = fl.y, brk = true) { // (brk: the panes break with it; act two's flowers but its last leave them)
         if (brk) ph.dur = Math.min(ph.dur, ph.t + 0.3);
@@ -9983,6 +10299,8 @@ sdk.initializeAsync()
     // (11-23 재설계, 13-5 뇌정: each act a chain of his cuts already, so nothing laid on acts one and two; after 霹靂 a cut of his
     // out of where the bolt landed through where you are, twice)
     thunder: { tail: [0.25, 0.25, 0.33], lit: 0.75, mid: null, hit: (dur) => raiCut(0, dur) },
+    // (11-24 재설계, 8-5 뇌음 사물: the same, each act a chain of his own blows; after 梵鐘 his stick down through where you are, twice)
+    drum: { tail: [0.25, 0.25, 0.33], lit: 0.75, mid: null, hit: (dur) => nmBlow(0, dur, { kind: "duk" }) },
     // (11-23 재설계, 12-5 천기: the same, his 爻 cut where you are after 離爲火's bars)
     time: { tail: [0.25, 0.25, 0.33], lit: 0.75, mid: null, hit: (dur) => yaoCut(0, dur, { solid: true }) },
   };
@@ -10406,6 +10724,19 @@ sdk.initializeAsync()
           } });
       }
       for (let i = 0; i < 10; i++) fxMote("ember", b.x + frnd(-u, u), by - u * 0.45 + frnd(-u, u), moteOf(b.def), true); // (sparks off the torn head)
+      // (11-24 사물) the wooden fish at his hip drops from its cord, knocks once and lies still; and a breath later, far off, the great
+      // bell sounds once with no one at it — "듣는 이가 없어도 새벽은 깨워야 한다" (스토리 종합 2절): the dawn he kept waking
+      const fy = gy + u * 0.15;
+      let knocked = false, tolled = false;
+      G.parts.push({ kind: "drumX", x: b.x - u * 1.08, y: by + u * 0.62, vx: -S * 0.02, vy: 0, ay: S * 1.8, t: 0, life: 60, keep: true, al: 1,
+        step(p) {
+          if (G.boss !== B) { p.t = p.life; return; }
+          if (!knocked && p.y >= fy && p.vy > 0) { knocked = true; p.y = fy; p.vx = p.vy = p.ay = 0; const a2 = audio(); if (a2 && !muted) woodblock(a2.currentTime, 0.07, sfxBus, 430); }
+          if (!tolled && p.t >= 1.05) { tolled = true; const a2 = audio(); if (a2 && !muted) { gong(a2.currentTime, 0.06, sfxBus, 76, 4.5); gong(a2.currentTime + 0.01, 0.025, sfxBus, 152, 3.5); } if (!reduced) flash("255,232,190", 0.06); }
+          p.al = 1 - clamp((B.downT - 1.9) / 0.45, 0, 1);
+          if (B.downT > 2.5) p.t = p.life;
+        },
+        draw(p) { if (p.al <= 0) return; ctx.globalAlpha = p.al; nmFishDraw(p.x, p.y, knocked ? 0.15 : 1.35 - p.t * 2, u * 0.42, u * 0.17, false); } });
     },
     mirror(b, u) { // 빙경 (fallA B-빙경, her fight untouched): as she is cut the bronze mirror she holds cracks, and the crack runs
       // out from it over the whole screen — nine jagged rays to the edges, two rings of it near the middle, in a blink — the
@@ -12143,9 +12474,11 @@ sdk.initializeAsync()
       ctx.fillStyle = ink; ctx.beginPath(); ctx.arc(hx, hy2, u * 0.12, 0, Math.PI * 2); ctx.fill(); ctx.restore();
       return turn([tx, ty]);
     },
-    drum(u, t, o, def, ink) { // 뇌음: a great red drum on his back, rings of sound off it, sticks raised, a headband
-      const R = u * 1.25, cy = -u * 0.45, k = (t * 2) % 1, torn = !!(o.down && !reduced && FALL[def.sig]); // (torn: felled, FALL.drum)
-      if (!torn) { ctx.strokeStyle = hexA(def.accent, 0.45 * (1 - k)); ctx.lineWidth = u * 0.1; ctx.beginPath(); ctx.arc(0, cy, R * (1.05 + k * 0.9), 0, Math.PI * 2); ctx.stroke(); }
+    drum(u, t, o, def, ink) { // 뇌음: a great red drum on his back, a stick in each bare hand, the temple's wooden fish (木魚) hung at his
+      // hip, a red headband. (11-24 재설계 사물) o.pose.arm lifts his sticks high, or below nothing brings them down; striking his other
+      // instruments his left hand holds them (o.pose.inst): "fish", "plate" (the small cloud plate on its cord) or, in both hands, "beam"
+      // (the great bell's striking beam, 당목). Its old rings of sound rolling off the drum are gone: they read as the 사자후 that left the game
+      const R = u * 1.25, cy = -u * 0.45, torn = !!(o.down && !reduced && FALL[def.sig]), arm = (o.pose && o.pose.arm) || 0, inst = (o.pose && o.pose.inst) || null; // (torn: felled, FALL.drum)
       ctx.fillStyle = "#7a2a1a"; ctx.beginPath(); ctx.ellipse(0, cy, R * 1.06, R, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#e8d8b0"; ctx.beginPath(); ctx.ellipse(0, cy, R * 0.82, R * 0.78, 0, 0, Math.PI * 2); ctx.fill();
       ctx.fillStyle = "#c8321f"; ctx.beginPath(); ctx.arc(0, cy, R * 0.42, Math.PI, Math.PI * 2); ctx.fill();
@@ -12161,14 +12494,28 @@ sdk.initializeAsync()
         ctx.closePath(); ctx.fillStyle = "#2a1712"; ctx.fill(); ctx.strokeStyle = "rgba(247,240,222,0.9)"; ctx.lineWidth = Math.max(1.2, u * 0.05); ctx.stroke(); ctx.restore();
       }
       robe(u, 1.1, 1.4, ink, hexA(def.accent, 0.85), t, "wave");
-      const hit = Math.sin(t * 8);
+      if (inst !== "fish" && !torn) { // its wooden fish at his hip on a cord (felled, it drops: FALL.drum)
+        line(ink, u * 0.05, -u * 0.8, u * 0.05, -u * 1.0, u * 0.32); nmFishDraw(-u * 1.08, u * 0.62, 1.35, u * 0.42, u * 0.17, false);
+      }
+      const hit = arm || inst ? 0 : Math.sin(t * 8), up = Math.max(0, arm), dn = Math.max(0, -arm), beam = inst === "beam";
+      let tip = [u * 2.25, -u * 1.95];
       for (const s of [-1, 1]) {
-        const hx = s * u * 1.75, hy2 = -u * 1.35 + (s > 0 ? hit : -hit) * u * 0.25;
+        const hx = beam ? s * u * 0.62 - arm * u * 0.7 : s * u * (1.75 - 0.25 * up + 0.12 * dn), hy2 = beam ? -u * 0.85 : -u * 1.35 + (s > 0 ? hit : -hit) * u * 0.25 - up * u * 0.45 + dn * u * 1.0;
         line("#a8724a", u * 0.26, s * u * 1.0, -u * 0.3, hx, hy2); // bare arms
-        if (!torn) { // (felled: they fly from his hands, FALL.drum)
-          line("#5b3a2a", u * 0.1, hx, hy2, hx + s * u * 0.5, hy2 - u * 0.6);
-          ctx.fillStyle = "#c8321f"; ctx.beginPath(); ctx.arc(hx + s * u * 0.5, hy2 - u * 0.6, u * 0.12, 0, Math.PI * 2); ctx.fill();
-        }
+        if (torn || beam) continue; // (felled: they fly from his hands, FALL.drum)
+        if (s < 0 && inst === "fish") { nmFishDraw(hx - u * 0.05, hy2 - u * 0.15, -Math.PI / 2 - 0.35, u * 0.6, u * 0.24, false); continue; } // (held up by its tail to strike)
+        if (s < 0 && inst === "plate") { line(ink, u * 0.05, hx, hy2, hx, hy2 + u * 0.3); nmPlateDraw(hx, hy2 + u * 0.62, 0, u * 0.55, u * 0.38, false); continue; } // (hung from his fist on its cord)
+        const a0 = Math.atan2(-0.6, s * 0.5), a = up ? a0 + (Math.atan2(-1, s * 0.12) - a0) * up : a0 + (Math.atan2(0.5, s * 0.85) - a0) * dn; // (idle: as FALL.drum has them)
+        const ex = hx + Math.cos(a) * u * 0.78, ey = hy2 + Math.sin(a) * u * 0.78;
+        line("#5b3a2a", u * 0.1, hx, hy2, ex, ey);
+        ctx.fillStyle = NM_GOLD; ctx.beginPath(); ctx.arc(ex, ey, u * 0.12, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = ink; ctx.lineWidth = Math.max(1, u * 0.04); ctx.stroke();
+        if (s > 0) tip = [ex, ey];
+      }
+      if (beam && !torn) { // 당목: a great log held across both hands, its striking end before him, drawn back (arm > 0) or rammed home (arm < 0)
+        const x0 = -u * 1.7 - arm * u * 0.7, x1 = u * 2.6 - arm * u * 0.7, by = -u * 0.85;
+        line("#1d1a17", u * 0.46, x0, by, x1, by); line("#7a5236", u * 0.38, x0, by, x1, by);
+        ctx.strokeStyle = "rgba(29,26,23,0.6)"; ctx.lineWidth = Math.max(1, u * 0.05); for (const f of [0.2, 0.55, 0.85]) { ctx.beginPath(); ctx.moveTo(x0 + (x1 - x0) * f, by - u * 0.17); ctx.lineTo(x0 + (x1 - x0) * f, by + u * 0.17); ctx.stroke(); }
+        tip = [x1, by];
       }
       const hy = -u * 0.95, hr = u * 0.46;
       headAt(hy, hr, ink);
@@ -12176,7 +12523,7 @@ sdk.initializeAsync()
       line("#c8321f", u * 0.12, -hr, hy - hr * 0.3, hr, hy - hr * 0.3);
       ctx.strokeStyle = "#c8321f"; ctx.lineWidth = u * 0.1; ctx.beginPath(); ctx.moveTo(-hr, hy - hr * 0.3); ctx.quadraticCurveTo(-hr * 2, hy - hr * 0.1, -hr * 2.8, hy + Math.sin(t * 7) * u * 0.3); ctx.stroke();
       eyesAt(hy, hr, o.mid ? "#ff5a3a" : "#e0412a");
-      return [u * 2.25, -u * 1.95];
+      return tip;
     },
     mirror(u, t, o, def, ink) { // 빙경: a crown of ice, wide white sleeves, a bronze mirror held before her, shards turning
       if (!o.down || reduced) for (let i = 0; i < 6; i++) { // (felled, they fall off her: FALL.mirror)
@@ -12619,16 +12966,25 @@ sdk.initializeAsync()
       ctx.fillStyle = `rgba(18,14,12,${0.45 * k})`;
       for (let i = 0; i < 8; i++) { const y = cy + h / 2 - ((t * u * 1.4 + i * u * 0.7) % h), x = (i % 2 ? 1 : -1) * w * (0.8 + 0.5 * Math.sin(t * 3 + i)); ctx.beginPath(); ctx.arc(x, y, u * (0.15 + 0.1 * (i % 3)), 0, Math.PI * 2); ctx.fill(); }
     } },
-    drum: { back(u, t, k, o, def) { // "북 가죽 찢어질 때까지": two more war drums beside him, his beat rolling out of them
-      for (const s of [-1, 1]) {
-        const x = s * u * 2.35, y = -u * 0.3 + Math.sin(t * 4 + s) * u * 0.1;
-        for (let j = 0; j < 2; j++) { const q = (t * 1.5 + j * 0.5) % 1; ctx.strokeStyle = hexA(fightTint(def), (1 - q) * 0.7 * k); ctx.lineWidth = u * 0.08 * (1 - q) + 1; ctx.beginPath(); ctx.arc(x, y, u * (0.7 + 1.4 * q), 0, Math.PI * 2); ctx.stroke(); }
-        ctx.save(); ctx.translate(x, y); ctx.scale(k, k);
-        ctx.fillStyle = def.accent; ctx.beginPath(); ctx.ellipse(0, 0, u * 0.72, u * 0.62, 0, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = u * 0.06; ctx.stroke();
-        ctx.fillStyle = "#e9dcc0"; ctx.beginPath(); ctx.ellipse(s * u * 0.12, 0, u * 0.48, u * 0.5, 0, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
-        ctx.fillStyle = "#1d1a17"; for (let i = 0; i < 6; i++) { const q = (i / 6) * Math.PI * 2; ctx.beginPath(); ctx.arc(s * u * 0.12 + Math.cos(q) * u * 0.56, Math.sin(q) * u * 0.56, u * 0.05, 0, Math.PI * 2); ctx.fill(); }
-        ctx.restore();
-      }
+    drum: { back(u, t, k, o, def, pass) { // (11-24 재설계 사물) "넷이 치던 사물, 나 혼자 친다": the temple's bell pavilion rising behind him —
+      // two red posts under a dark tiled roof, the great bell hung from its crossbeam over his head, the striking beam (당목) on its two
+      // ropes beside it, knocking the bell now and then, the cloud plate (雲板) hung from one post and the wooden fish (木魚) from the other.
+      // (was two more war drums beside him, his beat rolling out of them in rings)
+      if (pass) return; // (drawn once: the surge's denser passes would only darken it)
+      const top = -u * 4.4 + (1 - k) * u * 1.2, w2 = u * 2.7, gy = u * 2.1, cb = top + u * 0.62;
+      ctx.globalAlpha *= k;
+      for (const s of [-1, 1]) { line("#1d1a17", u * 0.32, s * w2, gy, s * w2, top + u * 0.4); line("#7a2a1a", u * 0.22, s * w2, gy, s * w2, top + u * 0.4); }
+      line("#1d1a17", u * 0.24, -w2 - u * 0.2, cb, w2 + u * 0.2, cb); line("#5b3a2a", u * 0.16, -w2 - u * 0.2, cb, w2 + u * 0.2, cb);
+      ctx.fillStyle = "#1d1a17"; ctx.beginPath(); ctx.moveTo(-w2 - u * 1.0, top + u * 0.15); ctx.quadraticCurveTo(-w2 * 0.45, top + u * 0.1, 0, top - u * 0.6); ctx.quadraticCurveTo(w2 * 0.45, top + u * 0.1, w2 + u * 1.0, top + u * 0.15);
+      ctx.lineTo(w2 + u * 0.7, top + u * 0.48); ctx.lineTo(-w2 - u * 0.7, top + u * 0.48); ctx.closePath(); ctx.fill(); // (its roof, the eaves turned up)
+      ctx.strokeStyle = "rgba(120,110,96,0.55)"; ctx.lineWidth = Math.max(1, u * 0.05); ctx.beginPath(); for (let i = -6; i <= 6; i++) { const x = (i / 6) * (w2 + u * 0.5); ctx.moveTo(x, top + u * 0.42); ctx.lineTo(x * 0.92, top - u * 0.45 * (1 - Math.abs(i) / 7)); } ctx.stroke();
+      const bw = u * 0.95, ph = (t * 0.55) % 1, knock = ph < 0.12 ? Math.sin((ph / 0.12) * Math.PI) : 0; // (the beam swung into it: once in a while)
+      ctx.save(); ctx.translate(0, cb); ctx.rotate(Math.sin(t * 1.3) * 0.03 + knock * 0.04); line("#3a3a2e", u * 0.08, 0, 0, 0, u * 0.3); nmBellDraw(0, u * 0.3 + bw * 1.5, bw, 1); ctx.restore();
+      const bx = bw * 1.05 - knock * u * 0.3, by = cb + u * 1.4;
+      for (const f of [0.15, 0.85]) line("rgba(29,26,23,0.8)", u * 0.04, bx + u * 1.3 * f, cb, bx + u * 1.3 * f, by);
+      line("#1d1a17", u * 0.34, bx, by, bx + u * 1.5, by); line("#7a5236", u * 0.26, bx, by, bx + u * 1.5, by);
+      line("rgba(29,26,23,0.8)", u * 0.04, -w2, top + u * 0.9, -w2, top + u * 1.15); nmPlateDraw(-w2, top + u * 1.5, Math.sin(t * 1.1) * 0.06, u * 0.6, u * 0.42, false);
+      for (const f of [-0.35, 0.35]) line("rgba(29,26,23,0.8)", u * 0.04, w2 + f * u, top + u * 0.9, w2 + f * u, top + u * 1.3); nmFishDraw(w2, top + u * 1.45, Math.PI, u * 0.62, u * 0.24, false);
     } },
     mirror: { back(u, t, k) { // "너부터 깨뜨려 줄게": six panes of ice turning round her, each cracked
       for (let i = 0; i < 6; i++) {
