@@ -1843,7 +1843,7 @@ sdk.initializeAsync()
   }
   function fxWave(x, y, grow, color = fxTint(), life = 0.4, w = S * 0.02) { if (fxOn()) G.parts.push({ kind: "wave", x, y, vx: 0, vy: 0, r: S * 0.01, grow, color, life, t: 0, w }); }
   function fxPillar(x, y, w, h, color = fxTint(), life = 0.5) { if (fxOn()) G.parts.push({ kind: "pillar", x, y, vx: 0, vy: 0, w, h, color, life, t: 0 }); }
-  function fxSlash(x, y, ang, w, color = fxTint(), life = 0.3) { if (fxOn()) G.parts.push({ kind: "slash", x, y, vx: 0, vy: 0, ang, w, color, life, t: 0 }); }
+  function fxSlash(x, y, ang, w, color = fxTint(), life = 0.3, len = 0) { if (fxOn()) G.parts.push({ kind: "slash", x, y, vx: 0, vy: 0, ang, w, color, life, t: 0, len }); } // (len: a cut that stops, lit along it from its middle)
   function fxBurst(x, y, power = 1, color = fxTint()) { // a blow landing: the flare, its sparks, a ring of light
     if (reduced) return;
     const k = power * fxPow();
@@ -1922,7 +1922,7 @@ sdk.initializeAsync()
       ctx.restore();
     },
     slash(p, a) { // the blade's edge lit along its whole way, out from where it bit, then gone
-      const k = p.t / p.life, L = Math.hypot(W, H) * Math.min(1, 0.25 + k / 0.1), w = p.w * (1 - k * 0.8);
+      const k = p.t / p.life, L = (p.len ? p.len / 2 : Math.hypot(W, H)) * Math.min(1, 0.25 + k / 0.1), w = p.w * (1 - k * 0.8);
       ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.ang); ctx.globalAlpha = a * fxQuiet;
       ctx.fillStyle = hexA(p.color, 0.6);
       ctx.beginPath(); ctx.moveTo(-L, 0); ctx.quadraticCurveTo(0, -w, L, 0); ctx.quadraticCurveTo(0, w, -L, 0); ctx.fill();
@@ -3351,9 +3351,9 @@ sdk.initializeAsync()
     sfx.warn();
   }
   // 萬劍歸宗 (11-15 제작자: "11 스테이지 너무 쉬움 보스 패턴이 너무 단순"): back where it stood, 검총주 calls the tomb's
-  // swords home. They stand up out of the lower field all at once and fly back to its hand, each down its own lit line;
-  // two of them are lying behind you, so their lines run past you, and the way out is between the lines. Never one by
-  // you (a sword cuts as it is driven in), and each goes in a puff of ink as it reaches the boss.
+  // swords home. They stand up out of the lower field all at once and go back to its hand, each cutting its own lit way
+  // there in one stroke (homeCut; 11-27, no blade in the air); two of them are lying behind you, so their ways run past
+  // you, and the way out is between them. Never one by you (a sword cuts as it is driven in).
   function swordsHome(hx, hy, n) {
     const b = G.boss; if (!b) return;
     const u = bossUnit(b.def), tx = b.x, ty = b.y + u * 0.6, spots = []; // (to where it really stands: its blink home may have been put off, bossBlink)
@@ -3367,9 +3367,9 @@ sdk.initializeAsync()
     const warn = 0.85;
     for (const [x, y] of spots) {
       const h = plantSword(x, y, warn + 0.12, true), ang = Math.atan2(ty - y, tx - x), range = Math.hypot(tx - x, ty - y); // (11-15 review: harmless as they rise)
-      G.warns.push({ kind: "line", x, y, ang, len: range, t: 0, dur: warn, delay: 0, fire(w) { h.t = h.dur; shoot("sword", w.x, w.y, w.ang, S * 1.6, { len: S * 0.12, r: S * 0.008, range }); } }); // (len: lit to its hand, where it goes)
+      G.warns.push({ kind: "band", x, y, ang, len: range, w: S * 0.035, t: 0, dur: warn, delay: 0, fire(w) { h.t = h.dur; homeCut(w); } }); // (len: lit to its hand, where it goes)
     }
-    later(warn, () => { const b = G.boss; if (b) { b.castT = b.castDur = 0.6; b.swing = { t: 0, ang: Math.PI / 2 }; } sfx.shing(); sfx.whoosh(); });
+    later(warn, () => { const b = G.boss; if (b) { b.castT = b.castDur = 0.6; b.swing = { t: 0, ang: Math.PI / 2 }; } sfx.shing(); sfx.whoosh(); sfx.slash(); G.shake = Math.max(G.shake, 10); buzz(20); flash("255,250,235", 0.28); });
     // (11-15, measured: 11-5 no harder than its stages) and as they rise, one blade of the tomb bursting up where you stand:
     // the way out between the lines is to be found on the move
     const R = S * 0.07;
@@ -9087,8 +9087,8 @@ sdk.initializeAsync()
     } },
     // (11-20, 세 막: FIN_ACTS) act two, 萬劍亂下: the storms again, more of them and closer together (보통 six, 어려움
     // seven, each called on where you are by then while the last two are still lit: run, and keep running), and the
-    // swords of the last three fly home to his hand down their lit lines as in act one, with the three behind you (the
-    // ones before crumble: never more swords in the air than in act one); no great sword. 쉬움 two storms, nothing flies.
+    // swords of the last three cut their lit ways home to his hand as in act one, with the three behind you (the ones
+    // before crumble: never more ways lit than in act one); no great sword. 쉬움 two storms, nothing goes home.
     // Act three, the execution: 一劍, the one great sword out of the sky, flat across where you stand — its blade as wide
     // as two fifths of the field, its guard and its grip far off along it — its shadow lit a full second and it comes down:
     // out from under it past either edge of the blade (finAng: room on both sides), or off its point
@@ -9096,9 +9096,9 @@ sdk.initializeAsync()
       // asks you to run, not to step). He calls the tomb's swords up out of his fan into the sky, and they come down in a
       // storm on where you stand — a whole patch of the field lit, seven swords and the blades of the tomb bursting up with
       // them — and again a breath later where you ran to: out of it by a good stride, three times. Then every sword that fell
-      // rises and flies home to his hand, each down its own lit line (three lying behind you: one line through you and one
-      // 0.08–0.1 S to either side, the way out a gap between them or round them), and in his hand they are one: a great
-      // sword as wide as a third of the field, lit as they fly past you (wait for them, then run), brought down
+      // rises and goes home to his hand, each cutting its own lit way there in one stroke (homeCut, 11-27: three lying
+      // behind you, one way through you and one 0.09–0.11 S to either side, the way out a gap between them or round them),
+      // and in his hand they are one: a great sword as wide as a third of the field, lit as they go (wait for them, then run), brought down
       // through you. Every warning ≥ 0.8 s; out of each in any way but back into the one before; its dice all cast here.
       // (11-17 제작자: "장 순서에 맞게 세게" — a third storm, the storms closer together, and the great sword lit a breath
       // before the swords fly and down 0.8 s after: less time to run once they are by)
@@ -9107,7 +9107,7 @@ sdk.initializeAsync()
       G.warns = []; G.hazards = []; for (const c of G.cuts) c.checked = true;
       const act = o.act || 1, ez = (SL().lv || 0) < 9, hi = (SL().lv || 0) >= 11; // (o.act: FIN_ACTS)
       const turns = [rnd(0, Math.PI / 3), rnd(0, Math.PI / 3), rnd(0, Math.PI / 3)], tilts = []; for (let i = 0; i < 24; i++) tilts.push(rnd(-0.22, 0.22)); // (its dice, first:
-      const pass = [rnd(0.08, 0.1), rnd(0.08, 0.1)]; // bossBlink below throws ink only with motion on) (how far the side lines behind you pass you, each side, × S)
+      const pass = [rnd(0.09, 0.11), rnd(0.09, 0.11)]; // bossBlink below throws ink only with motion on) (how far the side lines behind you pass you, each side, × S; 11-27 a little wider, now they cut 0.035 S)
       const NS2 = ez ? 2 : hi ? 7 : 6; // (act two's storms, and their dice; act three's: the great sword's way, where you lie along it, which end its point)
       if (act === 2) { while (turns.length < NS2) turns.push(rnd(0, Math.PI / 3)); while (tilts.length < NS2 * 7 + 3) tilts.push(rnd(-0.22, 0.22)); }
       const d3 = act === 3 ? [rnd(0, Math.PI), rnd(0.38, 0.55), Math.random() < 0.5 ? 0 : Math.PI] : null;
@@ -9223,16 +9223,15 @@ sdk.initializeAsync()
           if (Math.hypot(x - P.x, y - P.y) > S * 0.14) { const h = plantSword(x, y, 9, true); h.tilt = tilts[NS * 7 + j]; planted.push(h); }
         });
         if (act === 2) for (const h of planted) if (h.storm < NS - 3) { h.gone = true; h.t = Math.max(h.t, h.dur - 0.25); } // (act two: only the last three storms' fly; the rest crumble)
-        let far = 0;
-        for (const h of planted) {
+        for (const h of planted) { // (11-27: each cuts its way to his hand in one stroke, homeCut — no blade in the air)
           if (h.t >= h.dur || h.gone) continue;
-          const ang = Math.atan2(ty - h.y, tx - h.x), range = Math.hypot(tx - h.x, ty - h.y); far = Math.max(far, range);
-          G.warns.push({ kind: "line", x: h.x, y: h.y, ang, t: 0, dur: FLY, delay: 0, fire(w) { h.t = h.dur; shoot("sword", w.x, w.y, w.ang, S * 1.7, { len: S * 0.12, r: S * 0.008, range }); if (!reduced) fxFlare(w.x, w.y, S * 0.03, glow, 0.2); } });
+          const ang = Math.atan2(ty - h.y, tx - h.x), range = Math.hypot(tx - h.x, ty - h.y);
+          G.warns.push({ kind: "band", x: h.x, y: h.y, ang, len: range, w: S * 0.035, t: 0, dur: FLY, delay: 0, fire(w) { h.t = h.dur; homeCut(w); if (!reduced) fxFlare(w.x, w.y, S * 0.03, glow, 0.2); } });
         }
         b.castT = b.castDur = 0.6; b.swing = { t: 0, ang: -Math.PI / 2 }; sfx.warn(); sfx.shing();
         if (!reduced) { fxFlare(tx, ty - u * 0.6, S * 0.05, steel, 0.5); fxWave(tx, ty, S * 0.4, fightTint(b.def), 0.5, S * 0.02); }
-        later(FLY, () => { sfx.whoosh(); sfx.shing(); }); // (they fly)
-        later(FLY + far / (S * 1.7), () => { const b = G.boss; if (b && !reduced) { const u = bossUnit(b.def); fxFlare(b.x, b.y + u * 0.2, S * 0.08, glow, 0.5); fxPillar(b.x, b.y + u * 2.2, u * 1.2, H * 0.5, steel, 0.5); } });
+        later(FLY, () => { sfx.whoosh(); sfx.shing(); sfx.slash(); G.shake = Math.max(G.shake, 10); buzz(20); flash("255,250,235", 0.28); }); // (they go)
+        later(FLY + 0.12, () => { const b = G.boss; if (b && !reduced) { const u = bossUnit(b.def); fxFlare(b.x, b.y + u * 0.2, S * 0.08, glow, 0.5); fxPillar(b.x, b.y + u * 2.2, u * 1.2, H * 0.5, steel, 0.5); } });
       });
       if (act === 2) return HOME + FLY + 0.7; // (act two: no great sword)
       // and in his hand they are one great sword, brought down through you
@@ -12005,11 +12004,12 @@ sdk.initializeAsync()
       if (c.t < 0) return true;
       if (!c.checked && G.mode === "play") {
         c.checked = true;
-        const d = distToLine(P.x, P.y, c.x, c.y, c.ang);
+        const ux = Math.cos(c.ang), uy = Math.sin(c.ang); // (c.len: a cut that stops, from (x, y) on along it — 11-27, the tomb's swords home to 검총주's hand)
+        const d = c.len ? segDist(P.x, P.y, c.x, c.y, c.x + ux * c.len, c.y + uy * c.len) : distToLine(P.x, P.y, c.x, c.y, c.ang);
         if (d < c.w / 2 + hit * 0.5 && !inv) { die(P.x, P.y, { cut: c }); return true; }
         if (d < c.w / 2 + near) { // the nearest point of the stroke's line, so the body is thrown off it
-          const sd = (P.x - c.x) * Math.sin(c.ang) - (P.y - c.y) * Math.cos(c.ang);
-          nearMiss(P.x - sd * Math.sin(c.ang), P.y + sd * Math.cos(c.ang));
+          if (c.len) { const s = clamp((P.x - c.x) * ux + (P.y - c.y) * uy, 0, c.len); nearMiss(c.x + ux * s, c.y + uy * s); }
+          else { const sd = (P.x - c.x) * Math.sin(c.ang) - (P.y - c.y) * Math.cos(c.ang); nearMiss(P.x - sd * Math.sin(c.ang), P.y + sd * Math.cos(c.ang)); }
         }
       }
       return c.t < 0.45;
@@ -12134,6 +12134,22 @@ sdk.initializeAsync()
       G.parts.push({ kind: "ink", x, y, vx: -uy * side * sp, vy: ux * side * sp, r: rnd(1.2, 3.5), life: rnd(0.3, 0.6), t: 0 });
     }
     G.decals.push({ line: true, x: w.x, y: w.y, ang: w.ang, w: Math.max(2, w.w * 0.1), t: 0, life: 2 });
+  }
+  // a sword of the tomb going home to 검총주's hand (萬劍歸宗, 萬劍歸一): its way cut at once, from where it lay to the hand
+  // (a cut that stops: len), the sword drawn flying it. Many go together, so the sound and the shake are the caller's, once.
+  // (11-27: no blade in the air any more — "작은 것은 원소 그림을 입혀도 표창으로 봐요")
+  function homeCut(w) {
+    G.cuts.push({ x: w.x, y: w.y, ang: w.ang, w: w.w, t: 0, checked: false, tint: CUT_STEEL, len: w.len });
+    G.decals.push({ line: true, x: w.x, y: w.y, ang: w.ang, w: Math.max(2, w.w * 0.1), t: 0, life: 2, len: w.len });
+    if (reduced) return;
+    const ux = Math.cos(w.ang), uy = Math.sin(w.ang), T = 0.12, L0 = S * 0.13;
+    fxSlash(w.x + ux * w.len / 2, w.y + uy * w.len / 2, w.ang, Math.max(S * 0.02, w.w * 0.55) * fxPow(), "#e3e6e8", 0.3, w.len);
+    G.parts.push({ kind: "fxsword", x: w.x, y: w.y, vx: ux * w.len / T, vy: uy * w.len / T, life: T, t: 0, keep: true, draw(p, al) {
+      ctx.translate(p.x, p.y); ctx.rotate(w.ang); ctx.globalAlpha = al;
+      ctx.fillStyle = "rgba(255,253,244,0.55)"; ctx.fillRect(-S * 0.22, -S * 0.004, S * 0.22, S * 0.008); // (its streak)
+      ctx.lineCap = "round"; ctx.strokeStyle = "#1d1a17"; ctx.lineWidth = S * 0.015; ctx.beginPath(); ctx.moveTo(-L0 * 0.4, 0); ctx.lineTo(L0 * 0.6, 0); ctx.stroke();
+      ctx.strokeStyle = "#c9ccce"; ctx.lineWidth = S * 0.009; ctx.stroke();
+    } });
   }
   function burstInk(x, y, n) {
     for (let i = 0; i < n; i++) {
@@ -14130,7 +14146,7 @@ sdk.initializeAsync()
       if (d.line) {
         ctx.save(); ctx.translate(d.x, d.y); ctx.rotate(d.ang);
         const L = Math.hypot(W, H) * 1.2;
-        ctx.fillRect(-L, -d.w / 2, L * 2, d.w);
+        if (d.len) ctx.fillRect(0, -d.w / 2, d.len, d.w); else ctx.fillRect(-L, -d.w / 2, L * 2, d.w);
         ctx.restore(); continue;
       }
       ctx.beginPath();
@@ -14180,18 +14196,19 @@ sdk.initializeAsync()
     } else if (w.kind === "band") { // the blade's path: its edges close in, a glint runs along it
       ctx.translate(w.x, w.y); ctx.rotate(w.ang);
       // its edges stay where the blade will cut (the whole band); the time left shows as faint lines closing in on the middle
-      const L = D * 1.2, half = (w.w / 2) * (1 - k * 0.85);
+      const L = D * 1.2, half = (w.w / 2) * (1 - k * 0.85), a0 = w.len ? 0 : -L, a1 = w.len || L; // (len: a blade's way that stops, from (x, y) on along it — 11-27, the tomb's swords home to 검총주's hand)
       // the last moment before it goes, it stops pulsing and its edges set hard: the way is fixed now
       const set = k >= 0.85;
-      ctx.fillStyle = `rgba(200,50,31,${0.06 + k * 0.16})`; ctx.fillRect(-L, -w.w / 2, L * 2, w.w);
+      ctx.fillStyle = `rgba(200,50,31,${0.06 + k * 0.16})`; ctx.fillRect(a0, -w.w / 2, a1 - a0, w.w);
       ctx.strokeStyle = `rgba(200,50,31,${set ? 0.95 : 0.45 + pulse * 0.45})`; ctx.lineWidth = set ? 2.5 : 1.8;
-      ctx.beginPath(); ctx.moveTo(-L, -w.w / 2); ctx.lineTo(L, -w.w / 2); ctx.moveTo(-L, w.w / 2); ctx.lineTo(L, w.w / 2); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(a0, -w.w / 2); ctx.lineTo(a1, -w.w / 2); ctx.moveTo(a0, w.w / 2); ctx.lineTo(a1, w.w / 2); ctx.stroke();
+      if (w.len) { ctx.beginPath(); ctx.moveTo(a0, -w.w / 2); ctx.lineTo(a0, w.w / 2); ctx.moveTo(a1, -w.w / 2); ctx.lineTo(a1, w.w / 2); ctx.stroke(); } // (its two ends shut: it stops there)
       ctx.strokeStyle = `rgba(200,50,31,${0.2 + k * 0.25})`; ctx.lineWidth = 1;
-      ctx.beginPath(); ctx.moveTo(-L, -half); ctx.lineTo(L, -half); ctx.moveTo(-L, half); ctx.lineTo(L, half); ctx.stroke();
-      const gx = -D * 0.6 + ((k * 2) % 1) * D * 1.2;
+      ctx.beginPath(); ctx.moveTo(a0, -half); ctx.lineTo(a1, -half); ctx.moveTo(a0, half); ctx.lineTo(a1, half); ctx.stroke();
+      const gx = w.len ? ((k * 2) % 1) * w.len : -D * 0.6 + ((k * 2) % 1) * D * 1.2, g0 = w.len ? Math.max(0, gx - S * 0.3) : gx - S * 0.3;
       const g = ctx.createLinearGradient(gx - S * 0.3, 0, gx, 0);
       g.addColorStop(0, "rgba(255,250,235,0)"); g.addColorStop(1, "rgba(255,250,235,0.95)");
-      ctx.fillStyle = g; ctx.fillRect(gx - S * 0.3, -1.5, S * 0.3, 3);
+      ctx.fillStyle = g; ctx.fillRect(g0, -1.5, gx - g0, 3);
     } else if (w.kind === "ring") { // the burst point, and every line a kunai will fly along — stand between them
       const r = S * 0.07;
       for (let i = 0; i < w.n; i++) {
@@ -14553,15 +14570,16 @@ sdk.initializeAsync()
     const k = c.t / 0.45;
     ctx.save(); ctx.translate(c.x, c.y); ctx.rotate(c.ang);
     const L = Math.hypot(W, H) * 1.2, bl = c.fin ? gearOf("blade") : null; // (fin: a stage's or a boss's last cut, 칼빛's to colour)
+    const a0 = c.len ? 0 : -L, a1 = c.len || L, st = (a1 - a0) / 60; // (len: a cut that stops)
     // the blade's white flash, then a brush stroke of ink that dries
-    if (k < 0.3) { ctx.fillStyle = `rgba(${bl ? bl.core : "255,252,240"},${1 - k / 0.3})`; ctx.fillRect(-L, -c.w * 0.7, L * 2, c.w * 1.4); }
+    if (k < 0.3) { ctx.fillStyle = `rgba(${bl ? bl.core : "255,252,240"},${1 - k / 0.3})`; ctx.fillRect(a0, -c.w * 0.7, a1 - a0, c.w * 1.4); }
     ctx.fillStyle = `rgba(${bl ? bl.ink : c.tint || "29,26,23"},${0.85 * (1 - k)})`; // ink, or the colour of whatever cut
     ctx.beginPath();
-    ctx.moveTo(-L, -c.w * 0.08);
-    for (let x = -L; x <= L; x += L / 30) ctx.lineTo(x, -c.w * (0.06 + 0.06 * Math.sin(x * 0.03)));
-    for (let x = L; x >= -L; x -= L / 30) ctx.lineTo(x, c.w * (0.06 + 0.06 * Math.cos(x * 0.02)));
+    ctx.moveTo(a0, -c.w * 0.08);
+    for (let x = a0; x <= a1; x += st) ctx.lineTo(x, -c.w * (0.06 + 0.06 * Math.sin(x * 0.03)));
+    for (let x = a1; x >= a0; x -= st) ctx.lineTo(x, c.w * (0.06 + 0.06 * Math.cos(x * 0.02)));
     ctx.closePath(); ctx.fill();
-    if (k < 0.22) { ctx.fillStyle = bl ? `rgba(${bl.glow},${0.8 * (1 - k / 0.22)})` : `rgba(200,50,31,${0.8 * (1 - k / 0.22)})`; ctx.fillRect(-L, -1, L * 2, 2); } // a red edge on the stroke (gone at once: the next band may be laid right here)
+    if (k < 0.22) { ctx.fillStyle = bl ? `rgba(${bl.glow},${0.8 * (1 - k / 0.22)})` : `rgba(200,50,31,${0.8 * (1 - k / 0.22)})`; ctx.fillRect(a0, -1, a1 - a0, 2); } // a red edge on the stroke (gone at once: the next band may be laid right here)
     ctx.restore();
   }
 
