@@ -290,7 +290,7 @@
       <div class="lvl" id="stageLvl" style="display:none" role="group" aria-label="스테이지 난이도">
         <span>스테이지 난이도</span><button type="button" data-lvl="easy" aria-pressed="false">쉬움</button><button type="button" data-lvl="normal" aria-pressed="true">보통</button><button type="button" data-lvl="master" aria-pressed="false">어려움</button>
       </div>
-      <button class="link" id="stageNew" hidden>스테이지 1-1부터</button>
+      <button class="link" id="bossAgain" hidden>지난 보스 다시하기</button>
       <button class="link" id="devOpen" hidden>개발자 모드: 보스 비기 보기</button>
       <button class="link" id="devPatOpen" hidden>개발자 모드: 패턴 보기</button>
       <label class="dev-inv dev-inv--start" id="stageInvRow" hidden><input type="checkbox" id="stageInv" checked> 스테이지모드 무적 (보상 없음)</label>
@@ -15427,7 +15427,7 @@ sdk.initializeAsync()
     const from = devPick() ?? stageTop();
     $("stageSub").textContent = from > 0 ? `${stageDef(from).label}부터` : "1-1부터"; // (11-24: one difficulty, so it isn't named)
     $("stageSub").hidden = false;
-    $("stageNew").hidden = from === 0;
+    $("bossAgain").hidden = !bossMet(0); // (11-27: once a boss is met)
     lvlButtons("stageLvl", stageLevel);
   }
   // a difficulty row: the chosen one lit
@@ -15438,7 +15438,6 @@ sdk.initializeAsync()
     stageLevel = b.dataset.lvl; store.set("stageLv", stageLevel); stageMemo.clear(); stageLabels();
   });
   $("goStage").addEventListener("click", () => { begin(); const p = devPick(); startStage(p ?? stageTop(), p != null); });
-  $("stageNew").addEventListener("click", () => { begin(); startStage(0); });
   stageLabels();
   // 개발자 모드: only with ?dev in the address
   $("devOpen").hidden = !DEV; $("devPatOpen").hidden = !DEV; $("stageInvRow").hidden = !DEV; $("stagePickRow").hidden = !DEV;
@@ -15457,8 +15456,8 @@ sdk.initializeAsync()
   let bossLevel = ONE_LEVEL; // (11-24: 어려움 only, ONE_LEVEL)
   const BOSS_PAY = { easy: 0.5, normal: 1, master: 1.5 }, BOSS_NOTE = $("bossNote").textContent;
   const bossWins = (() => { try { return JSON.parse(store.get("bossWins", "{}")) || {}; } catch { return {}; } })();
-  const furthest = () => Math.max(0, ...Object.values(STAGE_LEVELS).map((l) => Number(store.get(l.top, "0")) || 0));
-  const bossMet = (i) => furthest() >= i * 5 + 4; // its X-5 reached
+  function furthest() { return Math.max(0, ...Object.values(STAGE_LEVELS).map((l) => Number(store.get(l.top, "0")) || 0)); }
+  function bossMet(i) { return furthest() >= i * 5 + 4; } // its X-5 reached (declared, not const: stageLabels asks before here)
   function renderBoss() {
     const list = $("bossList"); list.replaceChildren();
     const met = BOSS_SET.filter((d, i) => bossMet(i)).length;
@@ -15494,8 +15493,13 @@ sdk.initializeAsync()
     bossLevel = b.dataset.lvl; store.set("bossLv", bossLevel); bossLabels();
   });
   bossLabels();
-  // (11-25: 보스전 is off the menu, its button gone; the screen and its list stay, unreachable, with the wins kept in bossWins)
-  $("bossClose").addEventListener("click", () => { $("boss").hidden = true; $("start").hidden = false; });
+  // (11-25: 보스전 went off the menu; 11-27 제작자 "스테이지 1-1부터가 아니라 이거 지난 보스 다시하기로 변경하자": it is
+  // back as the small link under the modes, where 스테이지 1-1부터 was, once a boss has been met)
+  $("bossAgain").addEventListener("click", () => {
+    bossLabels(); $("bossNote").textContent = BOSS_NOTE;
+    renderBoss(); $("start").hidden = true; $("boss").hidden = false;
+  });
+  $("bossClose").addEventListener("click", () => { $("boss").hidden = true; $("start").hidden = false; stageLabels(); });
   $("again").addEventListener("click", () => adBreak(() => {
     if (G.stageRun) { begin(); return startStage(G.sg, G.stagePicked); } // the stage you fell in, from its start
     if (!G.story) return startEndless(G.kind);
